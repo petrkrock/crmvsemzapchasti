@@ -249,10 +249,6 @@ function handleMassStatus() {
   function handleAddBuyer(e: React.FormEvent) {
     e.preventDefault();
     const u = getCurrentUser()!; const now = new Date().toISOString();
-    // ТЗ 1.8: автопоиск дублей внутри базы покупателей (ИНН/телефон/email) — дубль сразу в «Архив дублей»
-    const pre: Buyer = { id: '', inn: newForm.inn, phone: newForm.phone, email: newForm.email } as Buyer;
-    const dup = findDuplicate(pre, store.buyers);
-    if (dup) setNewForm(f => ({ ...f, status: 'Архив дублей' }));
     const buyer: Buyer = {
       id: generateId(), type: newForm.type || 'магазин',
       tradeName: newForm.tradeName || '', city: newForm.city || '',
