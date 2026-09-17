@@ -1,0 +1,700 @@
+import { useState, useMemo } from 'react';
+import { getStore, useStoreVersion } from '@/lib/store';
+import { exportToCSV } from '@/lib/utils';
+import MarketVolumeTab from './MarketVolumeTab';
+import { canExport } from '@/lib/auth';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Calendar, Download, Building, Users, Package, Hash, Star, Video, BarChart2 } from 'lucide-react';
+import { COMPANY_SCORE_COLORS } from '@/constants';
+
+// Склады/SKU считаются из warehouseLocations (полей warehouseCount/skuCount у поставщика нет)
+// Замороженные склады не участвуют в аналитике (считаются несуществующими)
+const whCountOf = (s: any) => (s.warehouseLocations || []).filter((w: any) => w.status !== 'Заморожен').length;
+const skuTotalOf = (s: any) => (s.warehouseLocations || []).filter((w: any) => w.status !== 'Заморожен').reduce((sum: number, w: any) => sum + (w.skuCount || 0), 0);
+
+const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#6B7280', '#14B8A6', '#F97316'];
+const PERIODS = [
+  { key: 'day', label: 'Текущий день' }, { key: 'week', label: 'Текущая неделя' }, { key: 'month', label: 'Текущий месяц' },
+  { key: 'quarter', label: 'Квартал' }, { key: 'half', label: 'Полугодие' }, { key: 'year', label: 'Текущий год' },
+  { key: 'custom', label: 'Произвольный' },
+];
+const ANALYTICS_TABS = ['Общая статистика', 'Скоринг поставщиков', 'Оценка компаний', 'Статистика медиа', 'Статистика сервисов', 'Статистика пользователей', 'Объём рынка'];
+
+function getPeriodRange(period: string): { from: Date; to: Date } {
+  // Календарные периоды (ТЗ): день=сегодня, неделя=пн–вс, месяц=текущий,
+  // квартал/полугодие — как у налоговой, год=текущий календарный.
+  const now = new Date();
+  const y = now.getFullYear(); const m = now.getMonth();
+  let from: Date; let to: Date;
+  if (period === 'day') { from = new Date(y, m, now.getDate()); to = new Date(y, m, now.getDate(), 23, 59, 59); }
+  else if (period === 'week') { const dow = (now.getDay() + 6) % 7; from = new Date(y, m, now.getDate() - dow); to = new Date(y, m, now.getDate() - dow + 6, 23, 59, 59); }
+  else if (period === 'month') { from = new Date(y, m, 1); to = new Date(y, m + 1, 0, 23, 59, 59); }
+  else if (period === 'quarter') { const q = Math.floor(m / 3) * 3; from = new Date(y, q, 1); to = new Date(y, q + 3, 0, 23, 59, 59); }
+  else if (period === 'half') { const h = m < 6 ? 0 : 6; from = new Date(y, h, 1); to = new Date(y, h + 6, 0, 23, 59, 59); }
+  else { from = new Date(y, 0, 1); to = new Date(y, 11, 31, 23, 59, 59); }
+  return { from, to };
+}
+
+function formatRub(val: number) { return val.toLocaleString('ru-RU') + ' ₽'; }
+
+function ScoreDistribution({ data, title }: { data: { score: number; count: number }[]; title: string }) {
+  return (
+    <div className="card-base p-4">
+      <h3 className="section-title mb-4">{title}</h3>
+      <div className="space-y-2">
+        {data.map(({ score, count }) => {
+          const cfg = COMPANY_SCORE_COLORS[score] || COMPANY_SCORE_COLORS[0];
+          const total = data.reduce((s, d) => s + d.count, 0);
+          return (
+            <div key={score} className="flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold flex-shrink-0" style={{ background: cfg.bg, color: cfg.text }}>{cfg.label}</span>
+              <div className="flex-1">
+                <div className="flex justify-between text-xs mb-0.5"><span>Оценка {score}</span><span className="font-medium">{count}</span></div>
+                <div className="h-1.5 bg-brand-gray rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: total > 0 ? `${(count / total) * 100}%` : '0%', background: cfg.text }} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {data.every(d => d.count === 0) && <p className="text-center text-gray-400 text-sm py-4">Нет данных</p>}
+      </div>
+    </div>
+  );
+}
+
+// Period filter for media/services tabs
+function PeriodFilter({ period, setPeriod, customFrom, setCustomFrom, customTo, setCustomTo }: {
+  period: string; setPeriod: (v: string) => void;
+  customFrom: string; setCustomFrom: (v: string) => void;
+  customTo: string; setCustomTo: (v: string) => void;
+}) {
+  const MEDIA_PERIODS = [
+    { key: 'half', label: 'Полугодие' }, { key: 'year', label: 'Год' }, { key: 'custom', label: 'Произвольный' },
+  ];
+  return (
+    <div className="flex flex-wrap gap-2 items-center mb-4">
+      {MEDIA_PERIODS.map(p => (
+        <button key={p.key} onClick={() => setPeriod(p.key)}
+          className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${period === p.key ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>
+          {p.label}
+        </button>
+      ))}
+      {period === 'custom' && (
+        <>
+          <input type="date" className="form-input py-1.5 text-xs w-auto" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+          <span className="text-xs text-gray-400">—</span>
+          <input type="date" className="form-input py-1.5 text-xs w-auto" value={customTo} onChange={e => setCustomTo(e.target.value)} />
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function AnalyticsPage() {
+  useStoreVersion(); // re-render on real-time changes from other users (see src/lib/realtime.ts)
+  const store = getStore();
+  const [period, setPeriod] = useState('month');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [analyticsTab, setAnalyticsTab] = useState('Общая статистика');
+  const [scoringFilterStatus, setScoringFilterStatus] = useState('');
+  const [scoringFilterCity, setScoringFilterCity] = useState('');
+  const [scoringFilterSupplier, setScoringFilterSupplier] = useState('');
+  const [mediaPeriod, setMediaPeriod] = useState('year');
+  const [mediaCustomFrom, setMediaCustomFrom] = useState('');
+  const [mediaCustomTo, setMediaCustomTo] = useState('');
+
+  const { from, to } = useMemo(() => {
+    if (period === 'custom' && customFrom && customTo) return { from: new Date(customFrom), to: new Date(customTo + 'T23:59:59') };
+    return getPeriodRange(period);
+  }, [period, customFrom, customTo]);
+
+  const { from: mediaFrom, to: mediaTo } = useMemo(() => {
+    if (mediaPeriod === 'custom' && mediaCustomFrom && mediaCustomTo) return { from: new Date(mediaCustomFrom), to: new Date(mediaCustomTo + 'T23:59:59') };
+    return getPeriodRange(mediaPeriod);
+  }, [mediaPeriod, mediaCustomFrom, mediaCustomTo]);
+
+  const inRange = (dateStr: string) => { const d = new Date(dateStr); return d >= from && d <= to; };
+  const suppliers = store.suppliers.filter(s => !s.deletedAt && inRange(s.createdAt));
+  const buyers = store.buyers.filter(b => !b.deletedAt && inRange(b.createdAt));
+  const allActiveSuppliers = store.suppliers.filter(s => !s.deletedAt);
+  const allActiveBuyers = store.buyers.filter(b => !b.deletedAt);
+
+  const suppliersByStatus = suppliers.reduce<Record<string, number>>((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
+  const buyersByStatus = buyers.reduce<Record<string, number>>((acc, b) => { acc[b.status] = (acc[b.status] || 0) + 1; return acc; }, {});
+  const buyersByCity = buyers.reduce<Record<string, number>>((acc, b) => { if (b.city) acc[b.city] = (acc[b.city] || 0) + 1; return acc; }, {});
+  const buyerCityData = Object.entries(buyersByCity).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, value]) => ({ name, value }));
+  const buyersByType = buyers.reduce<Record<string, number>>((acc, b) => { acc[b.type] = (acc[b.type] || 0) + 1; return acc; }, {});
+  const suppliersByType = suppliers.reduce<Record<string, number>>((acc, s) => { acc[s.type] = (acc[s.type] || 0) + 1; return acc; }, {});
+  const supplierSources = suppliers.reduce<Record<string, number>>((acc, s) => { if (s.source) acc[s.source] = (acc[s.source] || 0) + 1; return acc; }, {});
+  const buyerSources = buyers.reduce<Record<string, number>>((acc, b) => { if (b.source) acc[b.source] = (acc[b.source] || 0) + 1; return acc; }, {});
+  const sourceData = [...new Set([...Object.keys(supplierSources), ...Object.keys(buyerSources)])].map(src => ({ name: src, suppliers: supplierSources[src] || 0, buyers: buyerSources[src] || 0 }));
+
+  const scoringCities = useMemo(() => [...new Set(allActiveSuppliers.map(s => s.city).filter(Boolean))].sort(), [allActiveSuppliers]);
+  const SUPPLIER_STATUSES_LIST = useMemo(() => store.settings.statuses.filter(s => s.entityTypes.includes('supplier')).map(s => s.name), [store.settings.statuses]);
+
+  const scoringSuppliers = useMemo(() => {
+    let list = allActiveSuppliers;
+    if (scoringFilterStatus) list = list.filter(s => s.status === scoringFilterStatus);
+    if (scoringFilterCity) list = list.filter(s => s.city === scoringFilterCity);
+    return list;
+  }, [allActiveSuppliers, scoringFilterStatus, scoringFilterCity]);
+
+  const scoringStats = useMemo(() => {
+    let totalRevenue = 0, totalEmployees = 0, totalWarehouses = 0, totalSKU = 0, withScoring = 0, withoutScoring = 0, revenueCount = 0;
+    scoringSuppliers.forEach(s => {
+      const hasAny = s.scoring?.annualRevenue || s.scoring?.employees || whCountOf(s) || skuTotalOf(s);
+      if (hasAny) withScoring++; else withoutScoring++;
+      if (s.scoring?.annualRevenue) { const r = parseFloat(s.scoring.annualRevenue); if (!isNaN(r) && r > 0) { totalRevenue += r; revenueCount++; } }
+      if (s.scoring?.employees) { const e = parseFloat(s.scoring.employees); if (!isNaN(e) && e > 0) totalEmployees += e; }
+      if (whCountOf(s)) totalWarehouses += whCountOf(s);
+      if (skuTotalOf(s)) totalSKU += skuTotalOf(s);
+    });
+    return { totalRevenue, totalEmployees, totalWarehouses, totalSKU, withScoring, withoutScoring, revenueCount, avgRevenue: revenueCount > 0 ? totalRevenue / revenueCount : 0 };
+  }, [scoringSuppliers]);
+
+  const scoringTableData = scoringSuppliers
+    .filter(s => !scoringFilterSupplier || (s.tradeName || '').toLowerCase().includes(scoringFilterSupplier.toLowerCase()))
+    .filter(s => s.scoring?.annualRevenue || s.scoring?.employees || whCountOf(s) || skuTotalOf(s));
+
+  function exportScoringData() {
+    exportToCSV(scoringTableData.flatMap(s => (s.warehouseLocations || []).filter((w: any) => w.status !== 'Заморожен').map(w => ({
+      'Поставщик (название)': s.tradeName,
+      'Город (название) склада': w.city,
+      'SKU': w.skuCount || 0,
+    }))), `scoring_${Date.now()}.csv`);
+  }
+
+  const supplierScoreData = useMemo(() => Array.from({ length: 11 }, (_, i) => 10 - i).map(score => ({ score, count: allActiveSuppliers.filter(s => Math.round(s.companyScore || 0) === score).length })), [allActiveSuppliers]);
+  const buyerScoreData = useMemo(() => Array.from({ length: 11 }, (_, i) => 10 - i).map(score => ({ score, count: allActiveBuyers.filter(b => Math.round(b.companyScore || 0) === score).length })), [allActiveBuyers]);
+  const avgSupplierScore = allActiveSuppliers.length > 0 ? (allActiveSuppliers.reduce((s, sup) => s + (sup.companyScore || 0), 0) / allActiveSuppliers.length).toFixed(1) : '—';
+  const avgBuyerScore = allActiveBuyers.length > 0 ? (allActiveBuyers.reduce((s, b) => s + (b.companyScore || 0), 0) / allActiveBuyers.length).toFixed(1) : '—';
+
+  // ── MEDIA STATS ──────────────────────────────────────────
+  // ── СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ (ТЗ) ──
+  const usersRange = useMemo(() => {
+    if (period === 'custom' && customFrom && customTo) return { from: new Date(customFrom), to: new Date(customTo) };
+    return getPeriodRange(period);
+  }, [period, customFrom, customTo]);
+  const uFrom = usersRange.from.toISOString().slice(0, 10);
+  const uTo = usersRange.to.toISOString().slice(0, 10);
+
+  const usersStats = useMemo(() => {
+    const users = store.settings.users.filter(u => u.status === 'active');
+    const rows = users.map(u => {
+      const inRange = (d?: string) => !!d && d.slice(0, 10) >= uFrom && d.slice(0, 10) <= uTo;
+      const suppliers = store.suppliers.filter(s => !s.deletedAt && s.responsibleId === u.id && inRange(s.createdAt)).length;
+      const buyers = store.buyers.filter(b => !b.deletedAt && b.responsibleId === u.id && inRange(b.createdAt)).length;
+      // План/факт: по записям План/Факт, где пользователь назначен ответственным
+      const plans = (store.settings.planFact || []).filter(e =>
+        !e.deletedAt && e.responsibleId === u.id && e.startDate <= uTo && e.endDate >= uFrom);
+      // План/факт: записи planFact уже мигрированы на kind + plan (см. store.ts)
+      const planTotal = plans.reduce((s, e) => s + (e.plan || 0), 0);
+      let factTotal = 0;
+      for (const e of plans) {
+        const list = e.kind === 'buyers' ? store.buyers : store.suppliers;
+        factTotal += list.filter(x => !x.deletedAt && (!e.cityName || x.city === e.cityName)
+          && !!x.createdAt && x.createdAt.slice(0, 10) >= e.startDate && x.createdAt.slice(0, 10) <= e.endDate).length;
+      }
+      const pct = planTotal ? Math.round((factTotal / planTotal) * 100) : null;
+      return {
+        id: u.id,
+        name: u.name + (u.note ? ` (${u.note})` : ''),
+        roleLabel: u.role === 'admin' ? 'Администратор' : 'Менеджер',
+        suppliers, buyers, total: suppliers + buyers, pct,
+      };
+    });
+    return {
+      rows,
+      total: users.length,
+      admins: users.filter(u => u.role === 'admin').length,
+      managers: users.filter(u => u.role === 'manager').length,
+    };
+  }, [store.settings.users, store.suppliers, store.buyers, store.settings.planFact, uFrom, uTo]);
+
+  function usersPctColor(pct: number | null): string {
+    if (pct === null) return 'text-gray-300';
+    if (pct >= 100) return 'text-green-600';
+    if (pct >= 80) return 'text-yellow-600';
+    return 'text-red-500';
+  }
+
+
+
+  /** Выгрузка отчёта в Excel (CSV с BOM — открывается в Excel как есть). */
+  function exportUsersStats() {
+    exportToCSV(usersStats.rows.map(r => ({
+      'Пользователь': r.name,
+      'Роль': r.roleLabel,
+      'Поставщики (ответственный)': r.suppliers,
+      'Покупатели (ответственный)': r.buyers,
+      'Всего объектов': r.total,
+      'План/Факт %': r.pct !== null ? r.pct : '',
+    })), `users_stats_${uFrom}_${uTo}.csv`);
+  }
+
+  const mediaRecords = useMemo(() => {
+    return (store.mediaRecords || []).filter(r => !r.deletedAt && r.status !== 'Анулирован');
+  }, [store.mediaRecords]);
+
+  const mediaInRange = useMemo(() => {
+    return mediaRecords.filter(r => {
+      const d = new Date(r.createdAt);
+      return d >= mediaFrom && d <= mediaTo;
+    });
+  }, [mediaRecords, mediaFrom, mediaTo]);
+
+  const activeMediaRecords = useMemo(() => mediaRecords.filter(r => r.status === 'Активен на платформе'), [mediaRecords]);
+
+  // Potential monthly revenue: sum(adType.spotsCount * adType.pricePerMonth) for all ad types
+  const potentialMonthlyRevenue = useMemo(() => {
+    return (store.settings.mediaAdTypes || []).reduce((sum, at) => sum + at.spotsCount * at.pricePerMonth, 0);
+  }, [store.settings.mediaAdTypes]);
+
+  // Actual revenue: active records
+  const actualMonthlyRevenue = useMemo(() => activeMediaRecords.reduce((sum, r) => sum + (r.pricePerMonth || 0), 0), [activeMediaRecords]);
+  const actualTotalRevenue = useMemo(() => activeMediaRecords.reduce((sum, r) => sum + (r.totalPrice || 0), 0), [activeMediaRecords]);
+
+  // All placed revenue (not cancelled, all time)
+  const placedTotalRevenue = useMemo(() => mediaRecords.reduce((sum, r) => sum + (r.totalPrice || 0), 0), [mediaRecords]);
+
+  // By status
+  const mediaByStatus = useMemo(() => {
+    return mediaRecords.reduce<Record<string, number>>((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
+  }, [mediaRecords]);
+
+  // By ad type
+  const mediaByAdType = useMemo(() => {
+    return mediaRecords.reduce<Record<string, { count: number; revenue: number }>>((acc, r) => {
+      if (!acc[r.adTypeName]) acc[r.adTypeName] = { count: 0, revenue: 0 };
+      acc[r.adTypeName].count++;
+      acc[r.adTypeName].revenue += r.totalPrice || 0;
+      return acc;
+    }, {});
+  }, [mediaRecords]);
+
+  // Spots usage per ad type
+  const spotsUsage = useMemo(() => {
+    return (store.settings.mediaAdTypes || []).map(at => {
+      const activeCount = mediaRecords.filter(r => r.adTypeId === at.id && r.status === 'Активен на платформе').length;
+      return { name: at.name, total: at.spotsCount, used: activeCount, available: at.spotsCount - activeCount };
+    });
+  }, [store.settings.mediaAdTypes, mediaRecords]);
+
+  // ── SERVICES STATS ───────────────────────────────────────
+  const BASE_SERVICES = ['DBS', 'FBS', 'FBO', 'MEDIA'];
+  const allServices = useMemo(() => {
+    const fromSettings = (store.settings.supplierServices || []).map(s => s.name);
+    return [...new Set([...BASE_SERVICES, ...fromSettings])];
+  }, [store.settings.supplierServices]);
+
+  const serviceStats = useMemo(() => {
+    return allServices.map(svc => {
+      const count = allActiveSuppliers.filter(s => (s.services || []).includes(svc)).length;
+      const pct = allActiveSuppliers.length > 0 ? ((count / allActiveSuppliers.length) * 100).toFixed(1) : '0';
+      return { name: svc, count, pct };
+    }).sort((a, b) => b.count - a.count);
+  }, [allServices, allActiveSuppliers]);
+
+  const serviceChartData = serviceStats.map(s => ({ name: s.name, Поставщиков: s.count }));
+
+  // Suppliers with multiple services
+  const multiServiceSuppliers = allActiveSuppliers.filter(s => (s.services || []).length >= 2);
+  const noServiceSuppliers = allActiveSuppliers.filter(s => !s.services || s.services.length === 0);
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <h1 className="page-title">Аналитика</h1>
+
+      <div className="card-base overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-brand-gray-mid">
+          {ANALYTICS_TABS.map(t => (
+            <button key={t} onClick={() => setAnalyticsTab(t)}
+              className={`tab-button flex-shrink-0 ${analyticsTab === t ? 'tab-active' : 'tab-inactive'}`}>{t}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-4 sm:p-6">
+
+          {/* ── ОБЩАЯ СТАТИСТИКА ── */}
+          {analyticsTab === 'Общая статистика' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="section-title mb-3 flex items-center gap-2"><Calendar size={16} className="text-brand-red" /> Период</h2>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {PERIODS.map(p => <button key={p.key} onClick={() => setPeriod(p.key)} className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${period === p.key ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>{p.label}</button>)}
+                </div>
+                {period === 'custom' && (
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <div><label className="form-label">От</label><input type="date" className="form-input" value={customFrom} onChange={e => setCustomFrom(e.target.value)} /></div>
+                    <div><label className="form-label">До</label><input type="date" className="form-input" value={customTo} onChange={e => setCustomTo(e.target.value)} /></div>
+                  </div>
+                )}
+                <p className="text-xs text-gray-400 mt-2">{from.toLocaleDateString('ru-RU')} — {to.toLocaleDateString('ru-RU')}</p>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Поставщиков добавлено', value: suppliers.length, color: 'text-blue-600' },
+                  { label: 'Покупателей добавлено', value: buyers.length, color: 'text-green-600' },
+                  { label: 'Активных поставщиков', value: suppliers.filter(s => s.status === 'Активный').length, color: 'text-emerald-600' },
+                  { label: 'Активных покупателей', value: buyers.filter(b => b.status === 'Активный').length, color: 'text-emerald-600' },
+                ].map(stat => (
+                  <div key={stat.label} className="stat-card"><p className="text-xs text-gray-500">{stat.label}</p><p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p></div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="card-base p-4"><h3 className="section-title mb-4">Поставщики по статусам</h3>{Object.keys(suppliersByStatus).length > 0 ? <ResponsiveContainer width="100%" height={200}><PieChart><Pie data={Object.entries(suppliersByStatus).map(([name, value]) => ({ name, value }))} dataKey="value" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>{Object.keys(suppliersByStatus).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer> : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}</div>
+                <div className="card-base p-4"><h3 className="section-title mb-4">Покупатели по статусам</h3>{Object.keys(buyersByStatus).length > 0 ? <ResponsiveContainer width="100%" height={200}><PieChart><Pie data={Object.entries(buyersByStatus).map(([name, value]) => ({ name, value }))} dataKey="value" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>{Object.keys(buyersByStatus).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer> : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}</div>
+                <div className="card-base p-4"><h3 className="section-title mb-4">Покупатели по городам (топ-10)</h3>{buyerCityData.length > 0 ? <ResponsiveContainer width="100%" height={220}><BarChart data={buyerCityData} layout="vertical" margin={{ left: 20 }}><XAxis type="number" fontSize={10} /><YAxis dataKey="name" type="category" fontSize={10} width={80} /><Tooltip /><Bar dataKey="value" fill="#3B82F6" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer> : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}</div>
+                <div className="card-base p-4"><h3 className="section-title mb-4">Каналы привлечения</h3>{sourceData.length > 0 ? <ResponsiveContainer width="100%" height={220}><BarChart data={sourceData} margin={{ bottom: 20 }}><XAxis dataKey="name" fontSize={9} angle={-20} textAnchor="end" /><YAxis fontSize={10} /><Tooltip /><Legend fontSize={10} /><Bar dataKey="suppliers" name="Поставщики" fill="#3B82F6" radius={[4, 4, 0, 0]} /><Bar dataKey="buyers" name="Покупатели" fill="#10B981" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer> : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}</div>
+                <div className="card-base p-4"><h3 className="section-title mb-4">Поставщики по типам</h3>{Object.keys(suppliersByType).length > 0 ? <div className="space-y-2">{Object.entries(suppliersByType).map(([name, value], i) => <div key={name} className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} /><div className="flex-1"><div className="flex justify-between text-xs mb-0.5"><span>{name}</span><span className="font-medium">{value}</span></div><div className="h-1.5 bg-brand-gray rounded-full"><div className="h-full rounded-full" style={{ width: suppliers.length > 0 ? `${(value / suppliers.length) * 100}%` : '0%', background: COLORS[i % COLORS.length] }} /></div></div></div>)}</div> : <p className="text-center text-gray-400 py-4 text-sm">Нет данных</p>}</div>
+                <div className="card-base p-4"><h3 className="section-title mb-4">Покупатели по типам</h3>{Object.keys(buyersByType).length > 0 ? <div className="space-y-2">{Object.entries(buyersByType).map(([name, value], i) => <div key={name} className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} /><div className="flex-1"><div className="flex justify-between text-xs mb-0.5"><span>{name}</span><span className="font-medium">{value}</span></div><div className="h-1.5 bg-brand-gray rounded-full"><div className="h-full rounded-full" style={{ width: buyers.length > 0 ? `${(value / buyers.length) * 100}%` : '0%', background: COLORS[i % COLORS.length] }} /></div></div></div>)}</div> : <p className="text-center text-gray-400 py-4 text-sm">Нет данных</p>}</div>
+              </div>
+              {/* ── ПОСТАВЩИКИ С СТМ ── */}
+              <div className="card-base p-4">
+                <h3 className="section-title mb-4">Поставщики с СТМ</h3>
+                {(() => {
+                  const stmList = store.suppliers.filter(s => !s.deletedAt && (s.ownBrands || []).length > 0);
+                  if (!stmList.length) return <p className="text-center text-gray-400 py-4 text-sm">Нет поставщиков с заполненным СТМ</p>;
+                  return (
+                    <div className="table-scroll"><table className="w-full">
+                      <thead><tr className="border-b border-brand-gray-mid">
+                        <th className="table-header text-left">Поставщик</th>
+                        <th className="table-header text-left">Город</th>
+                        <th className="table-header text-left">СТМ (бренды)</th>
+                      </tr></thead>
+                      <tbody>
+                        {stmList.map(s => (
+                          <tr key={s.id} className="border-b border-brand-gray-mid last:border-0">
+                            <td className="table-cell font-medium">{s.tradeName}</td>
+                            <td className="table-cell text-xs text-gray-500">{s.city}</td>
+                            <td className="table-cell text-xs">{s.ownBrands.join(', ')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table></div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* ── СКОРИНГ ПОСТАВЩИКОВ ── */}
+          {analyticsTab === 'Скоринг поставщиков' && (
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="section-title flex-1">Данные скоринга поставщиков</h2>
+                <select className="form-input py-1.5 text-xs w-auto" value={scoringFilterSupplier} onChange={e => setScoringFilterSupplier(e.target.value)}><option value="">Все поставщики</option>{scoringSuppliers.map(s => <option key={s.id} value={s.tradeName}>{s.tradeName}</option>)}</select>
+          <select className="form-input py-1.5 text-xs w-auto" value={scoringFilterStatus} onChange={e => setScoringFilterStatus(e.target.value)}><option value="">Все статусы</option>{SUPPLIER_STATUSES_LIST.map(s => <option key={s}>{s}</option>)}</select>
+                <select className="form-input py-1.5 text-xs w-auto" value={scoringFilterCity} onChange={e => setScoringFilterCity(e.target.value)}><option value="">Все города</option>{scoringCities.map(c => <option key={c}>{c}</option>)}</select>
+                {canExport() && scoringTableData.length > 0 && <button onClick={exportScoringData} className="btn-secondary text-xs"><Download size={14} /> Выгрузить</button>}
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="stat-card border-blue-200"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><Building size={16} className="text-blue-600" /></div><p className="text-xs text-gray-500">Общий оборот</p></div>{scoringStats.totalRevenue > 0 ? <p className="text-lg font-bold text-brand-black">{formatRub(scoringStats.totalRevenue)}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</div>
+                <div className="stat-card border-green-200"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Users size={16} className="text-green-600" /></div><p className="text-xs text-gray-500">Всего сотрудников</p></div>{scoringStats.totalEmployees > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalEmployees.toLocaleString('ru')}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</div>
+                <div className="stat-card border-yellow-200"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center"><Package size={16} className="text-yellow-600" /></div><p className="text-xs text-gray-500">Всего складов</p></div>{scoringStats.totalWarehouses > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalWarehouses}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</div>
+                <div className="stat-card border-purple-200"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><Hash size={16} className="text-purple-600" /></div><p className="text-xs text-gray-500">Всего SKU</p></div>{scoringStats.totalSKU > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalSKU.toLocaleString('ru')}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</div>
+              </div>
+              {scoringTableData.length === 0 ? <p className="text-center text-gray-400 py-8 text-sm">Нет данных скоринга.</p> : (
+                <div className="card-base overflow-hidden">
+                  <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация ({scoringTableData.reduce((n, s) => n + whCountOf(s), 0)})</h3></div>
+                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid"><th className="table-header">Поставщик (название)</th><th className="table-header">Город (название) склада</th><th className="table-header">SKU</th></tr></thead><tbody>{scoringTableData.flatMap(s => (s.warehouseLocations || []).map(w => <tr key={w.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs">{w.city}</td><td className="table-cell text-xs">{(w.skuCount || 0).toLocaleString('ru')}</td></tr>))}{scoringTableData.reduce((n, s) => n + whCountOf(s), 0) === 0 && <tr><td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Нет складов у выбранных поставщиков</td></tr>}</tbody></table></div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ОЦЕНКА КОМПАНИЙ ── */}
+          {analyticsTab === 'Оценка компаний' && (
+            <div className="space-y-6">
+              <h2 className="section-title flex items-center gap-2"><Star size={16} className="text-brand-red" /> Оценка компаний (0-10)</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="stat-card border-green-200"><p className="text-xs text-gray-500">Средняя оценка поставщиков</p><p className="text-3xl font-bold text-green-600">{avgSupplierScore}</p><p className="text-xs text-gray-400 mt-1">{allActiveSuppliers.length} поставщиков</p></div>
+                <div className="stat-card border-blue-200"><p className="text-xs text-gray-500">Средняя оценка покупателей</p><p className="text-3xl font-bold text-blue-600">{avgBuyerScore}</p><p className="text-xs text-gray-400 mt-1">{allActiveBuyers.length} покупателей</p></div>
+                <div className="stat-card"><p className="text-xs text-gray-500">Поставщики 8-10</p><p className="text-2xl font-bold text-green-600">{allActiveSuppliers.filter(s => (s.companyScore || 0) >= 8).length}</p></div>
+                <div className="stat-card"><p className="text-xs text-gray-500">Покупатели 8-10</p><p className="text-2xl font-bold text-green-600">{allActiveBuyers.filter(b => (b.companyScore || 0) >= 8).length}</p></div>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ScoreDistribution data={supplierScoreData} title="Поставщики по оценкам" />
+                <ScoreDistribution data={buyerScoreData} title="Покупатели по оценкам" />
+              </div>
+            </div>
+          )}
+
+          {/* ── СТАТИСТИКА МЕДИА ── */}
+          {analyticsTab === 'Статистика медиа' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="section-title flex items-center gap-2"><Video size={16} className="text-brand-red" /> Статистика медиа сервиса</h2>
+              </div>
+
+              <PeriodFilter period={mediaPeriod} setPeriod={setMediaPeriod} customFrom={mediaCustomFrom} setCustomFrom={setMediaCustomFrom} customTo={mediaCustomTo} setCustomTo={setMediaCustomTo} />
+
+              {/* Key metrics */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="stat-card border-purple-200">
+                  <p className="text-xs text-gray-500">Рекламодателей</p>
+                  <p className="text-3xl font-bold text-purple-600">{new Set(mediaRecords.map(r => r.supplierId)).size}</p>
+                  <p className="text-xs text-gray-400 mt-1">уникальных поставщиков</p>
+                </div>
+                <div className="stat-card border-green-200">
+                  <p className="text-xs text-gray-500">Активных размещений</p>
+                  <p className="text-3xl font-bold text-green-600">{activeMediaRecords.length}</p>
+                  <p className="text-xs text-gray-400 mt-1">в статусе «Активен»</p>
+                </div>
+                <div className="stat-card border-blue-200">
+                  <p className="text-xs text-gray-500">Потенциал в месяц</p>
+                  <p className="text-lg font-bold text-blue-600">{formatRub(potentialMonthlyRevenue)}</p>
+                  <p className="text-xs text-gray-400 mt-1">все места × тариф</p>
+                </div>
+                <div className="stat-card border-red-200">
+                  <p className="text-xs text-gray-500">Факт в месяц</p>
+                  <p className="text-lg font-bold text-brand-red">{formatRub(actualMonthlyRevenue)}</p>
+                  <p className="text-xs text-gray-400 mt-1">активные размещения</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="stat-card">
+                  <p className="text-xs text-gray-500">Выручка (активные, итого)</p>
+                  <p className="text-xl font-bold text-brand-black">{formatRub(actualTotalRevenue)}</p>
+                </div>
+                <div className="stat-card">
+                  <p className="text-xs text-gray-500">Всего размещено (не аннул.)</p>
+                  <p className="text-xl font-bold text-brand-black">{formatRub(placedTotalRevenue)}</p>
+                </div>
+                <div className="stat-card">
+                  <p className="text-xs text-gray-500">Заполняемость мест</p>
+                  <p className="text-xl font-bold text-brand-black">
+                    {potentialMonthlyRevenue > 0 ? ((actualMonthlyRevenue / potentialMonthlyRevenue) * 100).toFixed(0) + '%' : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* By status */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="card-base p-4">
+                  <h3 className="section-title mb-4">Размещения по статусам</h3>
+                  {Object.keys(mediaByStatus).length > 0 ? (
+                    <div className="space-y-2">
+                      {Object.entries(mediaByStatus).map(([status, count], i) => {
+                        const ms = (store.settings.mediaStatuses || []).find(s => s.name === status);
+                        const style = ms ? { background: ms.bgColor, color: ms.textColor } : { background: '#F3F4F6', color: '#374151' };
+                        return (
+                          <div key={status} className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={style}>{status}</span>
+                            <span className="text-sm font-semibold">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : <p className="text-center text-gray-400 py-4 text-sm">Нет данных</p>}
+                </div>
+
+                <div className="card-base p-4">
+                  <h3 className="section-title mb-4">По типу рекламы</h3>
+                  {Object.keys(mediaByAdType).length > 0 ? (
+                    <div className="space-y-2">
+                      {Object.entries(mediaByAdType).map(([name, { count, revenue }]) => (
+                        <div key={name} className="flex items-center justify-between border-b border-brand-gray-mid pb-1.5 last:border-0">
+                          <div>
+                            <p className="text-xs font-medium">{name}</p>
+                            <p className="text-xs text-gray-400">{count} размещ.</p>
+                          </div>
+                          <p className="text-xs font-semibold text-brand-red">{formatRub(revenue)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="text-center text-gray-400 py-4 text-sm">Нет данных</p>}
+                </div>
+              </div>
+
+              {/* Spots usage */}
+              <div className="card-base p-4">
+                <h3 className="section-title mb-4">Загрузка мест по форматам</h3>
+                <div className="space-y-3">
+                  {spotsUsage.map(item => {
+                    const pct = item.total > 0 ? (item.used / item.total) * 100 : 0;
+                    return (
+                      <div key={item.name}>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-gray-500">{item.used} / {item.total} мест ({pct.toFixed(0)}%)</span>
+                        </div>
+                        <div className="h-2 bg-brand-gray rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-brand-red transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── СТАТИСТИКА СЕРВИСОВ ── */}
+          {analyticsTab === 'Статистика сервисов' && (
+            <div className="space-y-6">
+              <h2 className="section-title flex items-center gap-2"><BarChart2 size={16} className="text-brand-red" /> Статистика сервисов продаж</h2>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {serviceStats.slice(0, 4).map((svc, i) => (
+                  <div key={svc.name} className="stat-card">
+                    <p className="text-xs text-gray-500">{svc.name}</p>
+                    <p className="text-2xl font-bold" style={{ color: COLORS[i % COLORS.length] }}>{svc.count}</p>
+                    <p className="text-xs text-gray-400 mt-1">{svc.pct}% поставщиков</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="card-base p-4">
+                  <h3 className="section-title mb-4">Поставщики по сервисам</h3>
+                  {serviceChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={serviceChartData} margin={{ bottom: 10 }}>
+                        <XAxis dataKey="name" fontSize={11} />
+                        <YAxis fontSize={10} />
+                        <Tooltip />
+                        <Bar dataKey="Поставщиков" fill="#CC0000" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}
+                </div>
+
+                <div className="card-base p-4">
+                  <h3 className="section-title mb-4">Детализация</h3>
+                  <div className="space-y-2">
+                    {serviceStats.map((svc, i) => (
+                      <div key={svc.name} className="flex items-center gap-2">
+                        <span className="text-xs font-bold w-14 shrink-0 px-2 py-0.5 rounded text-center" style={{ background: COLORS[i % COLORS.length] + '20', color: COLORS[i % COLORS.length] }}>{svc.name}</span>
+                        <div className="flex-1">
+                          <div className="flex justify-between text-xs mb-0.5">
+                            <span>{svc.count} поставщиков</span>
+                            <span className="font-medium">{svc.pct}%</span>
+                          </div>
+                          <div className="h-1.5 bg-brand-gray rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${svc.pct}%`, background: COLORS[i % COLORS.length] }} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-brand-gray-mid space-y-1">
+                    <div className="flex justify-between text-xs"><span className="text-gray-500">Подключено 2+ сервисов</span><span className="font-semibold">{multiServiceSuppliers.length}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-gray-500">Без сервисов</span><span className="font-semibold text-gray-400">{noServiceSuppliers.length}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-gray-500">Всего поставщиков</span><span className="font-semibold">{allActiveSuppliers.length}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Per service detail */}
+              <div className="card-base overflow-hidden">
+                <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Поставщики по каждому сервису</h3></div>
+                <div className="table-scroll">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-brand-gray-mid">
+                        <th className="table-header">Поставщик</th>
+                        {serviceStats.map(s => <th key={s.name} className="table-header text-center">{s.name}</th>)}
+                        <th className="table-header">Всего</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allActiveSuppliers.filter(s => (s.services || []).length > 0).slice(0, 20).map(s => (
+                        <tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                          <td className="table-cell text-sm font-medium">{s.tradeName}</td>
+                          {serviceStats.map(svc => (
+                            <td key={svc.name} className="table-cell text-center">
+                              {(s.services || []).includes(svc.name)
+                                ? <span className="text-green-600 font-bold">✓</span>
+                                : <span className="text-gray-200">—</span>}
+                            </td>
+                          ))}
+                          <td className="table-cell text-xs font-semibold">{(s.services || []).length}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── ОБЪЁМ РЫНКА ── */}
+          {analyticsTab === 'Объём рынка' && (
+            <MarketVolumeTab />
+          )}
+
+          {/* ── СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ ── */}
+          {analyticsTab === 'Статистика пользователей' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="section-title flex items-center gap-2"><Users size={16} className="text-brand-red" /> Статистика пользователей</h2>
+                {canExport() && <button onClick={exportUsersStats} className="btn-secondary text-xs"><Download size={14} /> Выгрузить в Excel</button>}
+              </div>
+
+              <div>
+                <h3 className="section-title mb-3 flex items-center gap-2"><Calendar size={16} className="text-brand-red" /> Период</h3>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {PERIODS.map(p => (
+                    <button key={p.key} onClick={() => setPeriod(p.key)}
+                      className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${period === p.key ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>
+                      {p.label}
+                    </button>
+                  ))}
+                  {period === 'custom' && (
+                    <>
+                      <input type="date" className="form-input py-1.5 text-xs w-auto" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+                      <span className="text-xs text-gray-400">—</span>
+                      <input type="date" className="form-input py-1.5 text-xs w-auto" value={customTo} onChange={e => setCustomTo(e.target.value)} />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="stat-card"><p className="text-2xl font-bold">{usersStats.total}</p><p className="text-xs text-gray-500">Всего пользователей</p></div>
+                <div className="stat-card"><p className="text-2xl font-bold">{usersStats.admins}</p><p className="text-xs text-gray-500">Администраторов</p></div>
+                <div className="stat-card"><p className="text-2xl font-bold">{usersStats.managers}</p><p className="text-xs text-gray-500">Менеджеров</p></div>
+              </div>
+
+              <div className="card-base overflow-hidden">
+                <div className="table-scroll">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-brand-gray-mid">
+                        <th className="table-header">Пользователь</th>
+                        <th className="table-header">Роль</th>
+                        <th className="table-header">Поставщики</th>
+                        <th className="table-header">Покупатели</th>
+                        <th className="table-header">Всего объектов</th>
+                        <th className="table-header">План/Факт %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersStats.rows.map(r => (
+                        <tr key={r.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                          <td className="table-cell font-medium">{r.name}</td>
+                          <td className="table-cell">{r.roleLabel}</td>
+                          <td className="table-cell">{r.suppliers}</td>
+                          <td className="table-cell">{r.buyers}</td>
+                          <td className="table-cell">{r.total}</td>
+                          <td className={`table-cell font-medium ${usersPctColor(r.pct)}`}>{r.pct !== null ? `${r.pct}%` : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
