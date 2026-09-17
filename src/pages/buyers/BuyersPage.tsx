@@ -249,16 +249,22 @@ function handleMassStatus() {
   function handleAddBuyer(e: React.FormEvent) {
     e.preventDefault();
     const u = getCurrentUser()!; const now = new Date().toISOString();
+    // ТЗ 1.8: автопоиск дублей внутри базы покупателей (ИНН/телефон/email) — дубль сразу в «Архив дублей»
+    const pre: Buyer = { id: '', inn: newForm.inn, phone: newForm.phone, email: newForm.email } as Buyer;
+    const dup = findDuplicate(pre, store.buyers);
+    if (dup) setNewForm(f => ({ ...f, status: 'Архив дублей' }));
     const buyer: Buyer = {
       id: generateId(), type: newForm.type || 'магазин',
       tradeName: newForm.tradeName || '', city: newForm.city || '',
       address: newForm.address, website: newForm.website, inn: newForm.inn,
       contactRole: newForm.contactRole || 'менеджер', contactName: newForm.contactName || '',
-      phone: newForm.phone || '', email: newForm.email || '', status: 'Лид CRM',
+      phone: newForm.phone || '', email: newForm.email || '', status: dup ? 'Архив дублей' : 'Лид CRM',
+      deletedAt: dup ? now : undefined, // ТЗ 1.8: дубль сразу архивируется
       source: newForm.source, contactPref: newForm.contactPref, contactPrefs: newForm.contactPrefs?.length ? newForm.contactPrefs : ['телефон'],
       responsibleId: newForm.responsibleId, responsibleName: newForm.responsibleName,
       companyScore: newForm.companyScore || 5,
-        category: newForm.category ?? 'C', // ТЗ 1.8 — по умолчанию категория C locationsCount: newForm.locationsCount, comment: newForm.comment,
+        category: newForm.category ?? 'C', // ТЗ 1.8 — по умолчанию категория C
+      locationsCount: newForm.locationsCount, comment: newForm.comment,
       history: [{ id: generateId(), date: now, field: 'created', newValue: 'Лид CRM', comment: 'Создан вручную', userId: u.id, userName: u.name }],
       createdAt: now, updatedAt: now, createdBy: u.id,
     };

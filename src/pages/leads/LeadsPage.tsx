@@ -81,8 +81,12 @@ const [rowStatusChoice, setRowStatusChoice] = useState('');
 
 
   const cities = useMemo(() => Array.from(new Set(allLeads.map(l => l.city).filter(Boolean))).sort(), [allLeads]);
+  // ТЗ 1.8: считаем всех по типу базы; архивные/удалённые — только для архивных статусов (пилюли «Архив дублей»/«АРХИВ»)
   const statusCounts: Record<string, number> = {};
-  for (const x of allLeads.filter(x => !x.deletedAt && !isArchiveStatus(x.status) && ((base.supplier && x.type === 'supplier') || (base.buyer && x.type === 'buyer')))) {
+  for (const x of allLeads.filter(x => ((base.supplier && x.type === 'supplier') || (base.buyer && x.type === 'buyer')) && (!x.deletedAt && !isArchiveStatus(x.status)))) {
+    statusCounts[x.status] = (statusCounts[x.status] || 0) + 1;
+  }
+  for (const x of allLeads.filter(x => ((base.supplier && x.type === 'supplier') || (base.buyer && x.type === 'buyer')) && (x.deletedAt || isArchiveStatus(x.status)))) {
     statusCounts[x.status] = (statusCounts[x.status] || 0) + 1;
   }
 
@@ -406,11 +410,14 @@ function commit(leads: Lead[]) {
                   <td className="table-cell whitespace-nowrap">
                     <div className="flex items-center gap-1 justify-end">
                       {/* ТЗ 1.8: создать покупателя/поставщика из лида — лид уходит в архив дублей */}
+                      {/* ТЗ 1.8: доступно только для живых лидов — в архиве кнопка скрыта */}
+                      {!isArchiveStatus(l.status) && !l.deletedAt && (
                       <button onClick={() => convertFromLead(l)} title={`Создать ${l.type === 'supplier' ? 'поставщика' : 'покупателя'} и отправить лид в архив`}
                         className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
                         style={{ background: '#03A9F4', color: 'rgb(254 255 255)' }}>
                         <Play size={14} />
                       </button>
+                      )}
                       <button onClick={() => openForm(l)} className="p-1 text-gray-400 hover:text-brand-blue" title="Редактировать"><Edit2 size={14} /></button>
                     </div>
                   </td>
