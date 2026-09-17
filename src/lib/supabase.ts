@@ -579,7 +579,9 @@ export function sanitizeSettings(settings: AppSettings): AppSettings {
  * go through Supabase Auth (src/lib/auth.ts) once configured.
  */
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  const sanitized = sanitizeSettings(settings);
+  // ТЗ: защита от записи NULL — колонка settings NOT NULL, null/undefined ломает upsert
+  if (!settings) { console.warn('[supabase] saveSettings: пустые настройки — запись пропущена'); return; }
+  const sanitized = sanitizeSettings(settings) || {};
   const { error } = await requireClient().from('app_settings').upsert({ id: 'global', settings: sanitized, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
