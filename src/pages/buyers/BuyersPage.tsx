@@ -249,6 +249,8 @@ function handleMassStatus() {
   function handleAddBuyer(e: React.FormEvent) {
     e.preventDefault();
     const u = getCurrentUser()!; const now = new Date().toISOString();
+    // ТЗ 1.8: дубль по ИНН/телефону/email → «Архив дублей» + архив (проверка до сборки объекта)
+    const dup = findDuplicate({ id: '', inn: newForm.inn, phone: newForm.phone, email: newForm.email } as Buyer, getStore().buyers);
     const buyer: Buyer = {
       id: generateId(), type: newForm.type || 'магазин',
       tradeName: newForm.tradeName || '', city: newForm.city || '',
@@ -264,8 +266,6 @@ function handleMassStatus() {
       history: [{ id: generateId(), date: now, field: 'created', newValue: 'Лид CRM', comment: 'Создан вручную', userId: u.id, userName: u.name }],
       createdAt: now, updatedAt: now, createdBy: u.id,
     };
-    // ТЗ: дубль по ИНН/телефону/email → «Архив дублей» + архив
-    const dup = findDuplicate(buyer, getStore().buyers);
     const finalBuyer = dup ? { ...buyer, status: 'Архив дублей' as string, deletedAt: now } : buyer;
     updateStore(s => ({ ...s, buyers: [...s.buyers, finalBuyer] }));
     if (dup) toast.warning(`Найден дубль: «${dup.tradeName}». Карточка перенесена в «Архив дублей».`);
