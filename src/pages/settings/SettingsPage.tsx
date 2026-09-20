@@ -1371,6 +1371,7 @@ const [tab, setTab] = useState('Статусы');
                             </div>
                           );
                         })}
+                  </>)}
                       </div>
                     </div>
 
@@ -1408,7 +1409,7 @@ const [tab, setTab] = useState('Статусы');
                     </div>
 
                     <div className="card-base p-4 bg-brand-gray">
-       </>)}
+       
                                      <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-brand-black">Код для вставки на сайт</p>
                         <div className="flex gap-2">
