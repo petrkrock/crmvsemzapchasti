@@ -56,6 +56,8 @@ export default function Dashboard() {
   const buyerSources = activeBuyers.reduce<Record<string, number>>((acc, b) => { if (b.source) acc[b.source] = (acc[b.source] || 0) + 1; return acc; }, {});
 
   const todayTasks = (okTasks ? store.tasks : []).filter(t => !t.completed && (isToday(t.dueDate) || isOverdue(t.dueDate)));
+  // v_1.9: заявки Маркетинг-кит из форм сайта (статусы «Запрос МК» / «Отправлен МК»)
+  const mkRequests = store.mediaRecords.filter(r => r.status === 'Запрос МК' || r.status === 'Отправлен МК');
   const newTickets = (okSupport ? store.tickets.filter(t => canSeeTicket(t)) : []).filter(t => (t.status === 'Новая' || t.status === 'Новый с сайта') && !t.deletedAt);
 
   // Формы: заявки, пришедшие с публичных форм (Настройки → Формы) и ещё не
@@ -74,7 +76,7 @@ export default function Dashboard() {
     { label: 'Поставщиков', value: activeSuppliers.length, active: activeSuppliers.filter(s => s.status === 'Активный').length, icon: Truck, to: '/suppliers', color: 'bg-blue-50 text-blue-600' },
     { label: 'Покупателей', value: activeBuyers.length, active: activeBuyers.filter(b => b.status === 'Активный').length, icon: ShoppingCart, to: '/buyers', color: 'bg-green-50 text-green-600' },
     { label: 'Задач сегодня', value: todayTasks.length, icon: CheckSquare, to: '/tasks', color: 'bg-yellow-50 text-yellow-600' },
-    { label: 'Новых обращений', value: newTickets.length, icon: HeadphonesIcon, to: '/support', color: 'bg-red-50 text-red-600' },
+    { label: 'Медиа сервис', value: mkRequests.length, icon: FileEdit, to: '/media', color: 'bg-red-50 text-red-600' }, // v_1.9: новые формы сайта (Маркетинг-кит)
     { label: 'Заявок с сайта', value: formSubmissions.length, icon: FileEdit, to: '/suppliers', color: 'bg-purple-50 text-purple-600' },
   ];
 
@@ -97,7 +99,7 @@ export default function Dashboard() {
             </div>
             <p className="text-2xl font-bold text-brand-black">{stat.value}</p>
             {stat.active !== undefined && (
-              <p className="text-xs text-gray-400">Активных: <span className="text-green-600 font-medium">{stat.active}</span></p>
+              <p className="mt-1 rounded-lg px-2 py-1 text-sm font-bold" style={{ backgroundColor: 'rgb(220 252 231 / var(--tw-bg-opacity, 1))', color: 'rgb(21 128 61 / var(--tw-text-opacity, 1))' }}>Активных: {stat.active}</p>
             )}
           </button>
         ))}
@@ -181,7 +183,7 @@ export default function Dashboard() {
         {/* New tickets */}
         <div className="card-base p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="section-title flex items-center gap-2"><HeadphonesIcon size={16} className="text-brand-red" /> Новые обращения</h2>
+            <h2 className="section-title flex items-center gap-2"><HeadphonesIcon size={16} className="text-brand-red" /> Поддержка</h2>
             <button onClick={() => navigate('/support')} className="text-xs text-brand-red hover:underline">Все →</button>
           </div>
           {newTickets.length === 0 ? (
@@ -234,7 +236,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-400">Все условия загружены на платформу</p>
         ) : (
           <div className="space-y-2">
-            {ssItems.slice(0, 6).map((item, i) => (
+            {ssItems.slice(0, 5).map((item, i) => (
               <button key={i} onClick={() => navigate(`/suppliers/${item.supplierId}`)}
                 className="w-full flex items-center gap-3 text-left px-3 py-2 rounded-xl hover:bg-brand-gray transition-colors">
                 <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${item.status === 'Новое' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{item.status}</span>
