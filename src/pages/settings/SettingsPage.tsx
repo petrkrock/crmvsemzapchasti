@@ -759,7 +759,7 @@ const [tab, setTab] = useState('Статусы');
           {/* ── SUPPLIER SERVICES ── */}
           {tab === 'Сервисы продаж' && (
             <div className="space-y-4">
-              <h3 className="section-title flex items-center gap-2"><Tag size={16} className="text-brand-red" /> Сервисы продаж (DBS, FBS, FBO, MEDIA и др.)</h3>
+              <h3 className="section-title flex items-center gap-2"><Tag size={16} className="text-brand-red" /> Сервисы продаж (DBS, FBS, MEDIA и др.)</h3>
               <div className="flex gap-2">
                 <input className="form-input flex-1" placeholder="Новый сервис..." value={newServiceName} onChange={e => setNewServiceName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addService()} />
                 <button onClick={addService} className="btn-primary text-xs"><Plus size={14} /> Добавить</button>

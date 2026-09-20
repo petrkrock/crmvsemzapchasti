@@ -283,7 +283,7 @@ export default function AnalyticsPage() {
   }, [store.settings.mediaAdTypes, mediaRecords]);
 
   // ── SERVICES STATS ───────────────────────────────────────
-  const BASE_SERVICES = ['DBS', 'FBS', 'FBO', 'MEDIA'];
+  const BASE_SERVICES = ['DBS', 'FBS', 'MEDIA'];
   const allServices = useMemo(() => {
     const fromSettings = (store.settings.supplierServices || []).map(s => s.name);
     return [...new Set([...BASE_SERVICES, ...fromSettings])];

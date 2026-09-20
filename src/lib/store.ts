@@ -67,7 +67,6 @@ const DEFAULT_SOURCES: Source[] = [
 const DEFAULT_SUPPLIER_SERVICES: SupplierService[] = [
   { id: 'svc-1', name: 'DBS',   createdAt: new Date().toISOString() },
   { id: 'svc-2', name: 'FBS',   createdAt: new Date().toISOString() },
-  { id: 'svc-3', name: 'FBO',   createdAt: new Date().toISOString() },
   { id: 'svc-4', name: 'MEDIA', createdAt: new Date().toISOString() },
 ];
 
