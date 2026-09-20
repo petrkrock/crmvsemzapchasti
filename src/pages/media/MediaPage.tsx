@@ -397,10 +397,10 @@ export default function MediaPage() {
 
               {selectedAdType && (
                 <div>
-                  <label className="form-label">Срок размещения *</label>
+                  <label className="form-label">Тарифы и срок размещения *</label>
                   <select className="form-input" value={form.durationOptionId || ''} onChange={e => handleDurationChange(e.target.value)}>
                     <option value="">Выберите срок...</option>
-                    {durationOptions.map(opt => (
+                    {durationOptions.filter(o => o.enabled !== false).map(opt => (
                       <option key={opt.id} value={opt.id}>
                         {opt.periodLabel} — {opt.discount > 0 ? `скидка ${opt.discount}%` : 'без скидки'} — {opt.totalPrice.toLocaleString('ru')} ₽{opt.bonus ? ` + ${opt.bonus}` : ''}
                       </option>

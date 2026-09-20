@@ -6,7 +6,7 @@ import { createManagerAccount, updateManagerAccount, isSupabaseConfigured } from
 import { useNavigate } from 'react-router-dom';
 import type { AppUser, UserAccess, UserStatus, ProductGroup, Source, PlanCity, TaskEntityType, StatusConfig, SupplierService, MediaAdType, MediaDurationOption, MediaStatus, PublicFormEntityType, FormFieldConfig, FormConfig } from '@/types';
 import { EMPTY_ACCESS } from '@/types';
-import { DEFAULT_STATUSES, FORM_FIELD_DEFINITIONS, DEFAULT_FORM_CONSENT, SYSTEM_TASK_TYPE, SYSTEM_SUPPLIER_STATUSES, SYSTEM_TASK_STATUSES, SYSTEM_TASK_TYPES, SYSTEM_TICKET_TYPES, SYSTEM_LEAD_STATUSES, TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_SUPPLIER_GREETING, TICKET_STATUSES, TICKET_STATUS_COLORS } from '@/constants';
+import { MEDIA_SYSTEM_STATUSES, DEFAULT_STATUSES, FORM_FIELD_DEFINITIONS, DEFAULT_FORM_CONSENT, SYSTEM_TASK_TYPE, SYSTEM_SUPPLIER_STATUSES, SYSTEM_TASK_STATUSES, SYSTEM_TASK_TYPES, SYSTEM_TICKET_TYPES, SYSTEM_LEAD_STATUSES, TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_SUPPLIER_GREETING, TICKET_STATUSES, TICKET_STATUS_COLORS } from '@/constants';
 
 // ТЗ 1.8: полный список системных статусов (редактирование/удаление запрещены)
 const ALL_SYSTEM_STATUSES = ['Активный', 'Лид форма', 'Лид CRM', 'Переговоры', 'Приветствие', 'Проблемный', 'Настройка прайса', 'Архив дублей', 'АРХИВ', 'Лид'];
@@ -402,6 +402,9 @@ const [tab, setTab] = useState('Статусы');
   }
 
   function deleteAdType(id: string) {
+    // v_1.9: есть связи в размещениях → удаление запрещено, только отключение
+    const linked = getStore().mediaRecords.filter(r => r.adTypeId === id).length;
+    if (linked > 0) { toast.error(`Тариф используется в ${linked} размещении(ях) — можно только отключить (Вкл/Выкл)`); return; }
     if (!confirm('Удалить формат и все его тарифы?')) return;
     updateStore(s => ({ ...s, settings: { ...s.settings, mediaAdTypes: (s.settings.mediaAdTypes || []).filter(t => t.id !== id) } }));
     forceUpdate(n => n + 1);
@@ -416,6 +419,8 @@ const [tab, setTab] = useState('Статусы');
   }
 
   function deleteDurationOption(adTypeId: string, optId: string) {
+    // v_1.9: есть связи в размещениях → удаление запрещено
+    if (getStore().mediaRecords.some(r => r.durationOptionId === optId)) { toast.error('Формат используется в размещениях — удаление запрещено'); return; }
     updateStore(s => ({ ...s, settings: { ...s.settings, mediaAdTypes: (s.settings.mediaAdTypes || []).map(t => t.id === adTypeId ? { ...t, durationOptions: t.durationOptions.filter(o => o.id !== optId) } : t) } }));
     forceUpdate(n => n + 1);
   }
@@ -1136,14 +1141,7 @@ const [tab, setTab] = useState('Статусы');
                     <div key={at.id} className="card-base overflow-hidden">
                       {/* Ad type header */}
                       <div className="p-4 bg-brand-gray border-b border-brand-gray-mid">
-                        {/* v_1.9: вкл/выкл тарифа (выкл → недоступен к выбору) */}
-                        <button type="button" onClick={() => {
-                          updateStore(s => ({ ...s, settings: { ...s.settings, mediaAdTypes: (s.settings.mediaAdTypes || []).map(a => a.id === at.id ? { ...a, enabled: a.enabled === false } : a) } }));
-                          forceUpdate(n => n + 1);
-                        }} className={`float-right text-[10px] px-2 py-0.5 rounded-full border ${at.enabled !== false ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-200 text-gray-500 border-gray-300'}`}>
-                          {at.enabled !== false ? 'Вкл' : 'Выкл'}
-                        </button>
-                        {editingAdTypeId === at.id && showAdTypeForm ? (
+                                                {editingAdTypeId === at.id && showAdTypeForm ? (
                           <form onSubmit={saveAdType}>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                               <div><label className="form-label">Название</label><input required className="form-input" value={adTypeForm.name || ''} onChange={e => setAdTypeForm(f => ({ ...f, name: e.target.value }))} /></div>
@@ -1181,7 +1179,15 @@ const [tab, setTab] = useState('Статусы');
                                   <td className="py-1.5 px-2 text-right">{opt.discount > 0 ? <span className="text-green-600 font-medium">−{opt.discount}%</span> : '—'}</td>
                                   <td className="py-1.5 px-2 text-right font-semibold text-brand-red">{opt.totalPrice.toLocaleString('ru')} ₽</td>
                                   <td className="py-1.5 px-2 text-gray-500">{opt.bonus || '—'}</td>
-                                  <td className="py-1.5 px-2"><GuardedDelete inUse={itemInUse('durationOption', opt.id)} onClick={() => deleteDurationOption(at.id, opt.id)} title={opt.periodLabel} /></td>
+                                  <td className="py-1.5 px-2">
+                                    {/* v_1.9: Вкл/Выкл формата */}
+                                    <button type="button" title={opt.enabled !== false ? 'Выключить формат' : 'Включить формат'}
+                                      onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, mediaAdTypes: (s.settings.mediaAdTypes || []).map(t => t.id === at.id ? { ...t, durationOptions: t.durationOptions.map(o => o.id === opt.id ? { ...o, enabled: o.enabled === false } : o) } : t) } })); forceUpdate(n => n + 1); }}
+                                      className={`text-[10px] px-1.5 py-0.5 rounded-full border mr-1 ${opt.enabled !== false ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-200 text-gray-500 border-gray-300'}`}>
+                                      {opt.enabled !== false ? 'Вкл' : 'Выкл'}
+                                    </button>
+                                    <GuardedDelete inUse={itemInUse('durationOption', opt.id) || getStore().mediaRecords.some(r => r.durationOptionId === opt.id)} onClick={() => deleteDurationOption(at.id, opt.id)} title={opt.periodLabel} />
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1241,7 +1247,8 @@ const [tab, setTab] = useState('Статусы');
                       ) : (
                         <div className="flex items-center justify-between">
                           <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: ms.bgColor, color: ms.textColor }}>{ms.name}</span>
-                          <div className="flex gap-1"><button onClick={() => { setEditingMediaStatusId(ms.id); setMediaStatusForm({ ...ms }); setShowMediaStatusForm(true); }} className="p-1.5 text-gray-400 hover:text-brand-black rounded"><Edit2 size={14} /></button><GuardedDelete inUse={itemInUse('mediaStatus', ms.name)} onClick={() => deleteMediaStatus(ms.id)} title={ms.name} /></div>
+                          <div className="flex gap-1">{/* v_1.9: системные статусы — без редактирования/удаления */}
+                            {MEDIA_SYSTEM_STATUSES.includes(ms.name) ? <span className="text-[10px] text-gray-400 px-1" title="Системный статус">системный</span> : (<><button onClick={() => { setEditingMediaStatusId(ms.id); setMediaStatusForm({ ...ms }); setShowMediaStatusForm(true); }} className="p-1.5 text-gray-400 hover:text-brand-black rounded"><Edit2 size={14} /></button><GuardedDelete inUse={itemInUse('mediaStatus', ms.name)} onClick={() => deleteMediaStatus(ms.id)} title={ms.name} /></>)}</div>
                         </div>
                       )}
                     </div>
@@ -1308,7 +1315,7 @@ const [tab, setTab] = useState('Статусы');
 
               {(() => {
                 const config = freshStore.settings.forms[formsSubTab];
-                const fieldDefs = FORM_FIELD_DEFINITIONS[formsSubTab];
+                const fieldDefs = FORM_FIELD_DEFINITIONS[formsSubTab] || []; // v_1.9: marketingKit — фиксированная анкета (защита от undefined)
                 const coreDefs = fieldDefs.filter(d => d.core);
                 const optionalDefs = fieldDefs.filter(d => !d.core);
                 const includedKeys = new Set(config.fields.map(f => f.key));

@@ -206,6 +206,7 @@ export function getStore(): CRMStore {
       settings.mediaAdTypes = (Array.isArray(settings.mediaAdTypes) ? settings.mediaAdTypes : []).map(at => ({
         enabled: true, // v_1.9: по умолчанию тариф включён
         ...at,
+        durationOptions: (at.durationOptions || []).map(o => ({ enabled: true, ...o })), // v_1.9
         spotsCount: at.spotsCount || 1,
         pricePerMonth: at.pricePerMonth || 0,
         durationOptions: at.durationOptions || [],

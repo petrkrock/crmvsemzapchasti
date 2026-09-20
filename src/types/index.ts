@@ -153,6 +153,7 @@ export interface MediaDurationOption {
   discount: number;      // 0-100 %
   totalPrice: number;    // итоговая цена
   bonus?: string;        // "2 новости" | ""
+  enabled?: boolean;     // v_1.9: выкл → формат недоступен к выбору
 }
 
 /** Ad format / placement type with embedded tariff options */
