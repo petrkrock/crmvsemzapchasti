@@ -86,13 +86,14 @@ const DEFAULT_CITIES: string[] = [];
 const DEFAULT_MEDIA_AD_TYPES: MediaAdType[] = [];
 
 const DEFAULT_MEDIA_STATUSES: MediaStatus[] = [
-  { id: 'mst-1', name: 'Отправлен МК',               bgColor: '#EFF6FF', textColor: '#1D4ED8', createdAt: new Date().toISOString() },
-  { id: 'mst-2', name: 'Переговоры',                  bgColor: '#F5F3FF', textColor: '#6D28D9', createdAt: new Date().toISOString() },
-  { id: 'mst-3', name: 'Отправлен счет',              bgColor: '#FFFBEB', textColor: '#92400E', createdAt: new Date().toISOString() },
-  { id: 'mst-4', name: 'Активен на платформе',        bgColor: '#ECFDF5', textColor: '#065F46', createdAt: new Date().toISOString() },
-  { id: 'mst-5', name: 'ожидает места (предоплата)',  bgColor: '#FEF3C7', textColor: '#B45309', createdAt: new Date().toISOString() },
-  { id: 'mst-6', name: 'Анулирован',                  bgColor: '#F9FAFB', textColor: '#6B7280', createdAt: new Date().toISOString() },
-  { id: 'mst-7', name: 'Заканчивается срок',          bgColor: '#FEF2F2', textColor: '#991B1B', createdAt: new Date().toISOString() },
+  { id: 'mst-1', name: 'Запрос МК',                  bgColor: '#FEF3C7', textColor: '#B45309', createdAt: new Date().toISOString() },
+  { id: 'mst-2', name: 'Отправлен МК',               bgColor: '#EFF6FF', textColor: '#1D4ED8', createdAt: new Date().toISOString() },
+  { id: 'mst-3', name: 'Переговоры',                 bgColor: '#F5F3FF', textColor: '#6D28D9', createdAt: new Date().toISOString() },
+  { id: 'mst-4', name: 'Отправлен счет',             bgColor: '#FFF7ED', textColor: '#C2410C', createdAt: new Date().toISOString() },
+  { id: 'mst-5', name: 'Активен на платформе',       bgColor: '#D1FAE5', textColor: '#065F46', createdAt: new Date().toISOString() },
+  { id: 'mst-6', name: 'Ожидает места (предоплата)', bgColor: '#FCE7F3', textColor: '#9D174D', createdAt: new Date().toISOString() },
+  { id: 'mst-7', name: 'Аннулирован',                bgColor: '#FEE2E2', textColor: '#B91C1C', createdAt: new Date().toISOString() },
+  { id: 'mst-8', name: 'Заканчивается срок',         bgColor: '#F3F4F6', textColor: '#6B7280', createdAt: new Date().toISOString() },
 ];
 
 // База знаний — пустой список для продакшена. Реальный контент
@@ -181,6 +182,13 @@ export function getStore(): CRMStore {
     if (!settings.dbLogs) settings.dbLogs = [];
     if (!settings.taskEntityTypes) settings.taskEntityTypes = DEFAULT_TASK_ENTITY_TYPES;
     if (!settings.mediaStatuses) settings.mediaStatuses = DEFAULT_MEDIA_STATUSES;
+    // v_1.9: досеивание недостающих системных статусов медиа (пользовательские не трогаем)
+    {
+      const have = new Set((settings.mediaStatuses || []).map(s => s.name));
+      for (const s of DEFAULT_MEDIA_STATUSES) {
+        if (!have.has(s.name)) settings.mediaStatuses = [...(settings.mediaStatuses || []), { ...s, id: `${s.id}-${Date.now().toString(36)}` }];
+      }
+    }
     if (!settings.knowledgeItems) settings.knowledgeItems = DEFAULT_KNOWLEDGE_ITEMS;
     if (!settings.knowledgeCategories) settings.knowledgeCategories = DEFAULT_KNOWLEDGE_CATEGORIES;
 
@@ -196,6 +204,7 @@ export function getStore(): CRMStore {
       settings.mediaAdTypes = DEFAULT_MEDIA_AD_TYPES;
     } else {
       settings.mediaAdTypes = (Array.isArray(settings.mediaAdTypes) ? settings.mediaAdTypes : []).map(at => ({
+        enabled: true, // v_1.9: по умолчанию тариф включён
         ...at,
         spotsCount: at.spotsCount || 1,
         pricePerMonth: at.pricePerMonth || 0,
@@ -285,8 +294,10 @@ export function getStore(): CRMStore {
     if (!settings.forms) {
       settings.forms = DEFAULT_FORM_CONFIGS;
     }
+    // v_1.9: форма «Запросить Маркетинг-кит» (merge для существующих баз)
+    settings.forms = { marketingKit: (DEFAULT_FORM_CONFIGS as Record<string, FormConfig>).marketingKit, ...(settings.forms as Record<string, FormConfig>) };
     // Согласие на обработку ПДн: у старых конфигов его нет — подставляем дефолт
-    (Object.keys(settings.forms) as Array<'supplier' | 'buyer' | 'ticket'>).forEach(k => {
+    (Object.keys(settings.forms) as Array<'supplier' | 'buyer' | 'ticket' | 'marketingKit'>).forEach(k => {
       const cfg = settings.forms[k] as FormConfig & { consent?: FormConsentConfig };
       if (!cfg.consent) cfg.consent = { ...DEFAULT_FORM_CONSENT };
     });

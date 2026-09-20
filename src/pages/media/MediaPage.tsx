@@ -113,7 +113,7 @@ export default function MediaPage() {
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!form.supplierId) { toast.error('Выберите рекламодателя'); return; }
-    if (!form.adTypeId) { toast.error('Выберите тип рекламы'); return; }
+    // v_1.9: тип рекламы необязателен — пустой допустим
     if (!form.endDate) { toast.error('Укажите дату окончания'); return; }
     const now = new Date().toISOString();
     const { _selectedAdTypeId: _unused, ...rest } = form;
@@ -121,7 +121,7 @@ export default function MediaPage() {
       updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === editingId ? { ...r, ...rest as MediaRecord, updatedAt: now } : r) }));
       toast.success('Размещение обновлено');
     } else {
-      const record: MediaRecord = { id: generateId(), ...rest as MediaRecord, createdAt: now, updatedAt: now };
+      const record: MediaRecord = { id: generateId(), ...rest as MediaRecord, ...(form.adTypeId ? {} : { adTypeId: '', adTypeName: '—' }), createdAt: now, updatedAt: now }; // v_1.9: без типа рекламы
       updateStore(s => ({ ...s, mediaRecords: [...(s.mediaRecords || []), record] }));
       toast.success('Размещение добавлено');
     }
@@ -191,7 +191,7 @@ export default function MediaPage() {
             <option value="__none__">Без ответственного</option>{store.settings.users.filter(u => u.status === 'active').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
           <select className="form-input py-1.5 text-xs w-auto" value={filterAdType} onChange={e => setFilterAdType(e.target.value)}>
             <option value="">Все типы</option>
-            {mediaAdTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {mediaAdTypes.filter(t => t.enabled !== false).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           <div className="flex items-center gap-1 flex-wrap">
             <span className="text-xs text-gray-400">с:</span>
@@ -387,10 +387,11 @@ export default function MediaPage() {
               </div>
 
               <div>
-                <label className="form-label">Тип рекламы *</label>
-                <select className="form-input" value={form.adTypeId || ''} onChange={e => handleAdTypeChange(e.target.value)} required>
+                <label className="form-label">Тип рекламы</label>
+                {/* v_1.9: тип рекламы необязателен */}
+                <select className="form-input" value={form.adTypeId || ''} onChange={e => handleAdTypeChange(e.target.value)}>
                   <option value="">Выберите...</option>
-                  {mediaAdTypes.map(t => <option key={t.id} value={t.id}>{t.name} (мест: {t.spotsCount}, {t.pricePerMonth.toLocaleString('ru')} ₽/мес.)</option>)}
+                  {mediaAdTypes.filter(t => t.enabled !== false).map(t => <option key={t.id} value={t.id}>{t.name} (мест: {t.spotsCount}, {t.pricePerMonth.toLocaleString('ru')} ₽/мес.)</option>)}
                 </select>
               </div>
 

@@ -162,6 +162,7 @@ export interface MediaAdType {
   spotsCount: number;       // всего мест
   pricePerMonth: number;    // базовая цена в месяц
   durationOptions: MediaDurationOption[];
+  enabled?: boolean;      // v_1.9: выкл → недоступен к выбору в «Новом размещении»
   createdAt: string;
 }
 
@@ -530,7 +531,7 @@ export interface FormFieldConfig {
   required: boolean;
 }
 
-export type PublicFormEntityType = 'supplier' | 'buyer' | 'ticket';
+export type PublicFormEntityType = 'supplier' | 'buyer' | 'ticket' | 'marketingKit'; // v_1.9
 
 /** Согласие на обработку персональных данных — обязательная галочка в публичной форме */
 export interface FormConsentConfig {
@@ -587,6 +588,7 @@ export interface AppSettings {
     supplier: FormConfig;
     buyer: FormConfig;
     ticket: FormConfig;
+    marketingKit: FormConfig; // v_1.9: внешняя форма «Запросить Маркетинг-кит»
   };
   /** Настройки уведомлений о заявках (модуль «Уведомления» в Настройках) */
   notifications?: NotificationSettings;

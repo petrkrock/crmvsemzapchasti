@@ -583,14 +583,27 @@ export function sanitizeSettings(settings: AppSettings): AppSettings {
  * go through Supabase Auth (src/lib/auth.ts) once configured.
  */
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  // ТЗ: защита от записи NULL — колонка settings NOT NULL, null/undefined ломает upsert
+  // ТЗ: защита от записи NULL — колонка settings NOT NULL
   if (!settings) { console.warn('[supabase] saveSettings: пустые настройки — запись пропущена'); return; }
   let sanitized;
   try { sanitized = sanitizeSettings(settings) ?? {}; } catch { sanitized = {}; }
   if (sanitized === null || sanitized === undefined) sanitized = {};
   try {
-    const { error } = await requireClient().from('app_settings').upsert({ id: 'global', settings: sanitized, updated_at: new Date().toISOString() });
-    if (error) throw error;
+    // Аудит-фикс 6: PostgREST upsert на app_settings падал 21000 "DELETE requires a WHERE clause"
+    // (PostgREST эмулирует upsert как DELETE+INSERT на таблицах с RLS-триггером синхронизации).
+    // Решение: явный UPDATE, при отсутствии строки — INSERT.
+    const client = requireClient();
+    const now = new Date().toISOString();
+    const upd = await client.from('app_settings')
+      .update({ settings: sanitized, updated_at: now })
+      .eq('id', 'global')
+      .select('id', { count: 'exact', head: true });
+    if (upd.error) throw upd.error;
+    if ((upd.count ?? 0) === 0) {
+      const ins = await client.from('app_settings')
+        .insert({ id: 'global', settings: sanitized, updated_at: now });
+      if (ins.error) throw ins.error;
+    }
   } catch (e) {
     // ТЗ: запись настроек не должна ронять приложение — лог и мягкий выход
     console.error('[supabase] saveSettings не удался:', e);

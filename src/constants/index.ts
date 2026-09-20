@@ -202,7 +202,12 @@ export const DEFAULT_FORM_CONFIGS = {
   supplier: defaultFormConfig('supplier', 'Стать поставщиком', ['website', 'inn', 'contactRole', 'productGroups']),
   buyer: defaultFormConfig('buyer', 'Заявка на сотрудничество', ['website', 'inn', 'contactRole']),
   ticket: defaultFormConfig('ticket', 'Обратная связь', ['type', 'contactPhone', 'contactEmail']),
+  // v_1.9: Маркетинг-кит — анкета фиксированная: ТОЛЬКО ИНН (других полей нет)
+  marketingKit: { ...defaultFormConfig('marketingKit', 'Запросить Маркетинг-кит', []), fields: [] },
 };
+
+// v_1.9: системные статусы медиа — редактирование/удаление запрещены
+export const MEDIA_SYSTEM_STATUSES = ['Запрос МК', 'Отправлен МК', 'Переговоры', 'Отправлен счет', 'Активен на платформе', 'Ожидает места (предоплата)', 'Аннулирован', 'Заканчивается срок'];
 
 // Приветствие поставщику для самообслуживания (Настройки → Приветствия).
 // Плейсхолдеры: {tradeName} — название, {link} — ссылка, {pin} — PIN-код.

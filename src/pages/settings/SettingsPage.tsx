@@ -443,7 +443,9 @@ const [tab, setTab] = useState('Статусы');
     { key: 'supplier', label: 'Поставщики' },
     { key: 'buyer', label: 'Покупатели' },
     { key: 'ticket', label: 'Поддержка' },
-  ];
+  ,
+  { key: 'marketingKit', label: 'Маркетинг-кит' },
+];
 
   function updateFormConfig(type: PublicFormEntityType, patch: Partial<FormConfig>) {
     updateStore(s => ({
@@ -1134,6 +1136,13 @@ const [tab, setTab] = useState('Статусы');
                     <div key={at.id} className="card-base overflow-hidden">
                       {/* Ad type header */}
                       <div className="p-4 bg-brand-gray border-b border-brand-gray-mid">
+                        {/* v_1.9: вкл/выкл тарифа (выкл → недоступен к выбору) */}
+                        <button type="button" onClick={() => {
+                          updateStore(s => ({ ...s, settings: { ...s.settings, mediaAdTypes: (s.settings.mediaAdTypes || []).map(a => a.id === at.id ? { ...a, enabled: a.enabled === false } : a) } }));
+                          forceUpdate(n => n + 1);
+                        }} className={`float-right text-[10px] px-2 py-0.5 rounded-full border ${at.enabled !== false ? 'bg-green-100 text-green-700 border-green-300' : 'bg-gray-200 text-gray-500 border-gray-300'}`}>
+                          {at.enabled !== false ? 'Вкл' : 'Выкл'}
+                        </button>
                         {editingAdTypeId === at.id && showAdTypeForm ? (
                           <form onSubmit={saveAdType}>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
@@ -1333,7 +1342,10 @@ const [tab, setTab] = useState('Статусы');
                     <div>
                       <p className="form-label mb-2">Поля анкеты</p>
                       <div className="space-y-1.5">
-                        {coreDefs.map(def => (
+                        {formsSubTab === 'marketingKit' ? (
+                  <p className="text-xs text-gray-400">Анкета фиксированная: ИНН (поиск поставщика по точному совпадению). Других полей нет.</p>
+                ) : (<>
+                  {coreDefs.map(def => (
                           <div key={def.key} className="flex items-center justify-between px-3 py-2 bg-brand-gray rounded-lg opacity-70">
                             <div className="flex items-center gap-2">
                               <input type="checkbox" checked disabled className="rounded" />
@@ -1396,7 +1408,8 @@ const [tab, setTab] = useState('Статусы');
                     </div>
 
                     <div className="card-base p-4 bg-brand-gray">
-                      <div className="flex items-center justify-between mb-2">
+       </>)}
+                                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-brand-black">Код для вставки на сайт</p>
                         <div className="flex gap-2">
                           <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs py-1"><ExternalLink size={12} /> Предпросмотр</a>

@@ -55,7 +55,7 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-type EntityType = 'supplier' | 'buyer' | 'ticket';
+type EntityType = 'supplier' | 'buyer' | 'ticket' | 'marketingKit'; // v_1.9
 
 interface FieldDef {
   key: string;
@@ -112,7 +112,12 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'contactEmail', label: 'Email', inputType: 'email' },
     { key: 'type', label: 'Тип обращения', inputType: 'select', optionsSource: 'ticketTypes' },
     { key: 'text', label: 'Текст обращения', inputType: 'textarea', core: true },
-    { key: 'contactPref', label: 'Способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
+    { key: 'contactPref', label: 'Способ связи', inputType: 'select', optionsSourc,
+  // v_1.9: Маркетинг-кит — анкета фиксированная: ТОЛЬКО ИНН (других полей нет)
+  marketingKit: [
+    { key: 'inn', label: 'ИНН', inputType: 'text', core: true },
+  ],
+: 'contactPrefs' },
   ],
 };
 
@@ -376,6 +381,34 @@ async function handleSubmit(req: Request): Promise<Response> {
       return json({ error: `Заполните обязательное поле: ${def.label}` }, 400);
     }
     if (!empty) clean[def.key] = raw;
+  }
+
+  // v_1.9: Маркетинг-кит — анкета ТОЛЬКО ИНН: точное совпадение → заявка «Запрос МК»
+  if (type === 'marketingKit') {
+    const inn = (clean.inn || '').replace(/\D/g, '');
+    if (!/^\d{10}$|^\d{12}$/.test(inn)) return json({ error: 'Введите корректный ИНН (10 или 12 цифр)' }, 400);
+    const { data: sup } = await supabaseAdmin
+      .from('suppliers')
+      .select('id, trade_name')
+      .eq('inn', inn)
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle();
+    if (!sup) return json({ error: 'Извините, услуга доступна только поставщикам платформы!' }, 404);
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: mkErr } = await supabaseAdmin.from('media_records').insert({
+      supplier_id: sup.id,
+      supplier_name: sup.trade_name,
+      ad_type_id: '',
+      ad_type_name: '—',
+      status: 'Запрос МК',
+      price_per_month: 0,
+      total_price: 0,
+      start_date: today,
+      end_date: today,
+    });
+    if (mkErr) { console.error('[public-form] marketing-kit:', mkErr); return json({ error: 'Не удалось создать заявку' }, 500); }
+    return json({ ok: true, message: 'Заявка на Маркетинг-кит создана' });
   }
 
   const nowIso = new Date().toISOString();
