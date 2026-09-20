@@ -37,6 +37,9 @@ export default function MediaPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+// v_1.9: удаление через модалку «Введите УДАЛИТЬ» → автостатус «Аннулирован»
+const [deleteId, setDeleteId] = useState<string | null>(null);
+const [deleteWord, setDeleteWord] = useState('');
 
   // Expandable rows state
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -129,6 +132,25 @@ export default function MediaPage() {
   }
 
   function handleDelete(id: string) {
+    if (!isAdmin()) { toast.error('Удаление доступно только администратору'); return; }
+    // v_1.9: «Активен на платформе» — удаление невозможно
+    const rec = (store.mediaRecords || []).find(r => r.id === id);
+    if (rec && rec.status === 'Активен на платформе') { toast.error('В статусе «Активен на платформе» удаление невозможно'); return; }
+    setDeleteId(id); setDeleteWord('');
+  }
+
+  function confirmDelete() {
+    if (!deleteId) return;
+    if (deleteWord.trim() !== 'УДАЛИТЬ') { toast.error('Введите слово УДАЛИТЬ для подтверждения'); return; }
+    const now = new Date().toISOString();
+    // v_1.9: запись НЕ удаляется — ставится автостатус «Аннулирован»
+    updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === deleteId ? { ...r, status: 'Аннулирован', updatedAt: now } : r) }));
+    setDeleteId(null); setDeleteWord('');
+    forceUpdate(n => n + 1);
+    toast.success('Размещение аннулировано');
+  }
+
+  function handleDeleteLegacy(id: string) {
     if (!isAdmin()) { toast.error('Удаление доступно только администратору'); return; }
     if (!confirm('Удалить запись о размещении?')) return;
     updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === id ? { ...r, deletedAt: new Date().toISOString() } : r) }));
@@ -447,6 +469,21 @@ export default function MediaPage() {
                 <button type="submit" className="btn-primary">{editingId ? 'Сохранить' : 'Добавить'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* v_1.9: подтверждение удаления — ввести УДАЛИТЬ, запись аннулируется */}
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDeleteId(null)}>
+          <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 animate-fade-in" onClick={e => e.stopPropagation()}>
+            <h3 className="section-title mb-2">Удаление размещения</h3>
+            <p className="text-xs text-gray-500 mb-3">Запись не будет удалена — ей будет присвоен статус <b>«Аннулирован»</b>. Для подтверждения введите слово <b>УДАЛИТЬ</b>:</p>
+            <input className="form-input mb-4" value={deleteWord} onChange={e => setDeleteWord(e.target.value)} placeholder="УДАЛИТЬ" autoFocus />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteId(null)} className="btn-secondary text-xs">Отмена</button>
+              <button onClick={confirmDelete} disabled={deleteWord.trim() !== 'УДАЛИТЬ'}
+                className="btn-primary text-xs disabled:opacity-40">Подтвердить</button>
+            </div>
           </div>
         </div>
       )}

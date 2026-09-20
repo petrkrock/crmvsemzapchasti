@@ -9,7 +9,7 @@ import { Download, Trash2, Search, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DbLog, HistoryEntry } from '@/types';
 
-const DB_TABS = ['Поставщики', 'Покупатели', 'Задачи', 'Поддержка', 'Сервис поиска', 'База лидов', 'Логи дублей', 'План/факт', 'Логи'];
+const DB_TABS = ['Поставщики', 'Покупатели', 'Задачи', 'Поддержка', 'Сервис поиска', 'База лидов', 'Логи дублей', 'План/факт', 'Медиа сервис', 'Логи'];
 
 function addDbLog(action: DbLog['action'], entityType: string, entityIds: string[], details: string) {
   const u = getCurrentUser();
@@ -68,6 +68,8 @@ export default function DatabasePage() {
       case 'План/факт': return ((store.settings.planFact || []) as unknown as Record<string, unknown>[])
         .filter(e => (e as { kind?: string }).kind === planBase)
         .filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
+      case 'Медиа сервис': return (store.mediaRecords || [])
+        .filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
       case 'Логи': return (store.settings.dbLogs || []).filter(r => !logSearch || JSON.stringify(r).toLowerCase().includes(logSearch.toLowerCase()));
       default: return [];
     }
@@ -109,7 +111,7 @@ export default function DatabasePage() {
     // too (also gets enforced by admin-only DELETE policies in schema.sql —
     // this call would be rejected outright for a non-admin regardless of
     // what the UI shows).
-    if (isSupabaseConfigured() && t !== 'План/факт') {
+    if (isSupabaseConfigured() && t !== 'План/факт' && t !== 'Медиа сервис') {
       try {
         const deleteFn = t === 'Поставщики' ? deleteSupplier : t === 'Покупатели' ? deleteBuyer : t === 'Задачи' ? deleteTask : deleteTicket;
         await Promise.all(ids.map(id => deleteFn(id)));
@@ -127,6 +129,7 @@ export default function DatabasePage() {
       if (t === 'Задачи') ns.tasks = s.tasks.filter(r => !ids.includes(r.id));
       if (t === 'Поддержка') ns.tickets = s.tickets.filter(r => !ids.includes(r.id));
       if (t === 'План/факт') ns.settings = { ...s.settings, planFact: (s.settings.planFact || []).filter(r => !ids.includes(r.id)) };
+      if (t === 'Медиа сервис') ns.mediaRecords = s.mediaRecords.filter(r => !ids.includes(r.id));
       return ns;
     });
     addDbLog('DELETE', t, ids, details);
@@ -142,6 +145,7 @@ export default function DatabasePage() {
       case 'Сервис поиска': return ['timestamp', 'userName', 'supplierName', 'details'];
       case 'База лидов': return ['type', 'subType', 'inn', 'tradeName', 'city', 'contactName', 'status', 'phone', 'email', 'deletedAt'];
       case 'План/факт': return ['startDate', 'endDate', 'cityName', 'filterType', 'serviceIds', 'responsibleName', 'plan', 'report', 'notes', 'createdAt', 'updatedAt', 'deletedAt'];
+      case 'Медиа сервис': return ['supplierName', 'adTypeName', 'durationLabel', 'pricePerMonth', 'totalPrice', 'status', 'startDate', 'endDate', 'responsibleName', 'notes', 'createdAt', 'updatedAt', 'deletedAt'];
       case 'Логи дублей': return ['Источник', 'Торговое название', 'ИНН', 'Город', 'ФИО', 'Телефон', 'Email', 'Дата'];
       case 'Логи': return ['userEmail', 'action', 'entityType', 'details', 'createdAt'];
       default: return [];
@@ -157,6 +161,7 @@ export default function DatabasePage() {
     timestamp: 'Дата', userName: 'Пользователь', supplierName: 'Поставщик',
     subType: 'Подтип', comment: 'Комментарий',
     startDate: 'Начало', endDate: 'Окончание', cityName: 'Город', filterType: 'Тип',
+    supplierName: 'Поставщик', adTypeName: 'Тип рекламы', durationLabel: 'Формат', pricePerMonth: 'Цена/мес', totalPrice: 'Сумма',
     serviceIds: 'Сервисы продаж', responsibleName: 'Ответственный', plan: 'План',
     report: 'Отчёт', notes: 'Заметки', updatedAt: 'Изменён',
   };
