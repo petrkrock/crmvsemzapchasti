@@ -16,10 +16,11 @@ const COND_FIELDS: Array<{ key: keyof Cond; label: string }> = [
   { key: 'orderUnloadSchedule', label: 'График выгрузки заказов' },
   { key: 'returnConditions', label: 'Условия возврата товара' },
   { key: 'officialWarehouse', label: 'Официальный склад' },
+  { key: 'deliveryTime', label: 'Срок поставки до выбранного города' }, // v_1.9
 ];
 
 const EMPTY_COND: Cond = { city: '', warehouseName: '', representative: '', contacts: '',
-  email: '', deliverySchedule: '', orderUnloadSchedule: '', returnConditions: '', officialWarehouse: '' };
+  email: '', deliverySchedule: '', orderUnloadSchedule: '', returnConditions: '', officialWarehouse: '', deliveryTime: '' }; // v_1.9
 
 /**
  * Самообслуживание поставщика по ссылке /s/<token> (вне CRM-оболочки).
@@ -294,6 +295,18 @@ export default function SupplierServicePage() {
                             <input className={fld} list="vz-return-opts" placeholder="Выберите или введите свой вариант" value={condForm.returnConditions} onChange={e => setCondForm(prev => ({ ...prev, returnConditions: e.target.value }))} />
                             <datalist id="vz-return-opts"><option value="Возврат без комиссии" /><option value="Возврат с комиссией" /><option value="Нет возврата" /></datalist>
                           </>
+                        ) : f.key === 'deliveryTime' ? (
+                          // v_1.9: быстрые кнопки Сегодня/Завтра (можно только одно) или свой ввод
+                          <div>
+                            <div className="flex gap-1.5 mb-1.5">
+                              {['Сегодня', 'Завтра'].map(q => (
+                                <button key={q} type="button"
+                                  onClick={() => setCondForm(prev => ({ ...prev, deliveryTime: prev.deliveryTime === q ? '' : q }))}
+                                  className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${condForm.deliveryTime === q ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>{q}</button>
+                              ))}
+                            </div>
+                            <input className={fld} value={condForm.deliveryTime} onChange={e => setCondForm(prev => ({ ...prev, deliveryTime: e.target.value }))} placeholder="например: 2 дня" />
+                          </div>
                         ) : f.key === 'deliverySchedule' ? (
                           <div className="flex flex-wrap gap-1 pt-1">{['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'].map(d => {
                             const days = (condForm.deliverySchedule || '').split(',').filter(Boolean);

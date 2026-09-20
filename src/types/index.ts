@@ -113,6 +113,7 @@ export interface ServiceSearchCondition {
   orderUnloadSchedule: string;
   returnConditions: string;
   officialWarehouse: string;
+  deliveryTime?: string; // v_1.9: срок поставки до выбранного города (Сегодня/Завтра/N дней)
   /** Статус условия: Новое (добавил поставщик) / Загружено (на платформе) / Есть изменения (поставщик правил). Меняет только менеджер в CRM */
   status?: 'Новое' | 'Загружено' | 'Есть изменения';
   createdAt: string;

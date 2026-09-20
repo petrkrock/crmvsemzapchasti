@@ -141,7 +141,7 @@ export const FORM_FIELD_DEFINITIONS: Record<'supplier' | 'buyer' | 'ticket', For
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН', inputType: 'text' },
+    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true }, // v_1.9: обязательное, как в программе
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
     { key: 'warehouseCount', label: 'Количество складов', inputType: 'number' },

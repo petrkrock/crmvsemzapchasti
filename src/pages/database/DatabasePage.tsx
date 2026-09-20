@@ -161,7 +161,7 @@ export default function DatabasePage() {
     timestamp: 'Дата', userName: 'Пользователь', supplierName: 'Поставщик',
     subType: 'Подтип', comment: 'Комментарий',
     startDate: 'Начало', endDate: 'Окончание', cityName: 'Город', filterType: 'Тип',
-    supplierName: 'Поставщик', adTypeName: 'Тип рекламы', durationLabel: 'Формат', pricePerMonth: 'Цена/мес', totalPrice: 'Сумма',
+    adTypeName: 'Тип рекламы', durationLabel: 'Формат', pricePerMonth: 'Цена/мес', totalPrice: 'Сумма', // v_1.9: медиа-поля (supplierName уже выше)
     serviceIds: 'Сервисы продаж', responsibleName: 'Ответственный', plan: 'План',
     report: 'Отчёт', notes: 'Заметки', updatedAt: 'Изменён',
   };

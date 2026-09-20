@@ -27,7 +27,7 @@ const TOKEN_RE = /^[a-f0-9]{32}$/;
 const MAX_WAREHOUSES = 50;
 const MAX_CONDITIONS = 20;
 const SS_KEYS = ['city', 'warehouseName', 'representative', 'contacts', 'email',
-  'deliverySchedule', 'orderUnloadSchedule', 'returnConditions', 'officialWarehouse'];
+  'deliverySchedule', 'orderUnloadSchedule', 'returnConditions', 'officialWarehouse', 'deliveryTime'];
 
 function serviceClient() {
   return createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {

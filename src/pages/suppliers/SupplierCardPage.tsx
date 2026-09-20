@@ -32,7 +32,23 @@ const SS_FIELDS: { key: keyof ServiceSearchCondition; label: string }[] = [
   { key: 'orderUnloadSchedule', label: 'График выгрузки заказов' },
   { key: 'returnConditions', label: 'Условия возврата товара' },
   { key: 'officialWarehouse', label: 'Официальный склад' },
+  { key: 'deliveryTime', label: 'Срок поставки до выбранного города' }, // v_1.9
 ];
+
+// v_1.9: срок поставки — две быстрые кнопки (Сегодня/Завтра) или свой ввод, можно только одно
+function DeliveryTimeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <div className="flex gap-1.5 mb-1.5">
+        <button type="button" onClick={() => onChange(value === 'Сегодня' ? '' : 'Сегодня')}
+          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${value === 'Сегодня' ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>Сегодня</button>
+        <button type="button" onClick={() => onChange(value === 'Завтра' ? '' : 'Завтра')}
+          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${value === 'Завтра' ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>Завтра</button>
+      </div>
+      <input className="form-input text-xs" value={value} onChange={e => onChange(e.target.value)} placeholder="например: 2 дня" />
+    </div>
+  );
+}
 
 function ProductGroupSelect({ selected, onChange, groups }: { selected: string[]; onChange: (v: string[]) => void; groups: string[] }) {
   function toggle(name: string) { if (selected.includes(name)) onChange(selected.filter(s => s !== name)); else onChange([...selected, name]); }
@@ -305,6 +321,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
   function renderSsField(f: { key: string; label: string }, state: Record<string, unknown>, setter: (fn: (prev: Record<string, unknown>) => Record<string, unknown>) => void) {
     const val = String(state[f.key] ?? '');
     const set = (v: string) => setter(prev => ({ ...prev, [f.key]: v }));
+    if (f.key === 'deliveryTime') return <DeliveryTimeInput value={val} onChange={set} />; // v_1.9
     if (f.key === 'city') {
       // Guard: карточка открыта по битой ссылке или стор ещё пуст (первый pull) —
   // показываем «не найдено» вместо красного экрана ErrorBoundary.

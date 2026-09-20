@@ -208,7 +208,6 @@ export function getStore(): CRMStore {
         durationOptions: (at.durationOptions || []).map(o => ({ enabled: true, ...o })), // v_1.9
         spotsCount: at.spotsCount || 1,
         pricePerMonth: at.pricePerMonth || 0,
-        durationOptions: at.durationOptions || [],
       }));
     }
 
