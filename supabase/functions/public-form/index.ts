@@ -328,9 +328,9 @@ async function sendNotifications(type: EntityType, clean: Record<string, unknown
   await Promise.allSettled(jobs);
 }
 
-async function handleSubmit(req: Request)
+async function handleSubmit(req: Request): Promise<Response> {
   const contentLength = Number(req.headers.get('content-length') || 0);
-  if (contentLength > 256 * 1024) return json({ error: 'Запрос слишком большой' }, 413);: Promise<Response> {
+  if (contentLength > 256 * 1024) return json({ error: 'Запрос слишком большой' }, 413);
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== 'object') return json({ error: 'Некорректный запрос' }, 400);
 
@@ -424,7 +424,7 @@ async function handleSubmit(req: Request)
       status: 'Новый с сайта',
       source: 'Форма с сайта',
       contact_prefs: Array.isArray(clean.contactPref) ? clean.contactPref : (clean.contactPref ? [clean.contactPref] : []),
-      location_count: clean.locationCount ? Number(clean.locationCount) : null,
+      locations_count: clean.locationCount ? Number(clean.locationCount) : null,
       comment: clean.comment ?? null,
       additional_contacts: clean.additionalContacts ?? null,
       from_api: true,

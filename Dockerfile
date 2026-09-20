@@ -28,8 +28,8 @@ WORKDIR /app
 # dozens of removed packages and fail a strict `npm ci`. `npm install`
 # generates a fresh one on first build; commit it afterwards if you want
 # fully reproducible builds going forward.
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 
 COPY . .
 

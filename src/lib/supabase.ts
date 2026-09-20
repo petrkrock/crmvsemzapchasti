@@ -149,7 +149,7 @@ function mapSupplier(row: Record<string, unknown>): Supplier {
     ownBrands: (row.own_brands as string[]) || [],
     services: (row.services as string[]) || [],
     companyScore: (row.company_score as number) ?? 5,
-    locationsCount: (row.locations_count as number) ?? undefined,
+    category: (row.category as Supplier['category']) ?? undefined, // ТЗ 1.8
     comment: (row.comment as string) ?? undefined,
     scoring: (row.scoring as Supplier['scoring']) ?? undefined,
     requisites: (row.requisites as Supplier['requisites']) ?? undefined,
@@ -192,6 +192,7 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.ownBrands !== undefined) db.own_brands = s.ownBrands;
   if (s.services !== undefined) db.services = s.services;
   if (s.companyScore !== undefined) db.company_score = s.companyScore;
+  if (s.category !== undefined) db.category = s.category; // ТЗ 1.8
   if (s.comment !== undefined) db.comment = orNull(s.comment);
   if (s.scoring !== undefined) db.scoring = s.scoring;
   if (s.requisites !== undefined) db.requisites = s.requisites;
@@ -224,8 +225,10 @@ function mapBuyer(row: Record<string, unknown>): Buyer {
     source: (row.source as string) ?? undefined,
     contactPref: (row.contact_pref as Buyer['contactPref']) ?? undefined,
     contactPrefs: (row.contact_prefs as string[]) || [],
-    locationCount: (row.location_count as number) ?? undefined,
+    locationsCount: (row.locations_count as number) ?? undefined, // Аудит-matrix: канон locations_count
+    locationCount: (row.locations_count as number) ?? undefined, // legacy-алиас для старых экранов
     companyScore: (row.company_score as number) ?? 5,
+    category: (row.category as Buyer['category']) ?? undefined, // ТЗ 1.8
     comment: (row.comment as string) ?? undefined,
     scoring: (row.scoring as Buyer['scoring']) ?? undefined,
     requisites: (row.requisites as Buyer['requisites']) ?? undefined,
@@ -258,9 +261,10 @@ function mapBuyerToDb(b: Partial<Buyer>): Record<string, unknown> {
   if (b.source !== undefined) db.source = orNull(b.source);
   if (b.contactPref !== undefined) db.contact_pref = orNull(b.contactPref);
   if (b.contactPrefs !== undefined) db.contact_prefs = b.contactPrefs;
-  if (b.locationCount !== undefined) db.location_count = b.locationCount;
   if (b.companyScore !== undefined) db.company_score = b.companyScore;
+  if (b.category !== undefined) db.category = b.category; // ТЗ 1.8
   if (b.locationsCount !== undefined) db.locations_count = b.locationsCount;
+  else if (b.locationCount !== undefined) db.locations_count = b.locationCount; // legacy-алиас
   if (b.comment !== undefined) db.comment = orNull(b.comment);
   if (b.scoring !== undefined) db.scoring = b.scoring;
   if (b.requisites !== undefined) db.requisites = b.requisites;
@@ -581,9 +585,16 @@ export function sanitizeSettings(settings: AppSettings): AppSettings {
 export async function saveSettings(settings: AppSettings): Promise<void> {
   // ТЗ: защита от записи NULL — колонка settings NOT NULL, null/undefined ломает upsert
   if (!settings) { console.warn('[supabase] saveSettings: пустые настройки — запись пропущена'); return; }
-  const sanitized = sanitizeSettings(settings) || {};
-  const { error } = await requireClient().from('app_settings').upsert({ id: 'global', settings: sanitized, updated_at: new Date().toISOString() });
-  if (error) throw error;
+  let sanitized;
+  try { sanitized = sanitizeSettings(settings) ?? {}; } catch { sanitized = {}; }
+  if (sanitized === null || sanitized === undefined) sanitized = {};
+  try {
+    const { error } = await requireClient().from('app_settings').upsert({ id: 'global', settings: sanitized, updated_at: new Date().toISOString() });
+    if (error) throw error;
+  } catch (e) {
+    // ТЗ: запись настроек не должна ронять приложение — лог и мягкий выход
+    console.error('[supabase] saveSettings не удался:', e);
+  }
 }
 
 // ── REAL-TIME SUBSCRIPTIONS ───────────────────────────────

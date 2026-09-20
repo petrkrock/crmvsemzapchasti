@@ -218,7 +218,7 @@ function handleMassStatus() {
       'Название': b.tradeName, 'Тип': b.type, 'Город': b.city, 'ИНН': b.inn || '',
       'Контакт': b.contactName, 'Телефон': b.phone, 'Email': b.email,
       'Статус': b.status, 'Источник': b.source || '',
-      'Кол-во точек': b.locationCount || '', 'Дата создания': b.createdAt,
+      'Кол-во точек': b.locationsCount ?? b.locationCount ?? '', 'Дата создания': b.createdAt,
     })), `buyers_${Date.now()}.csv`);
   }
   function handleImport(rows: Record<string, string>[]) {
