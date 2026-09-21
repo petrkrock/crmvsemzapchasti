@@ -675,18 +675,21 @@ export default function AnalyticsPage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="card-base p-4">
-                  <h3 className="section-title mb-4">Поставщики по сервисам</h3>
-                  {serviceChartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={240}>
-                      <BarChart data={serviceChartData} margin={{ bottom: 10 }}>
-                        <XAxis dataKey="name" fontSize={11} />
-                        <YAxis fontSize={10} />
-                        <Tooltip />
-                        <Bar dataKey="Поставщиков" fill="#CC0000" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}
+                {/* v_1.9: левая колонка — вертикальные блоки: всего + DBS/FBS/MEDIA */}
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                  <div className="stat-card border-brand-black">
+                    <p className="text-xs text-gray-500">Всего поставщиков в оценке</p>
+                    <p className="text-2xl font-bold text-brand-black">{allActiveSuppliers.length}</p>
+                  </div>
+                  {serviceStats.map((svc, ix) => (
+                    <div key={svc.name} className="stat-card">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold" style={{ color: COLORS[ix % COLORS.length] }}>{svc.name}</p>
+                        <p className="text-xs text-gray-400">{svc.pct}% поставщиков</p>
+                      </div>
+                      <p className="text-xl font-bold text-brand-black">{svc.count}</p>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="card-base p-4">
@@ -711,12 +714,11 @@ export default function AnalyticsPage() {
                   <div className="mt-4 pt-4 border-t border-brand-gray-mid space-y-1">
                     <div className="flex justify-between text-xs"><span className="text-gray-500">Подключено 2+ сервисов</span><span className="font-semibold">{multiServiceSuppliers.length}</span></div>
                     <div className="flex justify-between text-xs"><span className="text-gray-500">Без сервисов</span><span className="font-semibold text-gray-400">{noServiceSuppliers.length}</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-gray-500">Всего поставщиков</span><span className="font-semibold">{allActiveSuppliers.length}</span></div>
                   </div>
                 </div>
               </div>
 
-              {/* Per service detail */}
+                            {/* Per service detail */}
               <div className="card-base overflow-hidden">
                 <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Поставщики по каждому сервису</h3></div>
                 <div className="table-scroll">
