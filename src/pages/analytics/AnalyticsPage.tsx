@@ -97,7 +97,9 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState('month');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-  const [analyticsTab, setAnalyticsTab] = useState('Общая статистика');
+  const [analyticsTab, setAnalyticsTab] = useState('Скоринг поставщиков'); // v_1.9: по умолчанию — скоринг
+  // v_1.9: сортировка детализации «Оборот»
+  const [revSort, setRevSort] = useState<{ key: 'revenue' | 'inventory' | 'margin' | 'gross'; dir: 1 | -1 } | null>(null);
   const [scoringDetail, setScoringDetail] = useState<'inventory' | 'warehouse' | 'stm' | 'revenue'>('warehouse'); // v_1.9: какую детализацию показывать
   const [scoringFilterStatus, setScoringFilterStatus] = useState('');
   const [scoringFilterCity, setScoringFilterCity] = useState('');
@@ -355,9 +357,26 @@ export default function AnalyticsPage() {
                 <div className="card-base overflow-hidden">
                   <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Оборот (Выручка · стр. 2110)</h3></div>
                   <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
-                    <th className="table-header">Поставщик</th><th className="table-header">Выручка · стр. 2110</th><th className="table-header">Запасы · стр. 1210</th><th className="table-header">Маржа · 2100/2110 × 100%</th><th className="table-header">Валовая прибыль · стр. 2100</th>
+                    <th className="table-header">Поставщик</th>
+                    {([['revenue', 'Выручка · стр. 2110'], ['inventory', 'Запасы · стр. 1210'], ['margin', 'Маржа · 2100/2110 × 100%'], ['gross', 'Валовая прибыль · стр. 2100']] as const).map(([key, label]) => (
+                      <th key={key} className="table-header cursor-pointer select-none hover:text-brand-black" title="Сортировка больше/меньше"
+                        onClick={() => setRevSort(s => s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: -1 })}>
+                        {label} {revSort?.key === key ? (revSort.dir === -1 ? '↓' : '↑') : '↕'}
+                      </th>
+                    ))}
                   </tr></thead><tbody>
-                    {scoringTableData.map(s => {
+                    {(revSort
+                      ? [...scoringTableData].sort((a, b) => {
+                          const val = (x: typeof a) => {
+                            if (revSort.key === 'margin') { const r = x.scoring?.revenue, g = x.scoring?.grossProfit; return r && g ? g / r : 0; }
+                            if (revSort.key === 'revenue') return x.scoring?.revenue || 0;
+                            if (revSort.key === 'inventory') return x.scoring?.inventory || 0;
+                            return x.scoring?.grossProfit || 0;
+                          };
+                          return (val(a) - val(b)) * revSort.dir;
+                        })
+                      : scoringTableData
+                    ).map(s => {
                       const rev = s.scoring?.revenue;
                       const inv = s.scoring?.inventory;
                       const gp = s.scoring?.grossProfit;
