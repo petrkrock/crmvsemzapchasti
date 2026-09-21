@@ -433,6 +433,35 @@ export default function AnalyticsPage() {
                       </div>
                     </div>
                   )}
+                                    <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
+                    <th className="table-header w-8"><input type="checkbox" className="accent-blue-600" title="Выбрать все"
+                        checked={revSelected.length > 0 && sortedRevData.every(s => revSelected.includes(s.id))}
+                        onChange={() => setRevSelected(sel => sortedRevData.every(s => sel.includes(s.id)) ? [] : sortedRevData.map(s => s.id))} /></th>
+                    <th className="table-header">Поставщик</th>
+                    {([['revenue', 'Выручка · стр. 2110'], ['inventory', 'Запасы · стр. 1210'], ['margin', 'Маржа · 2100/2110 × 100%'], ['gross', 'Валовая прибыль · стр. 2100']] as const).map(([key, label]) => (
+                      <th key={key} className="table-header cursor-pointer select-none hover:text-brand-black" title="Сортировка больше/меньше"
+                        onClick={() => setRevSort(s => s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: -1 })}>
+                        {label} {revSort?.key === key ? (revSort.dir === -1 ? '↓' : '↑') : '↕'}
+                      </th>
+                    ))}
+                  </tr></thead><tbody>
+                    {sortedRevData.map(s => {
+                      const rev = s.scoring?.revenue;
+                      const inv = s.scoring?.inventory;
+                      const gp = s.scoring?.grossProfit;
+                      const margin = rev && gp ? Math.round((gp / rev) * 10000) / 100 : null;
+                      return (<tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                        <td className="table-cell"><input type="checkbox" className="accent-blue-600" checked={revSelected.includes(s.id)}
+                          onChange={() => setRevSelected(sel => sel.includes(s.id) ? sel.filter(x => x !== s.id) : [...sel, s.id])} /></td>
+                        <td className="table-cell font-medium text-sm">{s.tradeName}</td>
+                        <td className="table-cell text-xs">{rev != null ? rev.toLocaleString('ru') : '—'}</td>
+                        <td className="table-cell text-xs">{inv != null ? inv.toLocaleString('ru') : '—'}</td>
+                        <td className="table-cell text-xs">{margin != null ? margin + '%' : '—'}</td>
+                        <td className="table-cell text-xs">{gp != null ? gp.toLocaleString('ru') : '—'}</td>
+                      </tr>);
+                    })}
+                    {scoringTableData.length === 0 && <tr><td colSpan={6} className="text-center py-6 text-gray-400 text-xs">Нет данных скоринга</td></tr>}
+                  </tbody></table></div>
                 </div>
               ) : scoringDetail === 'stm' ? (
                 <div className="card-base overflow-hidden">
