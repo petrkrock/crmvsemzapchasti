@@ -368,7 +368,9 @@ export default function AnalyticsPage() {
                 scoringTableData.length === 0 ? <p className="text-center text-gray-400 py-8 text-sm">Нет данных скоринга.</p> : (
                 <div className="card-base overflow-hidden">
                   <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Склады ({scoringTableData.reduce((n, s) => n + whCountOf(s), 0)})</h3></div>
-                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid"><th className="table-header">Поставщик (название)</th><th className="table-header">Город (название) склада</th><th className="table-header">SKU</th></tr></thead><tbody>{scoringTableData.flatMap(s => (s.warehouseLocations || []).map(w => <tr key={w.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs">{w.city}</td><td className="table-cell text-xs">{(w.skuCount || 0).toLocaleString('ru')}</td></tr>))}{scoringTableData.reduce((n, s) => n + whCountOf(s), 0) === 0 && <tr><td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Нет складов у выбранных поставщиков</td></tr>}</tbody></table></div>
+                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid"><th className="table-header">Поставщик (название)</th><th className="table-header">Город (название) склада</th><th className="table-header">SKU</th></tr></thead><tbody>{scoringTableData.map(s => ((s.warehouseLocations || []).length > 0
+                        ? (s.warehouseLocations || []).map(w => <tr key={w.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs">{w.city}</td><td className="table-cell text-xs">{(w.skuCount || 0).toLocaleString('ru')}</td></tr>)
+                        : <tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs text-gray-400">—</td><td className="table-cell text-xs text-gray-400">—</td></tr>))} // v_1.9: поставщики без складов тоже в списке{scoringTableData.reduce((n, s) => n + whCountOf(s), 0) === 0 && <tr><td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Нет складов у выбранных поставщиков</td></tr>}</tbody></table></div>
                 </div>
               )
               ) : scoringDetail === 'revenue' ? (
@@ -412,7 +414,7 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="flex gap-2 mt-4">
                         <button onClick={() => {
-                          if (!revTaskForm.type || !revTaskForm.dueDate) { toast.error('Заполните тип и срок'); return; }
+                          if (!revTaskForm.type) { toast.error('Выберите тип задачи'); return; } // v_1.9: срок — сегодня по умолчанию
                           const u = getCurrentUser();
                           const resp = (getStore().settings.users || []).find(x => x.id === revTaskForm.respId);
                           const taskId = generateId();
@@ -423,7 +425,7 @@ export default function AnalyticsPage() {
                             entityName: names.slice(0, 3).join(', ') + (names.length > 3 ? ` и ещё ${names.length - 3}` : ''),
                             title: `Аналитика скоринга: ${revSelected.length} поставщиков`, type: revTaskForm.type,
                             description: `${revTaskForm.desc ? revTaskForm.desc + '\n' : ''}Список поставщиков (Excel): ${window.location.origin}/entity-export/${taskId}\n${names.join(', ')}`,
-                            dueDate: revTaskForm.dueDate, task_status: 'Новая', responsibleId: revTaskForm.respId || u?.id,
+                            dueDate: revTaskForm.dueDate || new Date().toISOString().slice(0, 10), task_status: 'Новая', responsibleId: revTaskForm.respId || u?.id, // v_1.9
                             responsibleName: resp?.name || u?.name, createdBy: u?.id, history: [], createdAt: now, updatedAt: now,
                           }] }));
                           toast.success(`Задача создана по ${revSelected.length} поставщикам`);
