@@ -1,5 +1,8 @@
 import { useState, useMemo } from 'react';
-import { getStore, useStoreVersion } from '@/lib/store';
+import { getStore, updateStore, useStoreVersion } from '@/lib/store';
+import { generateId } from '@/lib/utils';
+import { getCurrentUser } from '@/lib/auth';
+import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/utils';
 import MarketVolumeTab from './MarketVolumeTab';
 import { canExport } from '@/lib/auth';
@@ -100,6 +103,9 @@ export default function AnalyticsPage() {
   const [analyticsTab, setAnalyticsTab] = useState('Скоринг поставщиков'); // v_1.9: по умолчанию — скоринг
   // v_1.9: сортировка детализации «Оборот»
   const [revSort, setRevSort] = useState<{ key: 'revenue' | 'inventory' | 'margin' | 'gross'; dir: 1 | -1 } | null>(null);
+  // v_1.9: выбор строк «Оборот» + создание задачи (по образцу «База лидов»)
+  const [revSelected, setRevSelected] = useState<string[]>([]);
+  const [revTaskForm, setRevTaskForm] = useState({ show: false, type: '', respId: '', dueDate: '', desc: '' });
   const [scoringDetail, setScoringDetail] = useState<'inventory' | 'warehouse' | 'stm' | 'revenue'>('warehouse'); // v_1.9: какую детализацию показывать
   const [scoringFilterStatus, setScoringFilterStatus] = useState('');
   const [scoringFilterCity, setScoringFilterCity] = useState('');
@@ -182,6 +188,18 @@ export default function AnalyticsPage() {
     if (period === 'custom' && customFrom && customTo) return { from: new Date(customFrom), to: new Date(customTo) };
     return getPeriodRange(period);
   }, [period, customFrom, customTo]);
+  // v_1.9: отсортированные данные «Оборот» (для таблицы и «выбрать все»)
+  const sortedRevData = (revSort
+    ? [...scoringTableData].sort((a, b) => {
+        const val = (x: typeof a) => {
+          if (revSort.key === 'margin') { const r = x.scoring?.revenue, g = x.scoring?.grossProfit; return r && g ? g / r : 0; }
+          if (revSort.key === 'revenue') return x.scoring?.revenue || 0;
+          if (revSort.key === 'inventory') return x.scoring?.inventory || 0;
+          return x.scoring?.grossProfit || 0;
+        };
+        return (val(a) - val(b)) * revSort.dir;
+      })
+    : scoringTableData);
   const uFrom = usersRange.from.toISOString().slice(0, 10);
   const uTo = usersRange.to.toISOString().slice(0, 10);
 
@@ -357,6 +375,9 @@ export default function AnalyticsPage() {
                 <div className="card-base overflow-hidden">
                   <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Оборот (Выручка · стр. 2110)</h3></div>
                   <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
+                    <th className="table-header w-8"><input type="checkbox" className="accent-blue-600" title="Выбрать все"
+                        checked={revSelected.length > 0 && sortedRevData.every(s => revSelected.includes(s.id))}
+                        onChange={() => setRevSelected(sel => sortedRevData.every(s => sel.includes(s.id)) ? [] : sortedRevData.map(s => s.id))} /></th>
                     <th className="table-header">Поставщик</th>
                     {([['revenue', 'Выручка · стр. 2110'], ['inventory', 'Запасы · стр. 1210'], ['margin', 'Маржа · 2100/2110 × 100%'], ['gross', 'Валовая прибыль · стр. 2100']] as const).map(([key, label]) => (
                       <th key={key} className="table-header cursor-pointer select-none hover:text-brand-black" title="Сортировка больше/меньше"
@@ -365,23 +386,14 @@ export default function AnalyticsPage() {
                       </th>
                     ))}
                   </tr></thead><tbody>
-                    {(revSort
-                      ? [...scoringTableData].sort((a, b) => {
-                          const val = (x: typeof a) => {
-                            if (revSort.key === 'margin') { const r = x.scoring?.revenue, g = x.scoring?.grossProfit; return r && g ? g / r : 0; }
-                            if (revSort.key === 'revenue') return x.scoring?.revenue || 0;
-                            if (revSort.key === 'inventory') return x.scoring?.inventory || 0;
-                            return x.scoring?.grossProfit || 0;
-                          };
-                          return (val(a) - val(b)) * revSort.dir;
-                        })
-                      : scoringTableData
-                    ).map(s => {
+                    {sortedRevData.map(s => {
                       const rev = s.scoring?.revenue;
                       const inv = s.scoring?.inventory;
                       const gp = s.scoring?.grossProfit;
                       const margin = rev && gp ? Math.round((gp / rev) * 10000) / 100 : null;
                       return (<tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                        <td className="table-cell"><input type="checkbox" className="accent-blue-600" checked={revSelected.includes(s.id)}
+                          onChange={() => setRevSelected(sel => sel.includes(s.id) ? sel.filter(x => x !== s.id) : [...sel, s.id])} /></td>
                         <td className="table-cell font-medium text-sm">{s.tradeName}</td>
                         <td className="table-cell text-xs">{rev != null ? rev.toLocaleString('ru') : '—'}</td>
                         <td className="table-cell text-xs">{inv != null ? inv.toLocaleString('ru') : '—'}</td>
@@ -389,8 +401,54 @@ export default function AnalyticsPage() {
                         <td className="table-cell text-xs">{gp != null ? gp.toLocaleString('ru') : '—'}</td>
                       </tr>);
                     })}
-                    {scoringTableData.length === 0 && <tr><td colSpan={5} className="text-center py-6 text-gray-400 text-xs">Нет данных скоринга</td></tr>}
+                    {scoringTableData.length === 0 && <tr><td colSpan={6} className="text-center py-6 text-gray-400 text-xs">Нет данных скоринга</td></tr>}
                   </tbody></table></div>
+                  {/* v_1.9: скрытое меню выбранных — как в «База лидов» */}
+                  {revSelected.length > 0 && !revTaskForm.show && (
+                    <div className="p-3 flex flex-wrap items-center gap-2 bg-blue-50 border-t border-blue-200 animate-fade-in">
+                      <span className="text-xs font-medium text-blue-700">Выбрано: {revSelected.length}</span>
+                      <button onClick={() => setRevTaskForm(f => ({ ...f, show: true }))} className="btn-primary text-xs">Создать задачу</button>
+                      <button onClick={() => setRevSelected([])} className="btn-secondary text-xs">Снять выбор</button>
+                    </div>
+                  )}
+                  {/* v_1.9: форма задачи по выбранным поставщикам */}
+                  {revTaskForm.show && (
+                    <div className="p-3 border-t border-brand-gray-mid space-y-2 bg-brand-gray/40">
+                      <p className="text-xs font-semibold">Задача по {revSelected.length} поставщикам (список — файлом в задаче)</p>
+                      <div className="flex flex-wrap gap-2">
+                        <select className="form-input text-xs py-1.5 w-auto" value={revTaskForm.type} onChange={e => setRevTaskForm(f => ({ ...f, type: e.target.value }))}>
+                          <option value="">Тип задачи…</option>
+                          {(getStore().settings.taskEntityTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <select className="form-input text-xs py-1.5 w-auto" value={revTaskForm.respId} onChange={e => setRevTaskForm(f => ({ ...f, respId: e.target.value }))}>
+                          <option value="">Ответственный…</option>
+                          {(getStore().settings.users || []).filter(u => u.status !== 'blocked').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        </select>
+                        <input type="date" className="form-input text-xs py-1.5 w-auto" value={revTaskForm.dueDate} onChange={e => setRevTaskForm(f => ({ ...f, dueDate: e.target.value }))} />
+                      </div>
+                      <textarea className="form-input text-xs" rows={2} placeholder="Описание задачи" value={revTaskForm.desc} onChange={e => setRevTaskForm(f => ({ ...f, desc: e.target.value }))} />
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          if (!revTaskForm.type || !revTaskForm.respId || !revTaskForm.dueDate) { toast.error('Заполните тип, ответственного и срок'); return; }
+                          const u = getCurrentUser();
+                          const resp = (getStore().settings.users || []).find(x => x.id === revTaskForm.respId);
+                          const taskId = generateId();
+                          const names = sortedRevData.filter(s => revSelected.includes(s.id)).map(s => s.tradeName);
+                          const now = new Date().toISOString();
+                          updateStore(s => ({ ...s, tasks: [...s.tasks, {
+                            id: taskId, entityType: 'suppliers', entityIds: [...revSelected], entityName: names.slice(0, 3).join(', ') + (names.length > 3 ? ` и ещё ${names.length - 3}` : ''),
+                            title: `Аналитика скоринга: ${revSelected.length} поставщиков`, type: revTaskForm.type,
+                            description: `${revTaskForm.desc ? revTaskForm.desc + '\n' : ''}Выбрано из «Данные скоринга → Оборот» (выручка/запасы/маржа).\nСписок поставщиков: ${names.join(', ')}`,
+                            dueDate: revTaskForm.dueDate, task_status: 'Новая', responsibleId: revTaskForm.respId,
+                            responsibleName: resp?.name, createdBy: u?.id, history: [], createdAt: now, updatedAt: now,
+                          }] }));
+                          toast.success(`Задача создана по ${revSelected.length} поставщикам`);
+                          setRevSelected([]); setRevTaskForm({ show: false, type: '', respId: '', dueDate: '', desc: '' }); // перерендер через useStoreVersion
+                        }} className="btn-primary text-xs">Создать</button>
+                        <button onClick={() => setRevTaskForm(f => ({ ...f, show: false }))} className="btn-secondary text-xs">Отмена</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : scoringDetail === 'stm' ? (
                 <div className="card-base overflow-hidden">
