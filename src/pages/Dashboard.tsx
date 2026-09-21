@@ -119,7 +119,7 @@ export default function Dashboard() {
           
           </>);
         }
-        {stats.map(stat => (
+        return stats.map(stat => (
           stat.to
             ? <button key={stat.label} onClick={() => navigate(stat.to)} className="stat-card hover:shadow-md transition-shadow text-left">
                 <StatCardBody stat={stat} />
@@ -127,7 +127,7 @@ export default function Dashboard() {
             : <div key={stat.label} className="stat-card text-left">
                 <StatCardBody stat={stat} />
               </div>
-        ))}
+        ));
         })()}
       </div>
 
