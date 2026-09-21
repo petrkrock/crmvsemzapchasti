@@ -143,17 +143,18 @@ export default function AnalyticsPage() {
   }, [allActiveSuppliers, scoringFilterStatus, scoringFilterCity]);
 
   const scoringStats = useMemo(() => {
-    let totalRevenue = 0, totalInventory = 0, totalWarehouses = 0, totalSKU = 0, withScoring = 0, withoutScoring = 0, revenueCount = 0, totalSTM = 0;
+    let totalRevenue = 0, totalInventory = 0, totalWarehouses = 0, totalSKU = 0, withScoring = 0, withoutScoring = 0, revenueCount = 0, totalSTM = 0, totalGross = 0;
     scoringSuppliers.forEach(s => {
       const hasAny = s.scoring?.annualRevenue || s.scoring?.employees || whCountOf(s) || skuTotalOf(s);
       if (hasAny) withScoring++; else withoutScoring++;
       if (s.scoring?.revenue) { totalRevenue += s.scoring.revenue; revenueCount++; } // v_1.9: общий оборот = Выручка · стр. 2110
       if ((s.ownBrands || []).length > 0) totalSTM++; // v_1.9: поставщики с СТМ
+      if (s.scoring?.grossProfit) totalGross += s.scoring.grossProfit; // v_1.9
       if (s.scoring?.inventory) totalInventory += s.scoring.inventory; // v_1.9: Всего запасов (стр. 1210 по всем)
       if (whCountOf(s)) totalWarehouses += whCountOf(s);
       if (skuTotalOf(s)) totalSKU += skuTotalOf(s);
     });
-    return { totalRevenue, totalInventory, totalWarehouses, totalSKU, withScoring, withoutScoring, revenueCount, totalSTM, avgRevenue: revenueCount > 0 ? totalRevenue / revenueCount : 0 };
+    return { totalRevenue, totalInventory, totalWarehouses, totalSKU, withScoring, withoutScoring, revenueCount, totalSTM, totalGross, avgRevenue: revenueCount > 0 ? totalRevenue / revenueCount : 0 };
   }, [scoringSuppliers]);
 
   const scoringTableData = scoringSuppliers
@@ -333,9 +334,10 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <button onClick={() => setScoringDetail('revenue')} className={`stat-card border-blue-200 text-left transition-shadow ${scoringDetail === 'revenue' ? 'ring-2 ring-blue-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><Building size={16} className="text-blue-600" /></div><p className="text-xs text-gray-500">Общий оборот</p></div>{scoringStats.totalRevenue > 0 ? <p className="text-lg font-bold text-brand-black">{formatRub(scoringStats.totalRevenue)}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</button>
                 {/* v_1.9: каждый блок — кнопка, открывает свою детализацию */}
-                <button onClick={() => setScoringDetail('inventory')} className={`stat-card border-green-200 text-left transition-shadow ${scoringDetail === 'inventory' ? 'ring-2 ring-green-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Package size={16} className="text-green-600" /></div><p className="text-xs text-gray-500">Всего запасов</p></div>{scoringStats.totalInventory > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalInventory.toLocaleString('ru')}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</button>
+                
                 <button onClick={() => setScoringDetail('warehouse')} className={`stat-card border-yellow-200 text-left transition-shadow ${scoringDetail === 'warehouse' ? 'ring-2 ring-yellow-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center"><Package size={16} className="text-yellow-600" /></div><p className="text-xs text-gray-500">Всего складов и SKU</p></div>{scoringStats.totalWarehouses > 0 || scoringStats.totalSKU > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalWarehouses} · {scoringStats.totalSKU.toLocaleString('ru')} <span className="text-xs font-normal text-gray-400">SKU</span></p> : <p className="text-sm text-gray-300">Нет данных</p>}</button>
                 <button onClick={() => setScoringDetail('stm')} className={`stat-card border-purple-200 text-left transition-shadow ${scoringDetail === 'stm' ? 'ring-2 ring-purple-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><Hash size={16} className="text-purple-600" /></div><p className="text-xs text-gray-500">Поставщики с СТМ</p></div><p className="text-lg font-bold text-brand-black">{scoringStats.totalSTM}</p></button>
+                  <div className="stat-card border-green-200"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Package size={16} className="text-green-600" /></div><p className="text-xs text-gray-500">Всего запасов</p></div>{scoringStats.totalInventory > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalInventory.toLocaleString('ru')}</p> : <p className="text-sm text-gray-300">Нет данных</p>}<p className="text-[11px] text-gray-500 mt-1">Всего валовой прибыли (стр. 2100): <b className="text-brand-black">{scoringStats.totalGross > 0 ? scoringStats.totalGross.toLocaleString('ru') : '—'}</b></p></div>
               </div>
               {scoringDetail === 'inventory' ? (
                 <div className="card-base overflow-hidden">
@@ -368,6 +370,7 @@ export default function AnalyticsPage() {
                         <td className="table-cell text-xs">{gp != null ? gp.toLocaleString('ru') : '—'}</td>
                       </tr>);
                     })}
+                    {scoringTableData.length === 0 && <tr><td colSpan={5} className="text-center py-6 text-gray-400 text-xs">Нет данных скоринга</td></tr>}
                   </tbody></table></div>
                 </div>
               ) : scoringDetail === 'stm' ? (
