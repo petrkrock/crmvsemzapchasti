@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
 
   const scoringTableData = scoringSuppliers
     .filter(s => !scoringFilterSupplier || (s.tradeName || '').toLowerCase().includes(scoringFilterSupplier.toLowerCase()))
-    .filter(s => s.scoring?.annualRevenue || s.scoring?.employees || whCountOf(s) || skuTotalOf(s));
+    .filter(s => s.scoring?.annualRevenue || s.scoring?.employees || s.scoring?.revenue || s.scoring?.inventory || s.scoring?.grossProfit || whCountOf(s) || skuTotalOf(s)); // v_1.9: поставщики с новым скорингом тоже в таблицах
 
   function exportScoringData() {
     exportToCSV(scoringTableData.flatMap(s => (s.warehouseLocations || []).filter((w: any) => w.status !== 'Заморожен').map(w => ({
@@ -370,7 +370,7 @@ export default function AnalyticsPage() {
                   <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Склады ({scoringTableData.reduce((n, s) => n + whCountOf(s), 0)})</h3></div>
                   <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid"><th className="table-header">Поставщик (название)</th><th className="table-header">Город (название) склада</th><th className="table-header">SKU</th></tr></thead><tbody>{scoringTableData.map(s => ((s.warehouseLocations || []).length > 0
                         ? (s.warehouseLocations || []).map(w => <tr key={w.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs">{w.city}</td><td className="table-cell text-xs">{(w.skuCount || 0).toLocaleString('ru')}</td></tr>)
-                        : <tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs text-gray-400">—</td><td className="table-cell text-xs text-gray-400">—</td></tr>))} // v_1.9: поставщики без складов тоже в списке{scoringTableData.reduce((n, s) => n + whCountOf(s), 0) === 0 && <tr><td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Нет складов у выбранных поставщиков</td></tr>}</tbody></table></div>
+                        : <tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs text-gray-400">—</td><td className="table-cell text-xs text-gray-400">—</td></tr>))}{scoringTableData.reduce((n, s) => n + whCountOf(s), 0) === 0 && <tr><td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Нет складов у выбранных поставщиков</td></tr>}</tbody></table></div>
                 </div>
               )
               ) : scoringDetail === 'revenue' ? (

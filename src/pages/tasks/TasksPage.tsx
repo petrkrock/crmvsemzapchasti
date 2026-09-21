@@ -437,7 +437,15 @@ export default function TasksPage() {
                           {status === ST_DONE && task.resolvedAt && <span className="text-[10px] text-gray-400">Решено: {fmtDateTime(task.resolvedAt)}</span>}
                         </div>
                       </div>
-                      {task.description && <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap leading-relaxed">{task.description}</p>}
+                      {task.description && (
+                        <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap leading-relaxed">
+                          {task.description.split(/(\s+)/).map((part, i) =>
+                            /^https?:\/\/.+/.test(part) ? (
+                              <a key={i} href={part} target="_blank" rel="noreferrer" className="text-brand-blue underline hover:no-underline">{part}</a>
+                            ) : part
+                          )}
+                        </p>
+                      )}
                       <div className="flex items-center flex-wrap gap-x-2 gap-y-1.5 mt-2">
                         {task.entityName && <span className="text-xs bg-brand-gray text-gray-600 px-2 py-0.5 rounded-full">{entityLabels[task.entityType] || task.entityType} · {task.entityName}</span>}
                         <span className={`text-xs flex items-center gap-1 ${overdue ? 'text-red-500 font-medium' : todayTask ? 'text-yellow-600' : 'text-gray-400'}`}>
