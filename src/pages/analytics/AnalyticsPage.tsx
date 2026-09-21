@@ -152,7 +152,7 @@ export default function AnalyticsPage() {
       if (whCountOf(s)) totalWarehouses += whCountOf(s);
       if (skuTotalOf(s)) totalSKU += skuTotalOf(s);
     });
-    return { totalRevenue, totalEmployees, totalWarehouses, totalSKU, withScoring, withoutScoring, revenueCount, avgRevenue: revenueCount > 0 ? totalRevenue / revenueCount : 0 };
+    return { totalRevenue, totalInventory, totalWarehouses, totalSKU, withScoring, withoutScoring, revenueCount, avgRevenue: revenueCount > 0 ? totalRevenue / revenueCount : 0 };
   }, [scoringSuppliers]);
 
   const scoringTableData = scoringSuppliers
