@@ -58,21 +58,30 @@ export default function Dashboard() {
   const suppliersByType = activeSuppliers.reduce<Record<string, number>>((acc, s) => { acc[s.type] = (acc[s.type] || 0) + 1; return acc; }, {});
   const buyersByType = activeBuyers.reduce<Record<string, number>>((acc, b) => { acc[b.type] = (acc[b.type] || 0) + 1; return acc; }, {});
   const MONTHS_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+  const [addedPeriod, setAddedPeriod] = useState<'quarter' | 'half' | 'year' | 'custom'>('year'); // v_1.9: по умолчанию «Текущий год»
+  const [addedCustomMonth, setAddedCustomMonth] = useState(new Date().toISOString().slice(0, 7));
   const addedByMonth = (() => {
     const now = new Date();
-    const rows: { label: string; sup: number; buy: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      rows.push({
-        label: MONTHS_RU[d.getMonth()],
-        sup: activeSuppliers.filter(s => (s.createdAt || '').slice(0, 7) === key).length,
-        buy: activeBuyers.filter(b => (b.createdAt || '').slice(0, 7) === key).length,
-      });
+    const keys: string[] = [];
+    if (addedPeriod === 'custom') {
+      keys.push(addedCustomMonth || new Date().toISOString().slice(0, 7));
+    } else {
+      const count = addedPeriod === 'quarter' ? 3 : addedPeriod === 'half' ? 6 : now.getMonth() + 1;
+      for (let i = count - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+      }
     }
-    return rows;
+    return keys.map(key => ({
+      label: MONTHS_RU[Number(key.slice(5, 7)) - 1],
+      sup: activeSuppliers.filter(s => (s.createdAt || '').slice(0, 7) === key).length,
+      buy: activeBuyers.filter(b => (b.createdAt || '').slice(0, 7) === key).length,
+    }));
   })();
   const maxAdded = Math.max(1, ...addedByMonth.flatMap(m => [m.sup, m.buy]));
+  const nowKey = new Date().toISOString().slice(0, 7);
+  const curStart = `${nowKey}-01`;
+  const curEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10);
 
   const todayTasks = (okTasks ? store.tasks : []).filter(t => !t.completed && (isToday(t.dueDate) || isOverdue(t.dueDate)));
   // v_1.9: заявки Маркетинг-кит из форм сайта (статусы «Запрос МК» / «Отправлен МК»)
@@ -397,7 +406,20 @@ export default function Dashboard() {
 
       {/* v_1.9: график «Добавлено» — 6 месяцев, поставщики/покупатели */}
       <div className="card-base p-4">
-        <h2 className="section-title mb-1">Добавлено за 6 месяцев</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h2 className="section-title">Добавлено</h2>
+          <div className="flex flex-wrap items-center gap-1">
+            {(['quarter', 'half', 'year', 'custom'] as const).map(p => (
+              <button key={p} onClick={() => setAddedPeriod(p)}
+                className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${addedPeriod === p ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>
+                {p === 'quarter' ? 'За квартал' : p === 'half' ? 'Полугодие' : p === 'year' ? 'Текущий год' : 'Произвольный'}
+              </button>
+            ))}
+            {addedPeriod === 'custom' && (
+              <input type="month" className="form-input text-[11px] py-0.5 px-2 w-auto" value={addedCustomMonth} onChange={e => setAddedCustomMonth(e.target.value)} />
+            )}
+          </div>
+        </div>
         <div className="flex gap-4 text-[11px] text-gray-500 mb-3">
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#3B82F6' }} /> Поставщиков</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#10B981' }} /> Покупателей</span>
@@ -421,6 +443,28 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2"><TrendingUp size={18} className="text-brand-red" /><h2 className="section-title">План / Факт</h2></div>
           <button onClick={() => navigate('/planfact')} className="btn-secondary text-xs">Открыть →</button>
+        </div>
+        {/* v_1.9: сводки план-факт по текущему месяцу */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+          {(['suppliers', 'buyers'] as const).map(kind => {
+            const label = kind === 'suppliers' ? 'Активная сводка поставщики' : 'Активная сводка покупатели';
+            const list = kind === 'suppliers' ? activeSuppliers : activeBuyers;
+            const key = nowKey;
+            const plan = (store.settings.planFact || []).filter(e => !e.deletedAt && e.kind === kind && e.startDate <= curEnd && e.endDate >= curStart).reduce((s, e) => s + (e.plan || 0), 0);
+            const act = list.filter(x => x.status === 'Активный' && (x.createdAt || '').slice(0, 7) === key).length;
+            const pct = plan ? Math.min(100, Math.round((act / plan) * 100)) : null;
+            return (
+              <div key={kind} className="rounded-xl border border-brand-gray-mid px-3.5 py-2.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-gray-500">{label}</p>
+                  <span className="text-[10px] text-gray-400">Период: текущий месяц</span>
+                </div>
+                <p className="text-xl font-bold mt-0.5">{pct === null ? '—' : `${pct}%`}<span className="text-xs font-normal text-gray-400 ml-1.5">выполнения общего плана</span></p>
+                <p className="text-[10px] text-gray-400">План: {plan} · Активный факт: {act}</p>
+                {plan > 0 && <div className="mt-1 h-1.5 rounded-full bg-brand-gray overflow-hidden"><div className="h-full bg-brand-black rounded-full transition-all" style={{ width: `${pct}%` }} /></div>}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ const PERIODS = [
   { key: 'quarter', label: 'Квартал' }, { key: 'half', label: 'Полугодие' }, { key: 'year', label: 'Текущий год' },
   { key: 'custom', label: 'Произвольный' },
 ];
-const ANALYTICS_TABS = ['Общая статистика', 'Скоринг поставщиков', 'Оценка компаний', 'Статистика медиа', 'Статистика сервисов', 'Статистика пользователей', 'Объём рынка'];
+const ANALYTICS_TABS = ['Скоринг поставщиков', 'Оценка компаний', 'Статистика медиа', 'Статистика сервисов', 'Статистика пользователей', 'Объём рынка'];
 
 function getPeriodRange(period: string): { from: Date; to: Date } {
   // Календарные периоды (ТЗ): день=сегодня, неделя=пн–вс, месяц=текущий,
@@ -319,69 +319,6 @@ export default function AnalyticsPage() {
         <div className="p-4 sm:p-6">
 
           {/* ── ОБЩАЯ СТАТИСТИКА ── */}
-          {analyticsTab === 'Общая статистика' && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="section-title mb-3 flex items-center gap-2"><Calendar size={16} className="text-brand-red" /> Период</h2>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {PERIODS.map(p => <button key={p.key} onClick={() => setPeriod(p.key)} className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${period === p.key ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>{p.label}</button>)}
-                </div>
-                {period === 'custom' && (
-                  <div className="flex flex-wrap gap-3 items-center">
-                    <div><label className="form-label">От</label><input type="date" className="form-input" value={customFrom} onChange={e => setCustomFrom(e.target.value)} /></div>
-                    <div><label className="form-label">До</label><input type="date" className="form-input" value={customTo} onChange={e => setCustomTo(e.target.value)} /></div>
-                  </div>
-                )}
-                <p className="text-xs text-gray-400 mt-2">{from.toLocaleDateString('ru-RU')} — {to.toLocaleDateString('ru-RU')}</p>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { label: 'Поставщиков добавлено', value: suppliers.length, color: 'text-blue-600' },
-                  { label: 'Покупателей добавлено', value: buyers.length, color: 'text-green-600' },
-                  { label: 'Активных поставщиков', value: suppliers.filter(s => s.status === 'Активный').length, color: 'text-emerald-600' },
-                  { label: 'Активных покупателей', value: buyers.filter(b => b.status === 'Активный').length, color: 'text-emerald-600' },
-                ].map(stat => (
-                  <div key={stat.label} className="stat-card"><p className="text-xs text-gray-500">{stat.label}</p><p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p></div>
-                ))}
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="card-base p-4"><h3 className="section-title mb-4">Поставщики по статусам</h3>{Object.keys(suppliersByStatus).length > 0 ? <ResponsiveContainer width="100%" height={200}><PieChart><Pie data={Object.entries(suppliersByStatus).map(([name, value]) => ({ name, value }))} dataKey="value" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>{Object.keys(suppliersByStatus).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer> : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}</div>
-                <div className="card-base p-4"><h3 className="section-title mb-4">Покупатели по статусам</h3>{Object.keys(buyersByStatus).length > 0 ? <ResponsiveContainer width="100%" height={200}><PieChart><Pie data={Object.entries(buyersByStatus).map(([name, value]) => ({ name, value }))} dataKey="value" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>{Object.keys(buyersByStatus).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer> : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}</div>
-                <div className="card-base p-4"><h3 className="section-title mb-4">Покупатели по городам (топ-10)</h3>{buyerCityData.length > 0 ? <ResponsiveContainer width="100%" height={220}><BarChart data={buyerCityData} layout="vertical" margin={{ left: 20 }}><XAxis type="number" fontSize={10} /><YAxis dataKey="name" type="category" fontSize={10} width={80} /><Tooltip /><Bar dataKey="value" fill="#3B82F6" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer> : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}</div>
-                <div className="card-base p-4"><h3 className="section-title mb-4">Каналы привлечения</h3>{sourceData.length > 0 ? <ResponsiveContainer width="100%" height={220}><BarChart data={sourceData} margin={{ bottom: 20 }}><XAxis dataKey="name" fontSize={9} angle={-20} textAnchor="end" /><YAxis fontSize={10} /><Tooltip /><Legend fontSize={10} /><Bar dataKey="suppliers" name="Поставщики" fill="#3B82F6" radius={[4, 4, 0, 0]} /><Bar dataKey="buyers" name="Покупатели" fill="#10B981" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer> : <p className="text-center text-gray-400 py-8 text-sm">Нет данных</p>}</div>
-                <div className="card-base p-4"><h3 className="section-title mb-4">Поставщики по типам</h3>{Object.keys(suppliersByType).length > 0 ? <div className="space-y-2">{Object.entries(suppliersByType).map(([name, value], i) => <div key={name} className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} /><div className="flex-1"><div className="flex justify-between text-xs mb-0.5"><span>{name}</span><span className="font-medium">{value}</span></div><div className="h-1.5 bg-brand-gray rounded-full"><div className="h-full rounded-full" style={{ width: suppliers.length > 0 ? `${(value / suppliers.length) * 100}%` : '0%', background: COLORS[i % COLORS.length] }} /></div></div></div>)}</div> : <p className="text-center text-gray-400 py-4 text-sm">Нет данных</p>}</div>
-                <div className="card-base p-4"><h3 className="section-title mb-4">Покупатели по типам</h3>{Object.keys(buyersByType).length > 0 ? <div className="space-y-2">{Object.entries(buyersByType).map(([name, value], i) => <div key={name} className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} /><div className="flex-1"><div className="flex justify-between text-xs mb-0.5"><span>{name}</span><span className="font-medium">{value}</span></div><div className="h-1.5 bg-brand-gray rounded-full"><div className="h-full rounded-full" style={{ width: buyers.length > 0 ? `${(value / buyers.length) * 100}%` : '0%', background: COLORS[i % COLORS.length] }} /></div></div></div>)}</div> : <p className="text-center text-gray-400 py-4 text-sm">Нет данных</p>}</div>
-              </div>
-              {/* ── ПОСТАВЩИКИ С СТМ ── */}
-              <div className="card-base p-4">
-                <h3 className="section-title mb-4">Поставщики с СТМ</h3>
-                {(() => {
-                  const stmList = store.suppliers.filter(s => !s.deletedAt && (s.ownBrands || []).length > 0);
-                  if (!stmList.length) return <p className="text-center text-gray-400 py-4 text-sm">Нет поставщиков с заполненным СТМ</p>;
-                  return (
-                    <div className="table-scroll"><table className="w-full">
-                      <thead><tr className="border-b border-brand-gray-mid">
-                        <th className="table-header text-left">Поставщик</th>
-                        <th className="table-header text-left">Город</th>
-                        <th className="table-header text-left">СТМ (бренды)</th>
-                      </tr></thead>
-                      <tbody>
-                        {stmList.map(s => (
-                          <tr key={s.id} className="border-b border-brand-gray-mid last:border-0">
-                            <td className="table-cell font-medium">{s.tradeName}</td>
-                            <td className="table-cell text-xs text-gray-500">{s.city}</td>
-                            <td className="table-cell text-xs">{s.ownBrands.join(', ')}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table></div>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* ── СКОРИНГ ПОСТАВЩИКОВ ── */}
           {analyticsTab === 'Скоринг поставщиков' && (
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-3">
