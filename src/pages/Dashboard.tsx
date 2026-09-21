@@ -251,7 +251,7 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-brand-black truncate">{t.subject}</p>
                     <StatusBadge status={t.status} />
                   </div>
-                  <p className="text-xs text-gray-400">{t.type} · {formatDateTime(t.createdAt)}</p>
+                  <p className="text-xs text-gray-400">{t.contactName && <span className="font-medium text-gray-600">{t.contactName} · </span>}{t.type} · {formatDateTime(t.createdAt)}</p>
                 </div>
               ))}
             </div>
