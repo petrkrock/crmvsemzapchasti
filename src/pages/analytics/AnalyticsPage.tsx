@@ -7,7 +7,7 @@ import { exportToCSV } from '@/lib/utils';
 import MarketVolumeTab from './MarketVolumeTab';
 import { canExport } from '@/lib/auth';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Calendar, Download, Building, Users, Package, Hash, Star, Video, BarChart2 } from 'lucide-react';
+import { X, Calendar, Download, Building, Users, Package, Hash, Star, Video, BarChart2 } from 'lucide-react';
 import { COMPANY_SCORE_COLORS } from '@/constants';
 
 // Склады/SKU считаются из warehouseLocations (полей warehouseCount/skuCount у поставщика нет)
@@ -382,73 +382,57 @@ export default function AnalyticsPage() {
                       <button onClick={() => setRevSelected([])} className="btn-secondary text-xs">Снять выбор</button>
                     </div>
                   )}
-                  {/* v_1.9: форма задачи по выбранным поставщикам */}
+                  {/* v_1.9: форма создания задачи — как в «База лидов» */}
                   {revTaskForm.show && (
-                    <div className="p-3 border-t border-brand-gray-mid space-y-2 bg-brand-gray/40">
-                      <p className="text-xs font-semibold">Задача по {revSelected.length} поставщикам (список — файлом в задаче)</p>
-                      <div className="flex flex-wrap gap-2">
-                        <select className="form-input text-xs py-1.5 w-auto" value={revTaskForm.type} onChange={e => setRevTaskForm(f => ({ ...f, type: e.target.value }))}>
-                          <option value="">Тип задачи…</option>
-                          {(getStore().settings.taskEntityTypes || []).map(t => { const label = (t as { label?: string; key?: string }).label || (t as { key?: string }).key || String(t); return <option key={label} value={label}>{label}</option>; })}
-                        </select>
-                        <select className="form-input text-xs py-1.5 w-auto" value={revTaskForm.respId} onChange={e => setRevTaskForm(f => ({ ...f, respId: e.target.value }))}>
-                          <option value="">Ответственный…</option>
-                          {(getStore().settings.users || []).filter(u => u.status !== 'blocked').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                        </select>
-                        <input type="date" className="form-input text-xs py-1.5 w-auto" value={revTaskForm.dueDate} onChange={e => setRevTaskForm(f => ({ ...f, dueDate: e.target.value }))} />
+                    <div className="card-base p-4 animate-fade-in">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="section-title">Создать задачу ({revSelected.length} поставщиков)</h3>
+                        <button onClick={() => setRevTaskForm(f => ({ ...f, show: false }))} className="text-gray-400 hover:text-brand-red"><X size={18} /></button>
                       </div>
-                      <textarea className="form-input text-xs" rows={2} placeholder="Описание задачи" value={revTaskForm.desc} onChange={e => setRevTaskForm(f => ({ ...f, desc: e.target.value }))} />
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="form-label">Тип задачи</label>
+                          <select className="form-input" value={revTaskForm.type} onChange={e => setRevTaskForm(f => ({ ...f, type: e.target.value }))}>
+                            <option value="">Выберите тип…</option>
+                            {(getStore().settings.taskTypes || []).map(tt => <option key={tt} value={tt}>{tt}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="form-label">Исполнитель</label>
+                          <select className="form-input" value={revTaskForm.respId} onChange={e => setRevTaskForm(f => ({ ...f, respId: e.target.value }))}>
+                            <option value="">{getCurrentUser()?.name || 'Я'}</option>
+                            {(getStore().settings.users || []).filter(ux => ux.status === 'active').map(ux => <option key={ux.id} value={ux.id}>{ux.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="form-label">Описание — что будем делать со списком</label>
+                          <textarea className="form-input min-h-[90px]" placeholder="Например: обзвонить, отправить КП..." value={revTaskForm.desc} onChange={e => setRevTaskForm(f => ({ ...f, desc: e.target.value }))} />
+                          <p className="text-xs text-gray-400 mt-1">В описание будет добавлена ссылка на Excel со списком (открывается только из панели CRM).</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
                         <button onClick={() => {
-                          if (!revTaskForm.type || !revTaskForm.respId || !revTaskForm.dueDate) { toast.error('Заполните тип, ответственного и срок'); return; }
+                          if (!revTaskForm.type || !revTaskForm.dueDate) { toast.error('Заполните тип и срок'); return; }
                           const u = getCurrentUser();
                           const resp = (getStore().settings.users || []).find(x => x.id === revTaskForm.respId);
                           const taskId = generateId();
                           const names = sortedRevData.filter(s => revSelected.includes(s.id)).map(s => s.tradeName);
                           const now = new Date().toISOString();
                           updateStore(s => ({ ...s, tasks: [...s.tasks, {
-                            id: taskId, entityType: 'suppliers', entityIds: [...revSelected], entityName: names.slice(0, 3).join(', ') + (names.length > 3 ? ` и ещё ${names.length - 3}` : ''),
+                            id: taskId, entityKind: 'suppliers', entityIds: [...revSelected], exportKind: 'suppliers',
+                            entityName: names.slice(0, 3).join(', ') + (names.length > 3 ? ` и ещё ${names.length - 3}` : ''),
                             title: `Аналитика скоринга: ${revSelected.length} поставщиков`, type: revTaskForm.type,
-                            description: `${revTaskForm.desc ? revTaskForm.desc + '\n' : ''}Выбрано из «Данные скоринга → Оборот» (выручка/запасы/маржа).\nСписок поставщиков: ${names.join(', ')}`,
-                            dueDate: revTaskForm.dueDate, task_status: 'Новая', responsibleId: revTaskForm.respId,
-                            responsibleName: resp?.name, createdBy: u?.id, history: [], createdAt: now, updatedAt: now,
+                            description: `${revTaskForm.desc ? revTaskForm.desc + '\n' : ''}Список поставщиков (Excel): ${window.location.origin}/entity-export/${taskId}\n${names.join(', ')}`,
+                            dueDate: revTaskForm.dueDate, task_status: 'Новая', responsibleId: revTaskForm.respId || u?.id,
+                            responsibleName: resp?.name || u?.name, createdBy: u?.id, history: [], createdAt: now, updatedAt: now,
                           }] }));
                           toast.success(`Задача создана по ${revSelected.length} поставщикам`);
-                          setRevSelected([]); setRevTaskForm({ show: false, type: '', respId: '', dueDate: '', desc: '' }); // перерендер через useStoreVersion
-                        }} className="btn-primary text-xs">Создать</button>
+                          setRevSelected([]); setRevTaskForm({ show: false, type: '', respId: '', dueDate: '', desc: '' });
+                        }} className="btn-primary text-xs">Создать задачу</button>
                         <button onClick={() => setRevTaskForm(f => ({ ...f, show: false }))} className="btn-secondary text-xs">Отмена</button>
                       </div>
                     </div>
                   )}
-                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
-                    <th className="table-header w-8"><input type="checkbox" className="accent-blue-600" title="Выбрать все"
-                        checked={revSelected.length > 0 && sortedRevData.every(s => revSelected.includes(s.id))}
-                        onChange={() => setRevSelected(sel => sortedRevData.every(s => sel.includes(s.id)) ? [] : sortedRevData.map(s => s.id))} /></th>
-                    <th className="table-header">Поставщик</th>
-                    {([['revenue', 'Выручка · стр. 2110'], ['inventory', 'Запасы · стр. 1210'], ['margin', 'Маржа · 2100/2110 × 100%'], ['gross', 'Валовая прибыль · стр. 2100']] as const).map(([key, label]) => (
-                      <th key={key} className="table-header cursor-pointer select-none hover:text-brand-black" title="Сортировка больше/меньше"
-                        onClick={() => setRevSort(s => s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: -1 })}>
-                        {label} {revSort?.key === key ? (revSort.dir === -1 ? '↓' : '↑') : '↕'}
-                      </th>
-                    ))}
-                  </tr></thead><tbody>
-                    {sortedRevData.map(s => {
-                      const rev = s.scoring?.revenue;
-                      const inv = s.scoring?.inventory;
-                      const gp = s.scoring?.grossProfit;
-                      const margin = rev && gp ? Math.round((gp / rev) * 10000) / 100 : null;
-                      return (<tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
-                        <td className="table-cell"><input type="checkbox" className="accent-blue-600" checked={revSelected.includes(s.id)}
-                          onChange={() => setRevSelected(sel => sel.includes(s.id) ? sel.filter(x => x !== s.id) : [...sel, s.id])} /></td>
-                        <td className="table-cell font-medium text-sm">{s.tradeName}</td>
-                        <td className="table-cell text-xs">{rev != null ? rev.toLocaleString('ru') : '—'}</td>
-                        <td className="table-cell text-xs">{inv != null ? inv.toLocaleString('ru') : '—'}</td>
-                        <td className="table-cell text-xs">{margin != null ? margin + '%' : '—'}</td>
-                        <td className="table-cell text-xs">{gp != null ? gp.toLocaleString('ru') : '—'}</td>
-                      </tr>);
-                    })}
-                    {scoringTableData.length === 0 && <tr><td colSpan={6} className="text-center py-6 text-gray-400 text-xs">Нет данных скоринга</td></tr>}
-                  </tbody></table></div>
                 </div>
               ) : scoringDetail === 'stm' ? (
                 <div className="card-base overflow-hidden">
