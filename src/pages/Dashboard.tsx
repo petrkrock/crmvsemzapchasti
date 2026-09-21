@@ -4,7 +4,7 @@ import { formatDateTime, formatDate, isToday, isOverdue } from '@/lib/utils';
 import { canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket } from '@/lib/auth';
 import StatusBadge from '@/components/features/StatusBadge';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Truck, ShoppingCart, CheckSquare, HeadphonesIcon, TrendingUp, Plus, AlertCircle, Clock, Video, AlertTriangle, FileEdit } from 'lucide-react';
+import { Globe, Truck, ShoppingCart, CheckSquare, HeadphonesIcon, TrendingUp, Plus, AlertCircle, Clock, Video, AlertTriangle, FileEdit } from 'lucide-react';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#6B7280', '#14B8A6'];
 
@@ -64,6 +64,10 @@ export default function Dashboard() {
   // обработанные менеджером — статус "Новый с сайта" служит тем же
   // индикатором "требует внимания", что и "Новая" для обращений.
   type FormSubmission = { id: string; kind: 'supplier' | 'buyer' | 'ticket'; title: string; date: string; to: string };
+  // v_1.9: заявки с сайта — все формы (Поставщики+Покупатели) в статусе «Лид форма»
+  const siteLeadsSup = activeSuppliers.filter(s => s.fromApi && s.status === 'Лид форма');
+  const siteLeadsBuy = activeBuyers.filter(b => b.fromApi && b.status === 'Лид форма');
+  const siteLeads = [...siteLeadsSup, ...siteLeadsBuy];
   const formSubmissions: FormSubmission[] = [
     ...activeSuppliers.filter(s => s.fromApi && s.status === 'Новый с сайта').map(s => ({ id: s.id, kind: 'supplier' as const, title: s.tradeName, date: s.createdAt, to: `/suppliers/${s.id}` })),
     ...activeBuyers.filter(b => b.fromApi && b.status === 'Новый с сайта').map(b => ({ id: b.id, kind: 'buyer' as const, title: b.tradeName, date: b.createdAt, to: `/buyers/${b.id}` })),
@@ -75,9 +79,9 @@ export default function Dashboard() {
   const stats = [
     { label: 'Поставщиков', value: activeSuppliers.length, active: activeSuppliers.filter(s => s.status === 'Активный').length, icon: Truck, to: '/suppliers', color: 'bg-blue-50 text-blue-600' },
     { label: 'Покупателей', value: activeBuyers.length, active: activeBuyers.filter(b => b.status === 'Активный').length, icon: ShoppingCart, to: '/buyers', color: 'bg-green-50 text-green-600' },
+    { label: 'Заявок с сайта', value: siteLeads.length, sub: `Поставщики: ${siteLeadsSup.length} · Покупатели: ${siteLeadsBuy.length}`, icon: Globe, to: '/leads', color: 'bg-purple-50 text-purple-600' }, // v_1.9: все формы сайта в «Лид форма» + разбивка
     { label: 'Задач сегодня', value: todayTasks.length, icon: CheckSquare, to: '/tasks', color: 'bg-yellow-50 text-yellow-600' },
-    { label: 'Медиа сервис', value: mkRequests.length, icon: FileEdit, to: '/media', color: 'bg-red-50 text-red-600' }, // v_1.9: новые формы сайта (Маркетинг-кит)
-    { label: 'Заявок с сайта', value: formSubmissions.length, icon: FileEdit, to: '/suppliers', color: 'bg-purple-50 text-purple-600' },
+    { label: 'Медиа сервис', value: mkRequests.length, icon: FileEdit, to: '/media', color: 'bg-red-50 text-red-600' }, // v_1.9: Маркетинг-кит (Запрос МК/Отправлен МК)
   ];
 
   const showMediaAlerts = endingSoonRecords.length > 0 || upcomingStartRecords.length > 0;
@@ -98,6 +102,7 @@ export default function Dashboard() {
               <div className={`w-8 h-8 rounded-lg ${stat.color} flex items-center justify-center`}><stat.icon size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-brand-black">{stat.value}</p>
+            {stat.sub && <p className="text-[11px] text-gray-500 mt-0.5">{stat.sub}</p>}
             {stat.active !== undefined && (
               <p className="mt-1 rounded-lg px-2 py-1 text-sm font-bold" style={{ backgroundColor: 'rgb(220 252 231 / var(--tw-bg-opacity, 1))', color: 'rgb(21 128 61 / var(--tw-text-opacity, 1))' }}>Активных: {stat.active}</p>
             )}
