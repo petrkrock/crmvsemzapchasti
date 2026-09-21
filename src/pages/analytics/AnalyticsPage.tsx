@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [analyticsTab, setAnalyticsTab] = useState('Общая статистика');
-  const [scoringDetail, setScoringDetail] = useState<'inventory' | 'warehouse'>('warehouse'); // v_1.9: какую детализацию показывать
+  const [scoringDetail, setScoringDetail] = useState<'inventory' | 'warehouse' | 'stm' | 'revenue'>('warehouse'); // v_1.9: какую детализацию показывать
   const [scoringFilterStatus, setScoringFilterStatus] = useState('');
   const [scoringFilterCity, setScoringFilterCity] = useState('');
   const [scoringFilterSupplier, setScoringFilterSupplier] = useState('');
@@ -143,16 +143,17 @@ export default function AnalyticsPage() {
   }, [allActiveSuppliers, scoringFilterStatus, scoringFilterCity]);
 
   const scoringStats = useMemo(() => {
-    let totalRevenue = 0, totalInventory = 0, totalWarehouses = 0, totalSKU = 0, withScoring = 0, withoutScoring = 0, revenueCount = 0;
+    let totalRevenue = 0, totalInventory = 0, totalWarehouses = 0, totalSKU = 0, withScoring = 0, withoutScoring = 0, revenueCount = 0, totalSTM = 0;
     scoringSuppliers.forEach(s => {
       const hasAny = s.scoring?.annualRevenue || s.scoring?.employees || whCountOf(s) || skuTotalOf(s);
       if (hasAny) withScoring++; else withoutScoring++;
-      if (s.scoring?.annualRevenue) { const r = parseFloat(s.scoring.annualRevenue); if (!isNaN(r) && r > 0) { totalRevenue += r; revenueCount++; } }
+      if (s.scoring?.revenue) { totalRevenue += s.scoring.revenue; revenueCount++; } // v_1.9: общий оборот = Выручка · стр. 2110
+      if ((s.ownBrands || []).length > 0) totalSTM++; // v_1.9: поставщики с СТМ
       if (s.scoring?.inventory) totalInventory += s.scoring.inventory; // v_1.9: Всего запасов (стр. 1210 по всем)
       if (whCountOf(s)) totalWarehouses += whCountOf(s);
       if (skuTotalOf(s)) totalSKU += skuTotalOf(s);
     });
-    return { totalRevenue, totalInventory, totalWarehouses, totalSKU, withScoring, withoutScoring, revenueCount, avgRevenue: revenueCount > 0 ? totalRevenue / revenueCount : 0 };
+    return { totalRevenue, totalInventory, totalWarehouses, totalSKU, withScoring, withoutScoring, revenueCount, totalSTM, avgRevenue: revenueCount > 0 ? totalRevenue / revenueCount : 0 };
   }, [scoringSuppliers]);
 
   const scoringTableData = scoringSuppliers
@@ -330,10 +331,10 @@ export default function AnalyticsPage() {
                 {canExport() && scoringTableData.length > 0 && <button onClick={exportScoringData} className="btn-secondary text-xs"><Download size={14} /> Выгрузить</button>}
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="stat-card border-blue-200"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><Building size={16} className="text-blue-600" /></div><p className="text-xs text-gray-500">Общий оборот</p></div>{scoringStats.totalRevenue > 0 ? <p className="text-lg font-bold text-brand-black">{formatRub(scoringStats.totalRevenue)}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</div>
+                <button onClick={() => setScoringDetail('revenue')} className={`stat-card border-blue-200 text-left transition-shadow ${scoringDetail === 'revenue' ? 'ring-2 ring-blue-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><Building size={16} className="text-blue-600" /></div><p className="text-xs text-gray-500">Общий оборот</p></div>{scoringStats.totalRevenue > 0 ? <p className="text-lg font-bold text-brand-black">{formatRub(scoringStats.totalRevenue)}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</div>
                 {/* v_1.9: каждый блок — кнопка, открывает свою детализацию */}
-                <button onClick={() => setScoringDetail('inventory')} className={`stat-card border-green-200 text-left transition-shadow ${scoringDetail === 'inventory' ? 'ring-2 ring-green-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Package size={16} className="text-green-600" /></div><p className="text-xs text-gray-500">Всего запасов</p></div>{scoringStats.totalInventory > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalInventory.toLocaleString('ru')}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</button>
-                <button onClick={() => setScoringDetail('warehouse')} className={`stat-card border-yellow-200 text-left transition-shadow ${scoringDetail === 'warehouse' ? 'ring-2 ring-yellow-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center"><Package size={16} className="text-yellow-600" /></div><p className="text-xs text-gray-500">Всего складов и SKU</p></div>{scoringStats.totalWarehouses > 0 || scoringStats.totalSKU > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalWarehouses} <span className="text-xs font-normal text-gray-400">Складов</span> · {scoringStats.totalSKU.toLocaleString('ru')} <span className="text-xs font-normal text-gray-400">SKU</span></p> : <p className="text-sm text-gray-300">Нет данных</p>}</button>
+                <button onClick={() => setScoringDetail('inventory')} className={`stat-card border-green-200 text-left transition-shadow ${scoringDetail === 'inventory' ? 'ring-2 ring-green-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Package size={16} className="text-green-600" /></div><p className="text-xs text-gray-500">Всего запасов</p></button>{scoringStats.totalInventory > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalInventory.toLocaleString('ru')}</p> : <p className="text-sm text-gray-300">Нет данных</p>}</button>
+                <button onClick={() => setScoringDetail('warehouse')} className={`stat-card border-yellow-200 text-left transition-shadow ${scoringDetail === 'warehouse' ? 'ring-2 ring-yellow-400' : 'hover:shadow-md'}`}><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center"><Package size={16} className="text-yellow-600" /></div><p className="text-xs text-gray-500">Всего складов и SKU</p></div>{scoringStats.totalWarehouses > 0 || scoringStats.totalSKU > 0 ? <p className="text-lg font-bold text-brand-black">{scoringStats.totalWarehouses} · {scoringStats.totalSKU.toLocaleString('ru')} <span className="text-xs font-normal text-gray-400">SKU</span></p> : <p className="text-sm text-gray-300">Нет данных</p>}</button>
                 <div className="stat-card border-purple-200"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><Hash size={16} className="text-purple-600" /></div><p className="text-xs text-gray-500">Скоринг заполнен</p></div><p className="text-lg font-bold text-brand-black">{scoringStats.withScoring}<span className="text-xs font-normal text-gray-400"> из {scoringStats.withScoring + scoringStats.withoutScoring}</span></p></div>
               </div>
               {scoringDetail === 'inventory' ? (
@@ -344,10 +345,46 @@ export default function AnalyticsPage() {
               ) : scoringDetail === 'warehouse' ? (
                 scoringTableData.length === 0 ? <p className="text-center text-gray-400 py-8 text-sm">Нет данных скоринга.</p> : (
                 <div className="card-base overflow-hidden">
-                  <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация ({scoringTableData.reduce((n, s) => n + whCountOf(s), 0)})</h3></div>
+                  <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Склады ({scoringTableData.reduce((n, s) => n + whCountOf(s), 0)})</h3></div>
                   <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid"><th className="table-header">Поставщик (название)</th><th className="table-header">Город (название) склада</th><th className="table-header">SKU</th></tr></thead><tbody>{scoringTableData.flatMap(s => (s.warehouseLocations || []).map(w => <tr key={w.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs">{w.city}</td><td className="table-cell text-xs">{(w.skuCount || 0).toLocaleString('ru')}</td></tr>))}{scoringTableData.reduce((n, s) => n + whCountOf(s), 0) === 0 && <tr><td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Нет складов у выбранных поставщиков</td></tr>}</tbody></table></div>
                 </div>
               )
+              ) : scoringDetail === 'revenue' ? (
+                <div className="card-base overflow-hidden">
+                  <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Оборот (Выручка · стр. 2110)</h3></div>
+                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
+                    <th className="table-header">Поставщик</th><th className="table-header">Выручка · стр. 2110</th><th className="table-header">Запасы · стр. 1210</th><th className="table-header">Маржа · 2100/2110 × 100%</th><th className="table-header">Валовая прибыль · стр. 2100</th>
+                  </tr></thead><tbody>
+                    {scoringTableData.map(s => {
+                      const rev = s.scoring?.revenue;
+                      const inv = s.scoring?.inventory;
+                      const gp = s.scoring?.grossProfit;
+                      const margin = rev && gp ? Math.round((gp / rev) * 10000) / 100 : null;
+                      return (<tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                        <td className="table-cell font-medium text-sm">{s.tradeName}</td>
+                        <td className="table-cell text-xs">{rev != null ? rev.toLocaleString('ru') : '—'}</td>
+                        <td className="table-cell text-xs">{inv != null ? inv.toLocaleString('ru') : '—'}</td>
+                        <td className="table-cell text-xs">{margin != null ? margin + '%' : '—'}</td>
+                        <td className="table-cell text-xs">{gp != null ? gp.toLocaleString('ru') : '—'}</td>
+                      </tr>);
+                    })}
+                  </tbody></table></div>
+                </div>
+              ) : scoringDetail === 'stm' ? (
+                <div className="card-base overflow-hidden">
+                  <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Поставщики с СТМ ({scoringTableData.filter(s => (s.ownBrands || []).length > 0).length})</h3></div>
+                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
+                    <th className="table-header">Поставщик</th><th className="table-header">Бренды СТМ</th>
+                  </tr></thead><tbody>
+                    {scoringTableData.filter(s => (s.ownBrands || []).length > 0).map(s => (
+                      <tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                        <td className="table-cell font-medium text-sm">{s.tradeName}</td>
+                        <td className="table-cell text-xs">{(s.ownBrands || []).join(', ')}</td>
+                      </tr>
+                    ))}
+                    {scoringTableData.filter(s => (s.ownBrands || []).length > 0).length === 0 && <tr><td colSpan={2} className="text-center py-6 text-gray-400 text-xs">Нет поставщиков с СТМ</td></tr>}
+                  </tbody></table></div>
+                </div>
               ) : null}
             </div>
           )}
