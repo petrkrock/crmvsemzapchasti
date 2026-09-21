@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import CitySelect from '@/components/features/CitySelect';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getStore, updateStore, useStoreVersion, getContactPrefs } from '@/lib/store';
 import { generateId, exportToCSV, formatDate } from '@/lib/utils';
 import { getCurrentUser, canExport, canDelete, isAdmin, canSeeSupplier } from '@/lib/auth';
@@ -61,7 +61,8 @@ export default function SuppliersPage() {
   const noScoringCount = store.suppliers.filter(s => !s.deletedAt && s.status !== 'АРХИВ' && s.status !== 'Архив дублей'
     && !(s.scoring && (s.scoring.apiLoaded || s.scoring.revenue || s.scoring.annualRevenue))).length;
   const [listShown, setListShown] = useState(50);
-  const [filterStatus, setFilterStatus] = useState('');
+  const [urlParams] = useSearchParams();
+  const [filterStatus, setFilterStatus] = useState(urlParams.get('status') || ''); // v_1.9: ?status= из дашборда
   const [filterService, setFilterService] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [filterSs, setFilterSs] = useState('');

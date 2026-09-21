@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getStore, useStoreVersion } from '@/lib/store';
 import { formatDateTime, formatDate, isToday, isOverdue } from '@/lib/utils';
 import { canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket } from '@/lib/auth';
@@ -79,7 +79,7 @@ export default function Dashboard() {
   const stats = [
     { label: 'Поставщиков', value: activeSuppliers.length, active: activeSuppliers.filter(s => s.status === 'Активный').length, icon: Truck, to: '/suppliers', color: 'bg-blue-50 text-blue-600' },
     { label: 'Покупателей', value: activeBuyers.length, active: activeBuyers.filter(b => b.status === 'Активный').length, icon: ShoppingCart, to: '/buyers', color: 'bg-green-50 text-green-600' },
-    { label: 'Заявок с сайта', value: siteLeads.length, sub: `Поставщики: ${siteLeadsSup.length} · Покупатели: ${siteLeadsBuy.length}`, icon: Globe, to: '/leads', color: 'bg-purple-50 text-purple-600' }, // v_1.9: все формы сайта в «Лид форма» + разбивка
+    { label: 'Заявок с сайта', value: siteLeads.length, icon: Globe, color: 'bg-purple-50 text-purple-600' }, // v_1.9: карточка не кликабельна, ссылки внутри
     { label: 'Задач сегодня', value: todayTasks.length, icon: CheckSquare, to: '/tasks', color: 'bg-yellow-50 text-yellow-600' },
     { label: 'Медиа сервис', value: mkRequests.length, icon: FileEdit, to: '/media', color: 'bg-red-50 text-red-600' }, // v_1.9: Маркетинг-кит (Запрос МК/Отправлен МК)
   ];
@@ -95,18 +95,37 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {stats.map(stat => (
-          <button key={stat.label} onClick={() => navigate(stat.to)} className="stat-card hover:shadow-md transition-shadow text-left">
+        function StatCardBody({ stat }: { stat: (typeof stats)[number] }) {
+          return (<>
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500">{stat.label}</span>
               <div className={`w-8 h-8 rounded-lg ${stat.color} flex items-center justify-center`}><stat.icon size={16} /></div>
             </div>
             <p className="text-2xl font-bold text-brand-black">{stat.value}</p>
-            {stat.sub && <p className="text-[11px] text-gray-500 mt-0.5">{stat.sub}</p>}
+            {stat.label === 'Заявок с сайта' ? (
+              <div className="flex gap-1.5 mt-1.5">
+                <Link to="/suppliers?status=Лид форма" onClick={e => e.stopPropagation()}
+                  className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: 'rgb(239, 246, 255)', color: 'rgb(29, 78, 216)' }}>Поставщики: {siteLeadsSup.length}</Link>
+                <Link to="/buyers?status=Лид форма" onClick={e => e.stopPropagation()}
+                  className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: 'rgb(239, 246, 255)', color: 'rgb(29, 78, 216)' }}>Покупатели: {siteLeadsBuy.length}</Link>
+              </div>
+            ) : null}
             {stat.active !== undefined && (
               <p className="mt-1 rounded-lg px-2 py-1 text-sm font-bold" style={{ backgroundColor: 'rgb(220 252 231 / var(--tw-bg-opacity, 1))', color: 'rgb(21 128 61 / var(--tw-text-opacity, 1))' }}>Активных: {stat.active}</p>
             )}
-          </button>
+          
+          </>);
+        }
+        {stats.map(stat => (
+          stat.to
+            ? <button key={stat.label} onClick={() => navigate(stat.to)} className="stat-card hover:shadow-md transition-shadow text-left">
+                <StatCardBody stat={stat} />
+              </button>
+            : <div key={stat.label} className="stat-card text-left">
+                <StatCardBody stat={stat} />
+              </div>
         ))}
       </div>
 

@@ -7,7 +7,7 @@ const BUYER_CAT_STYLE: Record<'A' | 'B' | 'C', { background: string; color: stri
   C: { background: 'rgb(254, 243, 199)', color: 'rgb(180, 83, 9)' },
 };
 import CitySelect from '@/components/features/CitySelect';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getStore, updateStore, useStoreVersion, getContactPrefs } from '@/lib/store';
 import { generateId, exportToCSV, formatDate } from '@/lib/utils';
 import { getCurrentUser, canExport, canDelete, isAdmin, canSeeBuyer } from '@/lib/auth';
@@ -49,7 +49,8 @@ const [, forceUpdate] = useState(0);
   const [listShown, setListShown] = useState(50);
   // Модальное окно смены статуса из таблицы
   const [statusModal, setStatusModal] = useState<{ id: string; status: string } | null>(null);
-  const [filterStatus, setFilterStatus] = useState('');
+  const [urlParams] = useSearchParams();
+  const [filterStatus, setFilterStatus] = useState(urlParams.get('status') || ''); // v_1.9: ?status= из дашборда
   const [filterResponsible, setFilterResponsible] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [filterType, setFilterType] = useState('');
