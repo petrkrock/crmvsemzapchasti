@@ -95,6 +95,7 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {(() => {
         function StatCardBody({ stat }: { stat: (typeof stats)[number] }) {
           return (<>
             <div className="flex items-center justify-between">
@@ -127,6 +128,7 @@ export default function Dashboard() {
                 <StatCardBody stat={stat} />
               </div>
         ))}
+        })()}
       </div>
 
       {/* Media alerts */}
