@@ -4,10 +4,10 @@
 
 import type { ScoreData } from '@/types';
 
-/** Маржа = строка 1210 / строка 2110 × 100% */
-export function calcMargin(inventory?: number, revenue?: number): number | undefined {
-  if (!inventory || !revenue) return undefined;
-  return Math.round((inventory / revenue) * 10000) / 100;
+/** Маржа = строка 2100 (Валовая прибыль) / строка 2110 (Выручка) × 100%. Запасы (1210) в расчёте не участвуют. */
+export function calcMargin(grossProfit?: number, revenue?: number): number | undefined {
+  if (!grossProfit || !revenue) return undefined;
+  return Math.round((grossProfit / revenue) * 10000) / 100;
 }
 
 function num(v: unknown): number | undefined {
@@ -40,7 +40,7 @@ export async function fetchCheckoCompany(key: string, inn: string): Promise<Scor
   const name = data['Наименование'] as { Полнное?: string; Сокращенное?: string } | undefined;
   return {
     year, revenue, inventory, grossProfit,
-    marginPct: calcMargin(inventory, revenue),
+    marginPct: calcMargin(grossProfit, revenue),
     companyName: name?.Полнное || name?.Сокращенное || undefined,
     apiLoaded: true,
     apiLoadedAt: new Date().toISOString(),

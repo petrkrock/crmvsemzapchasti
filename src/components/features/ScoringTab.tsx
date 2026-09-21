@@ -15,10 +15,10 @@ export default function ScoringTab({ scoring, inn, onSave, onRescore }: ScoringT
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<ScoreData>({ ...scoring });
   // этап 1.8: Маржа всегда пересчитывается из 1210/2110
-  const margin = calcMargin(form.inventory, form.revenue);
+  const margin = calcMargin(form.grossProfit, form.revenue);
 
   function handleSave() {
-    const saved: ScoreData = { ...form, marginPct: calcMargin(form.inventory, form.revenue) };
+    const saved: ScoreData = { ...form, marginPct: calcMargin(form.grossProfit, form.revenue) };
     onSave(saved);
     setEditing(false);
     toast.success('Данные скоринга сохранены');
@@ -80,7 +80,7 @@ export default function ScoringTab({ scoring, inn, onSave, onRescore }: ScoringT
       {/* Общий блок: Маржа (автоформула) + Валовая прибыль (2100) */}
       <div className="grid grid-cols-2 gap-3">
         <div className="stat-card px-3.5 py-3">
-          <p className="text-[10px] uppercase tracking-wide text-gray-500">Маржа · 1210/2110 × 100%</p>
+          <p className="text-[10px] uppercase tracking-wide text-gray-500">Маржа · 2100/2110 × 100%</p>
           <p className="text-2xl font-bold mt-0.5">{margin != null ? `${margin}%` : <span className="text-gray-300">—</span>}</p>
         </div>
         <div className="stat-card px-3.5 py-3">

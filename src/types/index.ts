@@ -44,7 +44,7 @@ export interface ScoreData {
   revenue?: number;      // строка 2110 «Выручка»
   inventory?: number;    // строка 1210 «Запасы»
   grossProfit?: number;  // строка 2100 «Валовая прибыль»
-  marginPct?: number;    // Маржа = 1210 / 2110 × 100%
+  marginPct?: number;    // Маржа = 2100 / 2110 × 100% (Запасы 1210 не участвуют)
   companyName?: string;  // наименование из Checko
 }
 
