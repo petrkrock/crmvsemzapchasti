@@ -21,7 +21,7 @@ const PERIODS = [
   { key: 'quarter', label: 'Квартал' }, { key: 'half', label: 'Полугодие' }, { key: 'year', label: 'Текущий год' },
   { key: 'custom', label: 'Произвольный' },
 ];
-const ANALYTICS_TABS = ['Скоринг поставщиков', 'Категории компаний', 'Статистика медиа', 'Статистика сервисов', 'Статистика пользователей', 'Объём рынка'];
+const ANALYTICS_TABS = ['Скоринг поставщиков', 'Объём рынка', 'Статистика сервисов', 'Категории компаний', 'Статистика медиа', 'Статистика пользователей'];
 
 function getPeriodRange(period: string): { from: Date; to: Date } {
   // Календарные периоды (ТЗ): день=сегодня, неделя=пн–вс, месяц=текущий,
@@ -498,11 +498,12 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-3 gap-4 mb-6">
               {(['A', 'B', 'C'] as const).map(c => {
                 const n = allActiveSuppliers.filter(s => (s.category ?? 'C') === c).length;
+                const pct = allActiveSuppliers.length ? Math.round((n / allActiveSuppliers.length) * 100) : 0;
                 return (
                   <div key={c} className="stat-card text-center">
                     <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold mb-2" style={{ A: { background: 'rgb(209, 250, 229)', color: 'rgb(6, 95, 70)' }, B: { background: 'rgb(239, 246, 255)', color: 'rgb(30, 64, 175)' }, C: { background: 'rgb(254, 243, 199)', color: 'rgb(180, 83, 9)' } }[c]}>{c}</span>
                     <p className="text-xs text-gray-500">Категория – {c}</p>
-                    <p className="text-2xl font-bold text-brand-black">{n}</p>
+                    <p className="text-2xl font-bold text-brand-black">{n} <span className="text-xs font-normal text-gray-400">({pct}%)</span></p>
                   </div>
                 );
               })}
@@ -511,11 +512,12 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-3 gap-4 mb-6">
               {(['A', 'B', 'C'] as const).map(c => {
                 const n = allActiveBuyers.filter(x => (x.category ?? 'C') === c).length;
+                const pct = allActiveBuyers.length ? Math.round((n / allActiveBuyers.length) * 100) : 0;
                 return (
                   <div key={c} className="stat-card text-center">
                     <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold mb-2" style={{ A: { background: 'rgb(209, 250, 229)', color: 'rgb(6, 95, 70)' }, B: { background: 'rgb(239, 246, 255)', color: 'rgb(30, 64, 175)' }, C: { background: 'rgb(254, 243, 199)', color: 'rgb(180, 83, 9)' } }[c]}>{c}</span>
                     <p className="text-xs text-gray-500">Категория – {c}</p>
-                    <p className="text-2xl font-bold text-brand-black">{n}</p>
+                    <p className="text-2xl font-bold text-brand-black">{n} <span className="text-xs font-normal text-gray-400">({pct}%)</span></p>
                   </div>
                 );
               })}
