@@ -54,6 +54,25 @@ export default function Dashboard() {
 
   const supplierSources = activeSuppliers.reduce<Record<string, number>>((acc, s) => { if (s.source) acc[s.source] = (acc[s.source] || 0) + 1; return acc; }, {});
   const buyerSources = activeBuyers.reduce<Record<string, number>>((acc, b) => { if (b.source) acc[b.source] = (acc[b.source] || 0) + 1; return acc; }, {});
+  // v_1.9: типы (для блоков «По типам») и динамика добавленных за 6 месяцев (график)
+  const suppliersByType = activeSuppliers.reduce<Record<string, number>>((acc, s) => { acc[s.type] = (acc[s.type] || 0) + 1; return acc; }, {});
+  const buyersByType = activeBuyers.reduce<Record<string, number>>((acc, b) => { acc[b.type] = (acc[b.type] || 0) + 1; return acc; }, {});
+  const MONTHS_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+  const addedByMonth = (() => {
+    const now = new Date();
+    const rows: { label: string; sup: number; buy: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      rows.push({
+        label: MONTHS_RU[d.getMonth()],
+        sup: activeSuppliers.filter(s => (s.createdAt || '').slice(0, 7) === key).length,
+        buy: activeBuyers.filter(b => (b.createdAt || '').slice(0, 7) === key).length,
+      });
+    }
+    return rows;
+  })();
+  const maxAdded = Math.max(1, ...addedByMonth.flatMap(m => [m.sup, m.buy]));
 
   const todayTasks = (okTasks ? store.tasks : []).filter(t => !t.completed && (isToday(t.dueDate) || isOverdue(t.dueDate)));
   // v_1.9: заявки Маркетинг-кит из форм сайта (статусы «Запрос МК» / «Отправлен МК»)
@@ -337,6 +356,63 @@ export default function Dashboard() {
               ))}
             </div>
           ) : <p className="text-sm text-gray-400 text-center py-4">Нет данных</p>}
+        </div>
+      </div>
+
+      {/* v_1.9: типы под источниками */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="card-base p-4">
+          <h2 className="section-title mb-4">Поставщики по типам</h2>
+          {Object.keys(suppliersByType).length > 0 ? (
+            <div className="space-y-2">
+              {Object.entries(suppliersByType).map(([name, value], i) => (
+                <div key={name} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                  <div className="flex-1">
+                    <div className="flex justify-between text-xs mb-0.5"><span className="text-gray-600">{name}</span><span className="font-medium">{value}</span></div>
+                    <div className="h-1.5 bg-brand-gray rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${activeSuppliers.length ? (value / activeSuppliers.length) * 100 : 0}%`, background: COLORS[i % COLORS.length] }} /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-gray-400 text-center py-4">Нет данных</p>}
+        </div>
+        <div className="card-base p-4">
+          <h2 className="section-title mb-4">Покупатели по типам</h2>
+          {Object.keys(buyersByType).length > 0 ? (
+            <div className="space-y-2">
+              {Object.entries(buyersByType).map(([name, value], i) => (
+                <div key={name} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                  <div className="flex-1">
+                    <div className="flex justify-between text-xs mb-0.5"><span className="text-gray-600">{name}</span><span className="font-medium">{value}</span></div>
+                    <div className="h-1.5 bg-brand-gray rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${activeBuyers.length ? (value / activeBuyers.length) * 100 : 0}%`, background: COLORS[i % COLORS.length] }} /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-gray-400 text-center py-4">Нет данных</p>}
+        </div>
+      </div>
+
+      {/* v_1.9: график «Добавлено» — 6 месяцев, поставщики/покупатели */}
+      <div className="card-base p-4">
+        <h2 className="section-title mb-1">Добавлено за 6 месяцев</h2>
+        <div className="flex gap-4 text-[11px] text-gray-500 mb-3">
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#3B82F6' }} /> Поставщиков</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#10B981' }} /> Покупателей</span>
+        </div>
+        <div className="flex items-end gap-3 h-36">
+          {addedByMonth.map(m => (
+            <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
+              <div className="w-full flex items-end justify-center gap-1 h-28">
+                <div className="w-1/3 rounded-t" style={{ height: `${(m.sup / maxAdded) * 100}%`, background: '#3B82F6', minHeight: m.sup ? 3 : 0 }} title={`Поставщиков: ${m.sup}`} />
+                <div className="w-1/3 rounded-t" style={{ height: `${(m.buy / maxAdded) * 100}%`, background: '#10B981', minHeight: m.buy ? 3 : 0 }} title={`Покупателей: ${m.buy}`} />
+              </div>
+              <span className="text-[10px] text-gray-400">{m.label}</span>
+              <span className="text-[10px] font-medium text-gray-600">{m.sup}/{m.buy}</span>
+            </div>
+          ))}
         </div>
       </div>
 
