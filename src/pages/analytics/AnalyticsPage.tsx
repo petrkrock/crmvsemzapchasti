@@ -420,22 +420,6 @@ export default function AnalyticsPage() {
                       </div>
                     </div>
                   )}
-                </div>
-              ) : scoringDetail === 'stm' ? (
-                <div className="card-base overflow-hidden">
-                  <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Поставщики с СТМ ({scoringTableData.filter(s => (s.ownBrands || []).length > 0).length})</h3></div>
-                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
-                    <th className="table-header">Поставщик</th><th className="table-header">Бренды СТМ</th>
-                  </tr></thead><tbody>
-                    {scoringTableData.filter(s => (s.ownBrands || []).length > 0).map(s => (
-                      <tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
-                        <td className="table-cell font-medium text-sm">{s.tradeName}</td>
-                        <td className="table-cell text-xs">{(s.ownBrands || []).join(', ')}</td>
-                      </tr>
-                    ))}
-                    {scoringTableData.filter(s => (s.ownBrands || []).length > 0).length === 0 && <tr><td colSpan={2} className="text-center py-6 text-gray-400 text-xs">Нет поставщиков с СТМ</td></tr>}
-                  </tbody></table></div>
-                </div>
                   <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
                     <th className="table-header w-8"><input type="checkbox" className="accent-blue-600" title="Выбрать все"
                         checked={revSelected.length > 0 && sortedRevData.every(s => revSelected.includes(s.id))}
@@ -465,6 +449,23 @@ export default function AnalyticsPage() {
                     })}
                     {scoringTableData.length === 0 && <tr><td colSpan={6} className="text-center py-6 text-gray-400 text-xs">Нет данных скоринга</td></tr>}
                   </tbody></table></div>
+                </div>
+              ) : scoringDetail === 'stm' ? (
+                <div className="card-base overflow-hidden">
+                  <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Поставщики с СТМ ({scoringTableData.filter(s => (s.ownBrands || []).length > 0).length})</h3></div>
+                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
+                    <th className="table-header">Поставщик</th><th className="table-header">Бренды СТМ</th>
+                  </tr></thead><tbody>
+                    {scoringTableData.filter(s => (s.ownBrands || []).length > 0).map(s => (
+                      <tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                        <td className="table-cell font-medium text-sm">{s.tradeName}</td>
+                        <td className="table-cell text-xs">{(s.ownBrands || []).join(', ')}</td>
+                      </tr>
+                    ))}
+                    {scoringTableData.filter(s => (s.ownBrands || []).length > 0).length === 0 && <tr><td colSpan={2} className="text-center py-6 text-gray-400 text-xs">Нет поставщиков с СТМ</td></tr>}
+                  </tbody></table></div>
+                </div>
+                  
                   
               ) : null}
             </div>
