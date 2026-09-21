@@ -223,11 +223,16 @@ export default function Dashboard() {
             <div className="space-y-2">
               {todayTasks.slice(0, 5).map(task => (
                 <div key={task.id} onClick={() => navigate('/tasks')} className="p-2 bg-brand-gray rounded-md cursor-pointer hover:bg-brand-gray-mid transition-colors">
-                  <p className="text-sm font-medium text-brand-black">{task.title}</p>
-                  {task.entityName && <p className="text-xs text-gray-400">{task.entityName}</p>}
-                  {isOverdue(task.dueDate) && !isToday(task.dueDate) && (
-                    <span className="text-xs text-red-500 flex items-center gap-1 mt-0.5"><AlertCircle size={10} /> Просрочена</span>
-                  )}
+                  {/* v_1.9: одна горизонтальная строка: название (…) · мета · просрочка */}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-brand-black truncate min-w-0" title={task.title}>{task.title}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {task.entityName && <span className="text-xs text-gray-400 whitespace-nowrap">{task.entityName}</span>}
+                      {isOverdue(task.dueDate) && !isToday(task.dueDate) && (
+                        <span className="text-xs text-red-500 flex items-center gap-1 whitespace-nowrap"><AlertCircle size={10} /> Просрочена</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -247,11 +252,14 @@ export default function Dashboard() {
             <div className="space-y-2">
               {newTickets.slice(0, 5).map(t => (
                 <div key={t.id} onClick={() => navigate(`/support/${t.id}`)} className="p-2 bg-brand-gray rounded-md cursor-pointer hover:bg-brand-gray-mid transition-colors">
+                  {/* v_1.9: одна горизонтальная строка: тема (…) · статус · мета */}
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-brand-black truncate">{t.subject}</p>
-                    <StatusBadge status={t.status} />
+                    <p className="text-sm font-medium text-brand-black truncate min-w-0" title={t.subject}>{t.subject}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge status={t.status} />
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{t.contactName && <span className="font-medium text-gray-600">{t.contactName} · </span>}{t.type} · {formatDateTime(t.createdAt)}</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-400">{t.contactName && <span className="font-medium text-gray-600">{t.contactName} · </span>}{t.type} · {formatDateTime(t.createdAt)}</p>
                 </div>
               ))}
             </div>

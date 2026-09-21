@@ -368,9 +368,7 @@ export default function AnalyticsPage() {
                 scoringTableData.length === 0 ? <p className="text-center text-gray-400 py-8 text-sm">Нет данных скоринга.</p> : (
                 <div className="card-base overflow-hidden">
                   <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Склады ({scoringTableData.reduce((n, s) => n + whCountOf(s), 0)})</h3></div>
-                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid"><th className="table-header">Поставщик (название)</th><th className="table-header">Город (название) склада</th><th className="table-header">SKU</th></tr></thead><tbody>{scoringTableData.map(s => ((s.warehouseLocations || []).length > 0
-                        ? (s.warehouseLocations || []).map(w => <tr key={w.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs">{w.city}</td><td className="table-cell text-xs">{(w.skuCount || 0).toLocaleString('ru')}</td></tr>)
-                        : <tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs text-gray-400">—</td><td className="table-cell text-xs text-gray-400">—</td></tr>))}{scoringTableData.reduce((n, s) => n + whCountOf(s), 0) === 0 && <tr><td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Нет складов у выбранных поставщиков</td></tr>}</tbody></table></div>
+                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid"><th className="table-header">Поставщик (название)</th><th className="table-header">Город (название) склада</th><th className="table-header">SKU</th></tr></thead><tbody>{scoringTableData.flatMap(s => (s.warehouseLocations || []).map(w => <tr key={w.id} className="border-b border-brand-gray-mid hover:bg-brand-gray"><td className="table-cell font-medium text-sm">{s.tradeName}</td><td className="table-cell text-xs">{w.city}</td><td className="table-cell text-xs">{(w.skuCount || 0).toLocaleString('ru')}</td></tr>))}{scoringTableData.reduce((n, s) => n + whCountOf(s), 0) === 0 && <tr><td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Нет созданных складов у выбранных поставщиков</td></tr>}</tbody></table></div>
                 </div>
               )
               ) : scoringDetail === 'revenue' ? (
@@ -663,16 +661,6 @@ export default function AnalyticsPage() {
           {analyticsTab === 'Статистика сервисов' && (
             <div className="space-y-6">
               <h2 className="section-title flex items-center gap-2"><BarChart2 size={16} className="text-brand-red" /> Статистика сервисов продаж</h2>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {serviceStats.slice(0, 4).map((svc, i) => (
-                  <div key={svc.name} className="stat-card">
-                    <p className="text-xs text-gray-500">{svc.name}</p>
-                    <p className="text-2xl font-bold" style={{ color: COLORS[i % COLORS.length] }}>{svc.count}</p>
-                    <p className="text-xs text-gray-400 mt-1">{svc.pct}% поставщиков</p>
-                  </div>
-                ))}
-              </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* v_1.9: левая колонка — вертикальные блоки: всего + DBS/FBS/MEDIA */}
