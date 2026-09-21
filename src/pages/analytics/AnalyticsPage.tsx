@@ -487,73 +487,63 @@ export default function AnalyticsPage() {
           )}
 
           {/* ── ОЦЕНКА КОМПАНИЙ ── */}
-          {analyticsTab === 'Категории компаний' && ( // v_1.9
-            <div className="space-y-6">
-              <h2 className="section-title flex items-center gap-2"><Star size={16} className="text-brand-red" /> <h2 className="section-title mb-4">Категории компаний</h2>
-              {/* v_1.9: два блока «в оценке» */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="stat-card border-green-200"><p className="text-xs text-gray-500">Всего поставщиков в оценке</p><p className="text-3xl font-bold text-green-600">{allActiveSuppliers.length}</p></div>
-                <div className="stat-card border-blue-200"><p className="text-xs text-gray-500">Всего покупателей в оценке</p><p className="text-3xl font-bold text-blue-600">{allActiveBuyers.length}</p></div>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ScoreDistribution data={supplierScoreData} title="Поставщики по оценкам" />
-                <ScoreDistribution data={buyerScoreData} title="Покупатели по оценкам" />
-              </div>
-              {/* v_1.9: поставщики по категориям */}
-              <h3 className="text-sm font-semibold mt-6 mb-3">Поставщики по категориям</h3>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                {(['A', 'B', 'C'] as const).map(c => {
-                  const n = allActiveSuppliers.filter(s => (s.category ?? 'C') === c).length;
-                  const st = { A: { background: 'rgb(209, 250, 229)', color: 'rgb(6, 95, 70)' }, B: { background: 'rgb(239, 246, 255)', color: 'rgb(30, 64, 175)' }, C: { background: 'rgb(254, 243, 199)', color: 'rgb(180, 83, 9)' } }[c];
-                  return (
-                    <div key={c} className="stat-card text-center">
-                      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold mb-2" style={st}>{c}</span>
-                      <p className="text-xs text-gray-500">Категория – {c}</p>
-                      <p className="text-2xl font-bold text-brand-black">{n}</p>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* v_1.9: покупатели по категориям */}
-              <h3 className="text-sm font-semibold mb-3">Покупатели по категориям</h3>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                {(['A', 'B', 'C'] as const).map(c => {
-                  const n = allActiveBuyers.filter(b => (b.category ?? 'C') === c).length;
-                  const st = { A: { background: 'rgb(209, 250, 229)', color: 'rgb(6, 95, 70)' }, B: { background: 'rgb(239, 246, 255)', color: 'rgb(30, 64, 175)' }, C: { background: 'rgb(254, 243, 199)', color: 'rgb(180, 83, 9)' } }[c];
-                  return (
-                    <div key={c} className="stat-card text-center">
-                      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold mb-2" style={st}>{c}</span>
-                      <p className="text-xs text-gray-500">Категория – {c}</p>
-                      <p className="text-2xl font-bold text-brand-black">{n}</p>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* v_1.9: группы товаров поставщиков — покрытие по всей длине */}
-              <div className="stat-card">
-                <h3 className="text-sm font-semibold mb-3">Группы товаров поставщиков</h3>
-                {(() => {
-                  const groups: Record<string, number> = {};
-                  allActiveSuppliers.forEach(s => (s.productGroups || []).forEach(g => { groups[g] = (groups[g] || 0) + 1; }));
-                  const entries = Object.entries(groups).sort((a, b) => b[1] - a[1]);
-                  const max = Math.max(1, ...entries.map(e => e[1]));
-                  if (!entries.length) return <p className="text-sm text-gray-400 py-4 text-center">Нет данных</p>;
-                  return (
-                    <div className="space-y-2">
-                      {entries.map(([name, value], i) => (
-                        <div key={name} className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                          <div className="flex-1">
-                            <div className="flex justify-between text-xs mb-0.5"><span className="text-gray-600">{name}</span><span className="font-medium">{value} <span className="text-gray-400">({Math.round((value / allActiveSuppliers.length) * 100)}%)</span></span></div>
-                            <div className="h-1.5 bg-brand-gray rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${(value / max) * 100}%`, background: COLORS[i % COLORS.length] }} /></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
+          {analyticsTab === 'Категории компаний' && (
+          <div className="card-base p-4">
+            <h2 className="section-title mb-4">Категории компаний</h2>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="stat-card border-green-200"><p className="text-xs text-gray-500">Всего поставщиков в оценке</p><p className="text-3xl font-bold text-green-600">{allActiveSuppliers.length}</p></div>
+              <div className="stat-card border-blue-200"><p className="text-xs text-gray-500">Всего покупателей в оценке</p><p className="text-3xl font-bold text-blue-600">{allActiveBuyers.length}</p></div>
             </div>
+            <h3 className="text-sm font-semibold mb-3">Поставщики по категориям</h3>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {(['A', 'B', 'C'] as const).map(c => {
+                const n = allActiveSuppliers.filter(s => (s.category ?? 'C') === c).length;
+                return (
+                  <div key={c} className="stat-card text-center">
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold mb-2" style={{ A: { background: 'rgb(209, 250, 229)', color: 'rgb(6, 95, 70)' }, B: { background: 'rgb(239, 246, 255)', color: 'rgb(30, 64, 175)' }, C: { background: 'rgb(254, 243, 199)', color: 'rgb(180, 83, 9)' } }[c]}>{c}</span>
+                    <p className="text-xs text-gray-500">Категория – {c}</p>
+                    <p className="text-2xl font-bold text-brand-black">{n}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <h3 className="text-sm font-semibold mb-3">Покупатели по категориям</h3>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {(['A', 'B', 'C'] as const).map(c => {
+                const n = allActiveBuyers.filter(x => (x.category ?? 'C') === c).length;
+                return (
+                  <div key={c} className="stat-card text-center">
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold mb-2" style={{ A: { background: 'rgb(209, 250, 229)', color: 'rgb(6, 95, 70)' }, B: { background: 'rgb(239, 246, 255)', color: 'rgb(30, 64, 175)' }, C: { background: 'rgb(254, 243, 199)', color: 'rgb(180, 83, 9)' } }[c]}>{c}</span>
+                    <p className="text-xs text-gray-500">Категория – {c}</p>
+                    <p className="text-2xl font-bold text-brand-black">{n}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="stat-card">
+              <h3 className="text-sm font-semibold mb-3">Группы товаров поставщиков</h3>
+              {(() => {
+                const groups: Record<string, number> = {};
+                allActiveSuppliers.forEach(s => (s.productGroups || []).forEach(g => { groups[g] = (groups[g] || 0) + 1; }));
+                const entries = Object.entries(groups).sort((x, y) => y[1] - x[1]);
+                const max = Math.max(1, ...entries.map(e => e[1]));
+                if (!entries.length) return <p className="text-sm text-gray-400 py-4 text-center">Нет данных</p>;
+                return (
+                  <div className="space-y-2">
+                    {entries.map(([name, value], i) => (
+                      <div key={name} className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                        <div className="flex-1">
+                          <div className="flex justify-between text-xs mb-0.5"><span className="text-gray-600">{name}</span><span className="font-medium">{value} <span className="text-gray-400">({Math.round((value / allActiveSuppliers.length) * 100)}%)</span></span></div>
+                          <div className="h-1.5 bg-brand-gray rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${(value / max) * 100}%`, background: COLORS[i % COLORS.length] }} /></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
           )}
 
           {/* ── СТАТИСТИКА МЕДИА ── */}
