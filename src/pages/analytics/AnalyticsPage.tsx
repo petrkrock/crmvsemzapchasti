@@ -374,35 +374,6 @@ export default function AnalyticsPage() {
               ) : scoringDetail === 'revenue' ? (
                 <div className="card-base overflow-hidden">
                   <div className="p-3 border-b border-brand-gray-mid"><h3 className="section-title">Детализация — Оборот (Выручка · стр. 2110)</h3></div>
-                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
-                    <th className="table-header w-8"><input type="checkbox" className="accent-blue-600" title="Выбрать все"
-                        checked={revSelected.length > 0 && sortedRevData.every(s => revSelected.includes(s.id))}
-                        onChange={() => setRevSelected(sel => sortedRevData.every(s => sel.includes(s.id)) ? [] : sortedRevData.map(s => s.id))} /></th>
-                    <th className="table-header">Поставщик</th>
-                    {([['revenue', 'Выручка · стр. 2110'], ['inventory', 'Запасы · стр. 1210'], ['margin', 'Маржа · 2100/2110 × 100%'], ['gross', 'Валовая прибыль · стр. 2100']] as const).map(([key, label]) => (
-                      <th key={key} className="table-header cursor-pointer select-none hover:text-brand-black" title="Сортировка больше/меньше"
-                        onClick={() => setRevSort(s => s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: -1 })}>
-                        {label} {revSort?.key === key ? (revSort.dir === -1 ? '↓' : '↑') : '↕'}
-                      </th>
-                    ))}
-                  </tr></thead><tbody>
-                    {sortedRevData.map(s => {
-                      const rev = s.scoring?.revenue;
-                      const inv = s.scoring?.inventory;
-                      const gp = s.scoring?.grossProfit;
-                      const margin = rev && gp ? Math.round((gp / rev) * 10000) / 100 : null;
-                      return (<tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
-                        <td className="table-cell"><input type="checkbox" className="accent-blue-600" checked={revSelected.includes(s.id)}
-                          onChange={() => setRevSelected(sel => sel.includes(s.id) ? sel.filter(x => x !== s.id) : [...sel, s.id])} /></td>
-                        <td className="table-cell font-medium text-sm">{s.tradeName}</td>
-                        <td className="table-cell text-xs">{rev != null ? rev.toLocaleString('ru') : '—'}</td>
-                        <td className="table-cell text-xs">{inv != null ? inv.toLocaleString('ru') : '—'}</td>
-                        <td className="table-cell text-xs">{margin != null ? margin + '%' : '—'}</td>
-                        <td className="table-cell text-xs">{gp != null ? gp.toLocaleString('ru') : '—'}</td>
-                      </tr>);
-                    })}
-                    {scoringTableData.length === 0 && <tr><td colSpan={6} className="text-center py-6 text-gray-400 text-xs">Нет данных скоринга</td></tr>}
-                  </tbody></table></div>
                   {/* v_1.9: скрытое меню выбранных — как в «База лидов» */}
                   {revSelected.length > 0 && !revTaskForm.show && (
                     <div className="p-3 flex flex-wrap items-center gap-2 bg-blue-50 border-t border-blue-200 animate-fade-in">
@@ -418,7 +389,7 @@ export default function AnalyticsPage() {
                       <div className="flex flex-wrap gap-2">
                         <select className="form-input text-xs py-1.5 w-auto" value={revTaskForm.type} onChange={e => setRevTaskForm(f => ({ ...f, type: e.target.value }))}>
                           <option value="">Тип задачи…</option>
-                          {(getStore().settings.taskEntityTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                          {(getStore().settings.taskEntityTypes || []).map(t => { const label = (t as { label?: string; key?: string }).label || (t as { key?: string }).key || String(t); return <option key={label} value={label}>{label}</option>; })}
                         </select>
                         <select className="form-input text-xs py-1.5 w-auto" value={revTaskForm.respId} onChange={e => setRevTaskForm(f => ({ ...f, respId: e.target.value }))}>
                           <option value="">Ответственный…</option>
@@ -465,6 +436,36 @@ export default function AnalyticsPage() {
                     {scoringTableData.filter(s => (s.ownBrands || []).length > 0).length === 0 && <tr><td colSpan={2} className="text-center py-6 text-gray-400 text-xs">Нет поставщиков с СТМ</td></tr>}
                   </tbody></table></div>
                 </div>
+                  <div className="table-scroll"><table className="w-full"><thead><tr className="border-b border-brand-gray-mid">
+                    <th className="table-header w-8"><input type="checkbox" className="accent-blue-600" title="Выбрать все"
+                        checked={revSelected.length > 0 && sortedRevData.every(s => revSelected.includes(s.id))}
+                        onChange={() => setRevSelected(sel => sortedRevData.every(s => sel.includes(s.id)) ? [] : sortedRevData.map(s => s.id))} /></th>
+                    <th className="table-header">Поставщик</th>
+                    {([['revenue', 'Выручка · стр. 2110'], ['inventory', 'Запасы · стр. 1210'], ['margin', 'Маржа · 2100/2110 × 100%'], ['gross', 'Валовая прибыль · стр. 2100']] as const).map(([key, label]) => (
+                      <th key={key} className="table-header cursor-pointer select-none hover:text-brand-black" title="Сортировка больше/меньше"
+                        onClick={() => setRevSort(s => s && s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: -1 })}>
+                        {label} {revSort?.key === key ? (revSort.dir === -1 ? '↓' : '↑') : '↕'}
+                      </th>
+                    ))}
+                  </tr></thead><tbody>
+                    {sortedRevData.map(s => {
+                      const rev = s.scoring?.revenue;
+                      const inv = s.scoring?.inventory;
+                      const gp = s.scoring?.grossProfit;
+                      const margin = rev && gp ? Math.round((gp / rev) * 10000) / 100 : null;
+                      return (<tr key={s.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                        <td className="table-cell"><input type="checkbox" className="accent-blue-600" checked={revSelected.includes(s.id)}
+                          onChange={() => setRevSelected(sel => sel.includes(s.id) ? sel.filter(x => x !== s.id) : [...sel, s.id])} /></td>
+                        <td className="table-cell font-medium text-sm">{s.tradeName}</td>
+                        <td className="table-cell text-xs">{rev != null ? rev.toLocaleString('ru') : '—'}</td>
+                        <td className="table-cell text-xs">{inv != null ? inv.toLocaleString('ru') : '—'}</td>
+                        <td className="table-cell text-xs">{margin != null ? margin + '%' : '—'}</td>
+                        <td className="table-cell text-xs">{gp != null ? gp.toLocaleString('ru') : '—'}</td>
+                      </tr>);
+                    })}
+                    {scoringTableData.length === 0 && <tr><td colSpan={6} className="text-center py-6 text-gray-400 text-xs">Нет данных скоринга</td></tr>}
+                  </tbody></table></div>
+                  
               ) : null}
             </div>
           )}
