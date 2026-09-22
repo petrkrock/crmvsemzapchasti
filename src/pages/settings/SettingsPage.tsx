@@ -199,12 +199,12 @@ const [tab, setTab] = useState('Статусы');
   // ── USERS (ТЗ «Управление пользователями») ──
   // Разделы, выдаваемые менеджеру. «Настройки» и «База данных» в списке нет
   // принципиально — они доступны только администратору (ТЗ п.3).
-  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: false, support: false, media: false, planfact: false, analytics: false, knowledge: false , planfactEdit: false };
+  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: false, support: false, leads: false, media: false, planfact: false, analytics: false, knowledge: false , planfactEdit: false };
   const PERM_LABELS: Array<{ key: keyof AppUser['permissions']; label: string }> = [
-    { key: 'dashboard', label: 'Дашборд' }, { key: 'suppliers', label: 'Поставщики' },
-    { key: 'buyers', label: 'Покупатели' }, { key: 'tasks', label: 'Задачи' },
-    { key: 'support', label: 'Поддержка' }, { key: 'media', label: 'Медиа сервис' },
-    { key: 'planfact', label: 'План/Факт' }, { key: 'analytics', label: 'Аналитика' },
+    { key: 'dashboard', label: 'Дашборд' }, { key: 'planfact', label: 'План/Факт' },
+    { key: 'suppliers', label: 'Поставщики' }, { key: 'buyers', label: 'Покупатели' },
+    { key: 'tasks', label: 'Задачи' }, { key: 'support', label: 'Поддержка' },
+    { key: 'leads', label: 'База лидов' }, { key: 'media', label: 'Медиа сервис' },
     { key: 'knowledge', label: 'База знаний' },
   ];
   const [showNewUser, setShowNewUser] = useState(false);
@@ -220,7 +220,7 @@ const [tab, setTab] = useState('Статусы');
     const role = userForm.role || 'manager';
     if (!name || !email) { toast.error('Укажите имя и email'); return; }
     const permissions: AppUser['permissions'] = role === 'admin'
-      ? { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true }
+      ? { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, leads: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true }
       : { ...ALL_PERMS_FALSE, ...(userForm.permissions || {}) };
     const access: UserAccess = { ...EMPTY_ACCESS, ...(userForm.access || {}) };
     setSavingUser(true);
@@ -265,7 +265,7 @@ const [tab, setTab] = useState('Статусы');
     const role = editForm.role || 'manager';
     if (!name || !email) { toast.error('Имя и email обязательны'); return; }
     const permissions: AppUser['permissions'] = role === 'admin'
-      ? { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true }
+      ? { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, leads: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true }
       : { ...ALL_PERMS_FALSE, ...(editForm.permissions || {}) };
     const access: UserAccess = { ...EMPTY_ACCESS, ...(editForm.access || {}) };
     try {
@@ -556,6 +556,7 @@ const [tab, setTab] = useState('Статусы');
     { perm: 'support' as const, label: 'Поддержка', dims: [
       { key: 'ticketTypes' as const, label: 'Типы обращений', options: ticketTypesList },
     ] },
+    { perm: 'leads' as const, label: 'База лидов', dims: [] },
     { perm: 'planfact' as const, label: 'План/Факт', dims: [
       { key: 'planCities' as const, label: 'Города (общие)', options: citiesList },
     ] },
@@ -571,12 +572,20 @@ const [tab, setTab] = useState('Статусы');
       { key: 'mediaDurationOptions' as const, label: 'Длительность', options: Array.from(new Set(mediaAdTypes.flatMap(a => (a.durationOptions || []).map(d => d.periodLabel)))) },
       { key: 'mediaStatuses' as const, label: 'Статусы медиа', options: mediaStatuses.map(s => s.name) },
     ] },
-    { perm: 'analytics' as const, label: 'Аналитика', dims: [
-      { key: 'analyticsCities' as const, label: 'Города (общие)', options: citiesList },
-    ] },
-    { perm: 'knowledge' as const, label: 'База знаний', dims: [
-      { key: 'knowledgeCategories' as const, label: 'Категории', options: (freshStore.settings.knowledgeCategories || []).filter(kc => !kc.deletedAt).map(kc => kc.name) },
-    ] },
+    { perm: 'knowledge' as const, label: 'База знаний', dims: [] },
+  ];
+  // Порядок блоков «Доступ к разделам» (ТЗ v1.21.0): Дашборд → План/Факт → Поставщики → Покупатели →
+  // Задачи → Поддержка → База лидов → Медиа сервис → Аналитика* → База знаний → Настройки* → База данных*
+  // (* — доступно только администратору, менеджеру не выдаётся).
+  const adminRow = (label: string) => ({ perm: null as null, label, note: 'Доступно только администратору' });
+  const sectionByPerm = (p: string) => FILTER_SECTIONS.find(s => s.perm === p)!;
+  const ACCESS_FLOW: Array<(typeof FILTER_SECTIONS)[number] | ReturnType<typeof adminRow>> = [
+    sectionByPerm('dashboard'), sectionByPerm('planfact'), sectionByPerm('suppliers'), sectionByPerm('buyers'),
+    sectionByPerm('tasks'), sectionByPerm('support'), sectionByPerm('leads'), sectionByPerm('media'),
+    adminRow('Аналитика'),
+    sectionByPerm('knowledge'),
+    adminRow('Настройки'),
+    adminRow('База данных'),
   ];
   const SIMPLE_PERMS = PERM_LABELS.filter(p => !FILTER_SECTIONS.some(f => f.perm === p.key));
 
@@ -597,7 +606,12 @@ const [tab, setTab] = useState('Статусы');
           </label>
         ))}
       </div>
-      {FILTER_SECTIONS.map(sec => (
+      {ACCESS_FLOW.map(sec => sec.perm === null ? (
+        <div key={sec.label} className="border border-brand-gray-mid rounded-lg p-3 bg-gray-50">
+          <p className="text-sm font-medium text-gray-500">{sec.label}</p>
+          <p className="text-xs text-gray-400 mt-1">{sec.note}</p>
+        </div>
+      ) : (
         <div key={sec.perm} className="border border-brand-gray-mid rounded-lg p-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={perms[sec.perm]} onChange={e => onPerm(sec.perm, e.target.checked)} className="rounded" />
@@ -618,6 +632,9 @@ const [tab, setTab] = useState('Статусы');
                 </div>
               ))}
             </div>
+          )}
+          {sec.perm === 'knowledge' && (
+            <p className="ml-6 mt-2 text-xs text-gray-500">Доступ к материалам настраивается в самой базе знаний — флажок «доступно менеджеру» у материала.</p>
           )}
           {sec.perm === 'planfact' && (
             <label className="ml-6 mt-2 flex items-center gap-2 cursor-pointer">

@@ -34,10 +34,10 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 /** Первый доступный менеджеру раздел — куда редиректить при отказе в доступе (без петель). */
 function firstAllowedPath(): string {
   const order: Array<keyof AppUser['permissions']> =
-    ['dashboard', 'suppliers', 'buyers', 'tasks', 'support', 'media', 'planfact', 'analytics', 'knowledge'];
+    ['dashboard', 'planfact', 'suppliers', 'buyers', 'tasks', 'support', 'leads', 'media', 'knowledge'];
   const paths: Record<string, string> = {
     dashboard: '/dashboard', suppliers: '/suppliers', buyers: '/buyers', tasks: '/tasks',
-    support: '/support', media: '/media', planfact: '/planfact', analytics: '/analytics', knowledge: '/knowledge',
+    support: '/support', leads: '/leads', media: '/media', planfact: '/planfact', analytics: '/analytics', knowledge: '/knowledge',
   };
   return paths[order.find(s => canAccess(s)) ?? ''] || '/login';
 }
@@ -157,8 +157,8 @@ export default function App() {
           <Route path="tasks" element={<RequireAccess section="tasks"><TasksPage /></RequireAccess>} />
           <Route path="tasks/:id" element={<RequireAccess section="tasks"><TaskCardPage /></RequireAccess>} />
           <Route path="support" element={<RequireAccess section="support"><SupportPage /></RequireAccess>} />
-          <Route path="leads" element={<RequireAccess section="suppliers"><LeadsPage /></RequireAccess>} />
-          <Route path="leads-export/:taskId" element={<RequireAccess section="suppliers"><LeadsExportPage /></RequireAccess>} />
+          <Route path="leads" element={<RequireAccess section="leads"><LeadsPage /></RequireAccess>} />
+          <Route path="leads-export/:taskId" element={<RequireAccess section="leads"><LeadsExportPage /></RequireAccess>} />
           <Route path="entity-export/:taskId" element={<RequireAccess section="suppliers"><EntityExportPage /></RequireAccess>} />
           <Route path="support/:id" element={<RequireAccess section="support"><TicketGuard><TicketCardPage /></TicketGuard></RequireAccess>} />
           <Route path="media" element={<RequireAccess section="media"><MediaPage /></RequireAccess>} />

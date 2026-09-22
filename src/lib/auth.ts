@@ -169,6 +169,9 @@ export function canAccess(section: keyof AppUser['permissions']): boolean {
   const user = getCurrentUser();
   if (!user) return false;
   if (user.role === 'admin') return true;
+  // Аналитика — только администратор (ТЗ v1.21.0): менеджеру не выдаётся,
+  // даже если у старого профиля осталась галочка analytics.
+  if (section === 'analytics') return false;
   return user.permissions[section] === true;
 }
 
