@@ -402,8 +402,8 @@ function deleteSelected() {
           <span className="text-xs font-medium text-blue-700 border-l border-blue-200 pl-2">Выбрано: {selected.length}</span>
           <button onClick={() => massClose(T_DONE)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-green-700 text-white hover:bg-green-800 transition-colors min-h-[36px]"><CheckCircle2 size={12} /> Закрыть (Решено)</button>
           <button onClick={() => massClose(T_UNSOLVED)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-gray-600 text-white hover:bg-gray-700 transition-colors min-h-[36px]"><CircleSlash size={12} /> Закрыть (Без решения)</button>
+          {canDelete() && <button onClick={deleteSelected} className="btn-danger text-xs py-1.5 min-h-[36px] ml-1"><Trash2 size={12} /> Удалить</button>}
           <button onClick={exportWord} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-white border border-blue-300 text-blue-700 hover:bg-blue-100 transition-colors min-h-[36px] ml-1"><FileDown size={12} /> Выгрузить в Word</button>
-          {canDelete() && <button onClick={deleteSelected} className="btn-danger text-xs py-1.5 min-h-[36px] ml-auto"><Trash2 size={12} /> Удалить</button>}
           <button onClick={() => setSelected([])} className="text-xs text-gray-400 ml-auto min-h-[36px] px-2"><X size={14} /></button>
         </div>
       )}

@@ -6,7 +6,7 @@ import { getCurrentUser, canDelete } from '@/lib/auth';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import type { DbLog, Task, HistoryEntry } from '@/types';
 import { TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_TASK_TYPES, SYSTEM_TASK_TYPE } from '@/constants';
-import { Plus, Trash2, Search, X, AlertCircle, Calendar, Edit2, History, Archive, CheckCircle2, CircleSlash, ExternalLink } from 'lucide-react';
+import { FileDown, Plus, Trash2, Search, X, AlertCircle, Calendar, Edit2, History, Archive, CheckCircle2, CircleSlash, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DEFAULT_ENTITY_LABELS: Record<string, string> = {
@@ -186,7 +186,30 @@ export default function TasksPage() {
   }
 
   /** Безвозвратного удаления НЕТ: мягкое удаление (deletedAt) + запись в журнал Логи. */
-  function deleteSelected() {
+  // v_1.9: выгрузка выбранных задач в Word (.doc)
+  function exportWord() {
+    const esc = (s: string) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rows = tasks.filter(t => selected.includes(t.id));
+    const parts: string[] = [];
+    parts.push('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt}h1{font-size:15pt}h2{font-size:12pt;margin:10pt 0 4pt}p{margin:3pt 0;white-space:pre-wrap}div.item{border-bottom:1pt solid #999;padding-bottom:5pt;margin-bottom:8pt}span.meta{color:#555;font-size:9pt}</style></head><body>');
+    parts.push(`<h1>Задачи</h1><p><span class="meta">Дата выгрузки: ${new Date().toISOString().slice(0, 10)} · Записей: ${rows.length}</span></p>`);
+    rows.forEach(t => {
+      parts.push('<div class="item">');
+      parts.push(`<h2>${esc(t.title)}</h2>`);
+      parts.push(`<p><span class="meta">Статус: ${esc(t.task_status)} · Тип: ${esc(t.type || '—')} · Срок: ${esc(t.dueDate || '—')} · ${esc(t.entityName || '')} · Ответственный: ${esc(t.responsibleName || '—')}</span></p>`);
+      parts.push(`<p>${esc(t.description || '')}</p>`);
+      parts.push('</div>');
+    });
+    parts.push('</body></html>');
+    const blob = new Blob(['\ufeff' + parts.join('')], { type: 'application/msword;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `задачи_${new Date().toISOString().slice(0, 10)}.doc`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+function deleteSelected() {
     if (!canDelete()) { toast.error('Удаление доступно только администратору'); return; }
     if (!selected.length) return;
     const ids = selected;
@@ -369,11 +392,18 @@ export default function TasksPage() {
 
       {/* ── Массовые действия: закрыть (Решено) / (Без решения) → удалить ── */}
       {selected.length > 0 && (
-        <div className="card-base p-3 flex items-center gap-2 bg-blue-50 border-blue-200 animate-fade-in">
-          <span className="text-xs font-medium text-blue-700">Выбрано: {selected.length}</span>
+        <div className="card-base p-3 flex items-center gap-2 bg-blue-50 border-blue-200 animate-fade-in flex-wrap">
+          {/* v_1.9: отметить все + выгрузка в Word */}
+          <label className="flex items-center gap-1.5 text-xs text-blue-700 cursor-pointer select-none">
+            <input type="checkbox" className="accent-blue-600" checked={tasks.length > 0 && tasks.every(t => selected.includes(t.id))}
+              onChange={() => setSelected(sel => tasks.every(t => sel.includes(t.id)) ? [] : tasks.map(t => t.id))} />
+            Отметить все
+          </label>
+          <span className="text-xs font-medium text-blue-700 border-l border-blue-200 pl-2">Выбрано: {selected.length}</span>
           <button onClick={() => massClose(ST_DONE)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-green-700 text-white hover:bg-green-800 transition-colors min-h-[36px]"><CheckCircle2 size={12} /> Закрыть (Решено)</button>
           <button onClick={() => massClose(ST_UNSOLVED)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-gray-600 text-white hover:bg-gray-700 transition-colors min-h-[36px]"><CircleSlash size={12} /> Закрыть (Без решения)</button>
-          {canDelete() && <button onClick={deleteSelected} className="btn-danger text-xs py-1.5 min-h-[36px]"><Trash2 size={12} /> Удалить</button>}
+          {canDelete() && <button onClick={deleteSelected} className="btn-danger text-xs py-1.5 min-h-[36px] ml-1"><Trash2 size={12} /> Удалить</button>}
+          <button onClick={exportWord} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-white border border-blue-300 text-blue-700 hover:bg-blue-100 transition-colors min-h-[36px] ml-1"><FileDown size={12} /> Выгрузить в Word</button>
           <button onClick={() => setSelected([])} className="text-xs text-gray-400 ml-auto min-h-[36px] px-2"><X size={14} /></button>
         </div>
       )}
