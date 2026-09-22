@@ -3,7 +3,7 @@ import { getStore, updateStore, useStoreVersion, SYSTEM_CONTACT_PREFS } from '@/
 import { generateId } from '@/lib/utils';
 import { isAdmin, getCurrentUser } from '@/lib/auth';
 import { createManagerAccount, updateManagerAccount, isSupabaseConfigured } from '@/lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import type { AppUser, UserAccess, UserStatus, ProductGroup, Source, PlanCity, TaskEntityType, StatusConfig, SupplierService, MediaAdType, MediaDurationOption, MediaStatus, PublicFormEntityType, FormFieldConfig, FormConfig } from '@/types';
 import { EMPTY_ACCESS } from '@/types';
 import { MEDIA_SYSTEM_STATUSES, DEFAULT_STATUSES, FORM_FIELD_DEFINITIONS, DEFAULT_FORM_CONSENT, SYSTEM_TASK_TYPE, SYSTEM_SUPPLIER_STATUSES, SYSTEM_TASK_STATUSES, SYSTEM_TASK_TYPES, SYSTEM_TICKET_TYPES, SYSTEM_LEAD_STATUSES, TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_SUPPLIER_GREETING, TICKET_STATUSES, TICKET_STATUS_COLORS } from '@/constants';
@@ -242,7 +242,7 @@ const [tab, setTab] = useState('Статусы');
       const nu: AppUser = {
         id, name, email,
         password: isSupabaseConfigured() ? '' : (userForm.password || 'password123'),
-        role, permissions, access, note: (userForm.note || '').trim(), notifyChatId: (userForm.notifyChatId || '').trim(), notifyChannel: userForm.notifyChannel, notifyEmail: (userForm.notifyEmail || '').trim(), status: 'active', createdAt: new Date().toISOString(),
+        role, dashboardType: role === 'manager' ? (userForm.dashboardType ?? 'mop') : undefined, permissions, access, note: (userForm.note || '').trim(), notifyChatId: (userForm.notifyChatId || '').trim(), notifyChannel: userForm.notifyChannel, notifyEmail: (userForm.notifyEmail || '').trim(), status: 'active', createdAt: new Date().toISOString(),
       };
       updateStore(s => ({ ...s, settings: { ...s.settings, users: [...s.settings.users, nu] } }));
       setShowNewUser(false);
@@ -255,7 +255,7 @@ const [tab, setTab] = useState('Статусы');
 
   function startEditUser(u: AppUser) {
     setEditingUserId(u.id);
-    setEditForm({ name: u.name, email: u.email, role: u.role, permissions: { ...u.permissions }, access: { ...EMPTY_ACCESS, ...u.access }, password: '', note: u.note || '', notifyChatId: u.notifyChatId || '', notifyChannel: u.notifyChannel, notifyEmail: u.notifyEmail || '' });
+    setEditForm({ name: u.name, email: u.email, role: u.role, dashboardType: u.dashboardType, permissions: { ...u.permissions }, access: { ...EMPTY_ACCESS, ...u.access }, password: '', note: u.note || '', notifyChatId: u.notifyChatId || '', notifyChannel: u.notifyChannel, notifyEmail: u.notifyEmail || '' });
   }
   function cancelEditUser() { setEditingUserId(null); setEditForm({}); }
 
@@ -277,7 +277,7 @@ const [tab, setTab] = useState('Статусы');
         settings: {
           ...s.settings,
           users: s.settings.users.map(u => u.id === id
-            ? { ...u, name, email, role, permissions, access, note: (editForm.note || '').trim(), notifyChatId: (editForm.notifyChatId || '').trim(), notifyChannel: editForm.notifyChannel, notifyEmail: (editForm.notifyEmail || '').trim(), password: isSupabaseConfigured() ? u.password : (editForm.password || u.password) }
+            ? { ...u, name, email, role, dashboardType: role === 'manager' ? (editForm.dashboardType ?? u.dashboardType ?? 'mop') : undefined, permissions, access, note: (editForm.note || '').trim(), notifyChatId: (editForm.notifyChatId || '').trim(), notifyChannel: editForm.notifyChannel, notifyEmail: (editForm.notifyEmail || '').trim(), password: isSupabaseConfigured() ? u.password : (editForm.password || u.password) }
             : u),
         },
       }));
@@ -595,6 +595,8 @@ const [tab, setTab] = useState('Статусы');
     access: UserAccess,
     onPerm: (k: keyof AppUser['permissions'], v: boolean) => void,
     onAccess: (dim: keyof UserAccess, value: string) => void,
+    dashboardType?: 'mop' | 'moz',
+    onDashboardType?: (t: 'mop' | 'moz') => void,
   ) => (
     <div className="space-y-2">
       <p className="text-xs text-gray-500">Пустой список фильтра = без ограничений: менеджер видит все позиции раздела.</p>
@@ -631,6 +633,18 @@ const [tab, setTab] = useState('Статусы');
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {sec.perm === 'dashboard' && (
+            <div className="ml-6 mt-2 space-y-1.5">
+              <p className="text-xs text-gray-500">Тип дашборда менеджера (выбирается один):</p>
+              <div className="flex flex-wrap gap-1.5">
+                {([['mop', 'Дашборд МОП (продажи — покупатели)'], ['moz', 'Дашборд МОЗ (закупки — поставщики)']] as const).map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => onDashboardType?.(v)}
+                    className={`text-xs px-2 py-1 rounded-full border ${dashboardType === v ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{l}</button>
+                ))}
+              </div>
+              <Link to={`/dashboard-preview/${dashboardType ?? 'mop'}`} className="inline-block text-xs text-brand-red hover:underline">Предпросмотр дашборда →</Link>
             </div>
           )}
           {sec.perm === 'knowledge' && (
@@ -869,6 +883,8 @@ const [tab, setTab] = useState('Статусы');
                       (userForm.access || EMPTY_ACCESS) as UserAccess,
                       (k, v) => setUserForm(f => ({ ...f, permissions: { ...ALL_PERMS_FALSE, ...(f.permissions || {}), [k]: v } })),
                       (dim, value) => setUserForm(f => { const acc = { ...EMPTY_ACCESS, ...(f.access || {}) }; return { ...f, access: { ...acc, [dim]: acc[dim].includes(value) ? acc[dim].filter(x => x !== value) : [...acc[dim], value] } }; }),
+                      userForm.dashboardType,
+                      t => setUserForm(f => ({ ...f, dashboardType: t })),
                     )}</div>
                   ) : (
                     <p className="text-xs text-gray-500 mb-3">Администратору доступны все разделы, включая «Настройки» и «Базу данных».</p>
@@ -912,6 +928,8 @@ const [tab, setTab] = useState('Статусы');
                             (editForm.access || EMPTY_ACCESS) as UserAccess,
                             (k, v) => setEditForm(f => ({ ...f, permissions: { ...ALL_PERMS_FALSE, ...(f.permissions || {}), [k]: v } })),
                             (dim, value) => setEditForm(f => { const acc = { ...EMPTY_ACCESS, ...(f.access || {}) }; return { ...f, access: { ...acc, [dim]: acc[dim].includes(value) ? acc[dim].filter(x => x !== value) : [...acc[dim], value] } }; }),
+                            editForm.dashboardType,
+                            t => setEditForm(f => ({ ...f, dashboardType: t })),
                           )}</div>
                         ) : (
                           <p className="text-xs text-gray-500">Администратору доступны все разделы.</p>

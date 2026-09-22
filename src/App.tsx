@@ -23,8 +23,9 @@ const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const DatabasePage = lazy(() => import('@/pages/database/DatabasePage'));
 const ServerPage = lazy(() => import('@/pages/server/ServerPage'));
 const KnowledgePage = lazy(() => import('@/pages/knowledge/KnowledgePage'));
+const ManagerDashboardPage = lazy(() => import('@/pages/ManagerDashboardPage'));
 import NotFound from '@/pages/NotFound';
-import { getCurrentUser, reconcileSession, canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket } from '@/lib/auth';
+import { getCurrentUser, reconcileSession, canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, isAdmin } from '@/lib/auth';
 import { getStore } from '@/lib/store';
 import type { AppUser } from '@/types';
 import { initRemoteSync } from '@/lib/store';
@@ -68,6 +69,13 @@ function TicketGuard({ children }: { children: React.ReactNode }) {
   const t = getStore().tickets.find(x => x.id === id);
   if (t && !canSeeTicket(t)) return <Navigate to="/support" replace />;
   return <>{children}</>;
+}
+
+/** Предпросмотр дашборда менеджера из Настроек — только для администратора (ТЗ v1.21.3). */
+function DashboardPreviewRoute() {
+  const { type } = useParams();
+  if (!isAdmin()) return <Navigate to="/dashboard" replace />;
+  return <ManagerDashboardPage previewType={type === 'moz' ? 'moz' : 'mop'} />;
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -149,7 +157,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
           <Route index element={<IndexRedirect />} />
-          <Route path="dashboard" element={<RequireAccess section="dashboard"><Dashboard /></RequireAccess>} />
+          <Route path="dashboard" element={<RequireAccess section="dashboard">{isAdmin() ? <Dashboard /> : <ManagerDashboardPage />}</RequireAccess>} />
           <Route path="suppliers" element={<RequireAccess section="suppliers"><SuppliersPage /></RequireAccess>} />
           <Route path="suppliers/:id" element={<RequireAccess section="suppliers"><SupplierGuard><SupplierCardPage /></SupplierGuard></RequireAccess>} />
           <Route path="buyers" element={<RequireAccess section="buyers"><BuyersPage /></RequireAccess>} />
@@ -164,6 +172,7 @@ export default function App() {
           <Route path="media" element={<RequireAccess section="media"><MediaPage /></RequireAccess>} />
           <Route path="planfact" element={<RequireAccess section="planfact"><PlanFactPage /></RequireAccess>} />
           <Route path="analytics" element={<RequireAccess section="analytics"><AnalyticsPage /></RequireAccess>} />
+          <Route path="dashboard-preview/:type" element={<RequireAuth><DashboardPreviewRoute /></RequireAuth>} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="knowledge" element={<RequireAccess section="knowledge"><KnowledgePage /></RequireAccess>} />
           <Route path="database" element={<DatabasePage />} />

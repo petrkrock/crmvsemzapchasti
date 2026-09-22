@@ -530,6 +530,9 @@ export interface AppUser {
     planfactEdit: boolean;
   };
   access: UserAccess;
+  /** Тип дашборда менеджера (v1.21.3): 'mop' — МОП (продажи, покупатели), 'moz' — МОЗ (закупки, поставщики).
+   *  Только для роли manager; выбирается ровно один. */
+  dashboardType?: 'mop' | 'moz';
   status: UserStatus;
   createdAt: string;
 }

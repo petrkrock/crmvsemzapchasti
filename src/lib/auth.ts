@@ -270,6 +270,14 @@ export function canSeeKnowledge(a: { categoryName?: string }): boolean {
   return f.knowledgeCategories.length === 0 || f.knowledgeCategories.includes(a.categoryName || '');
 }
 
+/** Правило дашборда менеджера (ТЗ v1.21.3): запись видна, если закреплена за текущим
+ *  пользователем или ответственный не назначен. Администратор видит всё. */
+export function isMineOrUnassigned(x: { responsibleId?: string }): boolean {
+  const user = getCurrentUser();
+  if (!user || user.role === 'admin') return true;
+  return !x.responsibleId || x.responsibleId === user.id;
+}
+
 /** Право создавать/редактировать План/Факт: админ или менеджер с planfactEdit (ТЗ). */
 export function canEditPlanFact(): boolean {
   const user = getCurrentUser();
