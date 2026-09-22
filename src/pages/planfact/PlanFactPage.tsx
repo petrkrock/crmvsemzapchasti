@@ -298,8 +298,13 @@ export default function PlanFactPage() {
     // ТЗ: фильтр по городу (только покупатели) — сужает и план, и факт сводки
     if (filterCity) planEntries = planEntries.filter(e => e.cityName === filterCity);
     const plan = planEntries.reduce((s, e) => s + (e.plan || 0), 0);
-    let fact = (base === 'buyer' ? store.buyers : store.suppliers) as Array<{ status?: string; type?: string; city?: string; createdAt?: string }>;
+    let fact = (base === 'buyer' ? store.buyers : store.suppliers) as Array<{ status?: string; type?: string; city?: string; createdAt?: string; responsibleId?: string }>;
     if (filterCity) fact = fact.filter(x => x.city === filterCity);
+    // ТЗ (v1.21.2): фильтр по ответственному сужает и план, и факт сводки
+    if (filterResponsible) {
+      planEntries = planEntries.filter(e => filterResponsible === '__none__' ? !e.responsibleId : e.responsibleId === filterResponsible);
+      fact = fact.filter(x => filterResponsible === '__none__' ? !x.responsibleId : x.responsibleId === filterResponsible);
+    }
     // ТЗ: фильтр сервисов продаж (только поставщики); записи без сервисов покрывают все
     if (base === 'supplier' && filterService) {
       planEntries = planEntries.filter(e => !(e.serviceIds || []).length || (e.serviceIds || []).includes(filterService));
@@ -331,7 +336,7 @@ export default function PlanFactPage() {
       return { name: ct, act: sub.filter(x => isAct(x.status)).length, pot: sub.filter(x => !!x.status && !isExcluded(x.status)).length, plan: planEntries.filter(e => e.cityName === ct).reduce((s, e) => s + (e.plan || 0), 0) };
     }).filter(r => r.act || r.pot || r.plan);
     return { plan, act, pot, pct, typeRows, cityRows, count: fact.length };
-  }, [store, base, viewMode, customMonth, filterCity]);
+  }, [store, base, viewMode, customMonth, filterCity, filterResponsible]);
 
 
   const [addForm, setAddForm] = useState<Partial<PlanFactEntry>>({ startDate: dstr(new Date()), endDate: monthRange(0).endDate, kind: 'suppliers', plan: 0 }); // по умолчанию — Текущий месяц (остаток месяца)
@@ -494,6 +499,12 @@ export default function PlanFactPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
+              {/* Фильтр по ответственному (v1.21.2): перед «Все города» (покупатели) и «Все сервисы» (поставщики) */}
+              <select className="form-input py-1.5 text-xs w-auto" value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)} title="Фильтр по ответственному">
+                <option value="">Все ответственные</option>
+                <option value="__none__">Без ответственного</option>
+                {store.settings.users.filter(u => u.status === 'active').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
               {/* Период — пилюли; все контролы единой высоты h-8 */}
               {base === 'buyer' && (
                 <select className="form-input text-xs py-1.5 px-3 w-auto" value={filterCity} onChange={e => setFilterCity(e.target.value)} title="Фильтр по городу">

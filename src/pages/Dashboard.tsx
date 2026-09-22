@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getStore, useStoreVersion } from '@/lib/store';
 import { formatDateTime, formatDate, isToday, isOverdue } from '@/lib/utils';
-import { canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, canSeeDashboardCity } from '@/lib/auth';
+import { canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, canSeeDashboardCity, canSeeTask } from '@/lib/auth';
 import StatusBadge from '@/components/features/StatusBadge';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Globe, Truck, ShoppingCart, CheckSquare, HeadphonesIcon, TrendingUp, Plus, AlertCircle, Clock, Video, AlertTriangle, FileEdit } from 'lucide-react';
+import { Globe, Truck, ShoppingCart, CheckSquare, HeadphonesIcon, TrendingUp, Plus, AlertCircle, Clock, Video, AlertTriangle, FileEdit, UserX } from 'lucide-react';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#6B7280', '#14B8A6'];
 
@@ -85,6 +85,15 @@ export default function Dashboard() {
   const curEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10);
 
   const todayTasks = (okTasks ? store.tasks : []).filter(t => !t.completed && (isToday(t.dueDate) || isOverdue(t.dueDate)));
+
+  // v1.21.1: информационный блок «Нет ответственного» — сколько записей без ответственного
+  // в каждом доступном менеджеру разделе (с учётом его фильтров видимости).
+  const noRespRows = [
+    { label: 'Поставщиков', value: activeSuppliers.filter(s => !s.responsibleId).length, to: '/suppliers', visible: okSup },
+    { label: 'Покупателей', value: activeBuyers.filter(b => !b.responsibleId).length, to: '/buyers', visible: okBuy },
+    { label: 'Задач', value: (okTasks ? store.tasks : []).filter(t => !t.deletedAt && !t.responsibleId && canSeeTask(t)).length, to: '/tasks', visible: okTasks },
+    { label: 'Поддержки', value: (okSupport ? store.tickets.filter(t => canSeeTicket(t)) : []).filter(t => !t.deletedAt && !t.responsibleId).length, to: '/support', visible: okSupport },
+  ].filter(r => r.visible);
   // v_1.9: заявки Маркетинг-кит из форм сайта (статусы «Запрос МК» / «Отправлен МК»)
   const mkRequests = store.mediaRecords.filter(r => r.status === 'Запрос МК' || r.status === 'Отправлен МК');
   const newTickets = (okSupport ? store.tickets.filter(t => canSeeTicket(t)) : []).filter(t => (t.status === 'Новый запрос' || t.status === 'Новый запрос с формы') && !t.deletedAt); // v_1.9: «Новый запрос» / «Новый запрос с формы»
@@ -109,7 +118,6 @@ export default function Dashboard() {
     { label: 'Поставщиков', value: activeSuppliers.length, active: activeSuppliers.filter(s => s.status === 'Активный').length, icon: Truck, to: '/suppliers', color: 'bg-blue-50 text-blue-600' },
     { label: 'Покупателей', value: activeBuyers.length, active: activeBuyers.filter(b => b.status === 'Активный').length, icon: ShoppingCart, to: '/buyers', color: 'bg-green-50 text-green-600' },
     { label: 'Заявок с сайта', value: siteLeads.length, icon: Globe, color: 'bg-purple-50 text-purple-600' }, // v_1.9: карточка не кликабельна, ссылки внутри
-    { label: 'Задач сегодня', value: todayTasks.length, icon: CheckSquare, to: '/tasks', color: 'bg-yellow-50 text-yellow-600' },
     { label: 'Медиа сервис', value: mkRequests.length, icon: FileEdit, to: '/media', color: 'bg-red-50 text-red-600' }, // v_1.9: Маркетинг-кит (Запрос МК/Отправлен МК)
   ];
 
@@ -123,7 +131,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {(() => {
         function StatCardBody({ stat }: { stat: (typeof stats)[number] }) {
           return (<>
@@ -159,6 +167,22 @@ export default function Dashboard() {
         ));
         })()}
       </div>
+
+      {/* Нет ответственного (v1.21.1) */}
+      {noRespRows.length > 0 && (
+        <div className="card-base p-4">
+          <h2 className="section-title flex items-center gap-2"><UserX size={16} className="text-brand-red" /> Нет ответственного</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+            {noRespRows.map(r => (
+              <button key={r.label} onClick={() => navigate(r.to)}
+                className="flex items-center justify-between rounded-lg border border-brand-gray-mid px-3 py-2.5 hover:shadow-md transition-shadow text-left">
+                <span className="text-xs text-gray-500">{r.label}</span>
+                <span className={`text-lg font-bold ${r.value > 0 ? 'text-brand-red' : 'text-brand-black'}`}>{r.value}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Media alerts */}
       {showMediaAlerts && (
