@@ -243,6 +243,8 @@ const [tab, setTab] = useState('Статусы');
         id, name, email,
         password: isSupabaseConfigured() ? '' : (userForm.password || 'password123'),
         role, permissions, access, note: (userForm.note || '').trim(), notifyChatId: (userForm.notifyChatId || '').trim(), notifyChannel: userForm.notifyChannel, notifyEmail: (userForm.notifyEmail || '').trim(), status: 'active', createdAt: new Date().toISOString(),
+        subPermissions: role === 'manager' ? (userForm.subPermissions || { suppliers: { list: true, card: true, create: true, import: true }, buyers: { list: true, card: true, create: true }, support: { list: true, card: true }, planfact: { view: true, edit: false } }) : undefined, // v1.20
+        dashboardBlocks: userForm.dashboardBlocks, // v1.20
       };
       updateStore(s => ({ ...s, settings: { ...s.settings, users: [...s.settings.users, nu] } }));
       setShowNewUser(false);
@@ -378,6 +380,12 @@ const [tab, setTab] = useState('Статусы');
       toast.success('Формат добавлен');
     }
     setShowAdTypeForm(false); setEditingAdTypeId(null); setAdTypeForm({ name: '', spotsCount: 1, pricePerMonth: 0 }); forceUpdate(n => n + 1);
+  }
+
+  // v1.20: патч произвольных полей пользователя (subPermissions, dashboardBlocks)
+  function patchUser(id: string, patch: Partial<AppUser>) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, users: (s.settings.users || []).map(u => u.id === id ? { ...u, ...patch } : u) } }));
+    forceUpdate(n => n + 1);
   }
 
   // ── Типы обращений (добавление / редактирование / удаление) ──
@@ -895,7 +903,60 @@ const [tab, setTab] = useState('Статусы');
                             <span className={`text-xs px-1.5 py-0.5 rounded-full ${u.status === 'active' ? 'bg-green-100 text-green-700' : u.status === 'blocked' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-500'}`}>{u.status === 'active' ? 'Активен' : u.status === 'blocked' ? 'Заблокирован' : 'Уволен'}</span>
                           </div>
                           <p className="text-xs text-gray-400">{u.email}</p>
-                          {u.role === 'manager' && <div className="flex flex-wrap gap-1 mt-2">{PERM_LABELS.map(({ key, label }) => <button key={key} onClick={() => updateUserPerm(u.id, key, !u.permissions[key])} className={`text-xs px-1.5 py-0.5 rounded border cursor-pointer ${u.permissions[key] ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{label}</button>)}</div>}
+                          {u.role === 'manager' && (
+                            <div className="mt-2 pt-2 border-t border-brand-gray-mid space-y-2.5">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Настройка прав</p>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                                {([['dashboard', 'Дашборд'], ['tasks', 'Задачи'], ['media', 'Медиа сервис'], ['leads', 'База лидов'], ['knowledge', 'База знаний']] as const).map(([key, label]) => (
+                                  <label key={key} className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+                                    <input type="checkbox" className="accent-blue-600" checked={!!u.permissions[key]}
+                                      onChange={e => updateUserPerm(u.id, key, e.target.checked)} />
+                                    {label}
+                                  </label>
+                                ))}
+                                <span className="text-xs text-gray-400 select-none">Аналитика — недоступна для роли Менеджер</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {([
+                                  ['suppliers', 'Поставщики', [['list', 'Список'], ['card', 'Карточка'], ['create', 'Создание'], ['import', 'Импорт']]],
+                                  ['buyers', 'Покупатели', [['list', 'Список'], ['card', 'Карточка'], ['create', 'Создание']]],
+                                  ['support', 'Поддержка', [['list', 'Список'], ['card', 'Карточка']]],
+                                  ['planfact', 'План/Факт', [['view', 'Просмотр'], ['edit', 'Редактирование']]],
+                                ] as const).map(([section, title, subs]) => (
+                                  <div key={section} className="rounded-lg border border-brand-gray-mid px-2.5 py-2">
+                                    <p className="text-[11px] font-semibold mb-1">{title}</p>
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                      {subs.map(([sub, subLabel]) => (
+                                        <label key={sub} className="flex items-center gap-1 text-[11px] cursor-pointer select-none">
+                                          <input type="checkbox" className="accent-blue-600"
+                                            checked={!!(u.subPermissions?.[section] as Record<string, boolean | undefined> | undefined)?.[sub]}
+                                            onChange={e => patchUser(u.id, { subPermissions: { ...(u.subPermissions || {}), [section]: { ...((u.subPermissions || {})[section] || {}), [sub]: e.target.checked } } })} />
+                                          {subLabel}
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div>
+                                <p className="text-[11px] font-semibold mb-1">Блоки дашборда <span className="font-normal text-gray-400">(все сняты — показывать все)</span></p>
+                                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                  {([['support', 'Поддержка'], ['tasks', 'Задачи'], ['ss', 'Сервис поиска'], ['sources', 'Источники'], ['types', 'Типы'], ['planfact', 'План/Факт'], ['added', 'Добавлено']] as const).map(([key, label]) => {
+                                    const arr = u.dashboardBlocks;
+                                    const base = arr || ['support', 'tasks', 'ss', 'sources', 'types', 'planfact', 'added'];
+                                    const on = base.includes(key);
+                                    return (
+                                      <label key={key} className="flex items-center gap-1 text-[11px] cursor-pointer select-none">
+                                        <input type="checkbox" className="accent-blue-600" checked={on}
+                                          onChange={() => { const next = on ? base.filter(x => x !== key) : [...base, key]; patchUser(u.id, { dashboardBlocks: next.length === 7 ? undefined : next }); }} />
+                                        {label}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex gap-1">
                           <button onClick={() => startEditUser(u)} className="p-1.5 text-gray-400 hover:text-brand-black rounded" title="Редактировать"><Edit2 size={14} /></button>

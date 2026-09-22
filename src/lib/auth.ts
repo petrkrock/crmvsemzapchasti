@@ -6,6 +6,39 @@ import { startRealtimeSync, stopRealtimeSync } from './realtime';
 
 const SESSION_KEY = 'vz_crm_session';
 
+// ═══ v1.20.0: права доступа ═══
+
+/** Разделы, доступные ТОЛЬКО администратору (менеджер всегда получает false) */
+export function isAdminSection(key: string): boolean {
+  return key === 'settings' || key === 'server' || key === 'analytics' || key === 'database';
+}
+
+/** Может ли текущий пользователь открыть раздел: admin — всё; manager — по permissions; admin-разделы менеджеру закрыты */
+export function canAccessSection(key: string): boolean {
+  const u = getCurrentUser();
+  if (!u) return false;
+  if (u.role === 'admin') return true;
+  if (isAdminSection(key)) return false; // v1.20: настройки/сервер/аналитика/база данных — только admin
+  const p = u.permissions as Record<string, boolean | undefined>;
+  return !!p[key];
+}
+
+/** Подправа раздела (v1.20): напр. canSub('suppliers', 'create'). Admin — всегда true */
+export function canSub(section: 'suppliers' | 'buyers' | 'support' | 'planfact', sub: string): boolean {
+  const u = getCurrentUser();
+  if (!u) return false;
+  if (u.role === 'admin') return true;
+  const sp = (u.subPermissions || {}) as Record<string, Record<string, boolean | undefined>>;
+  const block = sp[section] || {};
+  return !!block[sub];
+}
+
+/** Блоки дашборда текущего пользователя (v1.20): undefined = все */
+export function getDashboardBlocks(): string[] | undefined {
+  const u = getCurrentUser();
+  return u?.dashboardBlocks;
+}
+
 export function getCurrentUser(): AppUser | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -169,6 +202,8 @@ export function canAccess(section: keyof AppUser['permissions']): boolean {
   const user = getCurrentUser();
   if (!user) return false;
   if (user.role === 'admin') return true;
+  // v1.20: аналитика — только admin (независимо от галочки в permissions)
+  if (section === 'analytics') return false;
   return user.permissions[section] === true;
 }
 

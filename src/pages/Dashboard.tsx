@@ -23,7 +23,15 @@ function daysLeft(date: string): number {
 
 export default function Dashboard() {
   useStoreVersion(); // re-render on real-time changes from other users (see src/lib/realtime.ts)
-  const navigate = useNavigate();
+  // v1.20: блоки дашборда по настройкам пользователя (undefined = все)
+const dbBlocks = getCurrentUser()?.dashboardBlocks;
+const showBlock = (k: string) => !dbBlocks || dbBlocks.includes(k);
+// v1.20: менеджер видит контент, где он ответственный, или где ответственных нет
+const me = getCurrentUser();
+function mgrFilter<T extends { responsibleId?: string }>(arr: T[]): T[] {
+  return me && me.role !== 'admin' ? arr.filter(x => !x.responsibleId || x.responsibleId === me.id) : arr;
+}
+const navigate = useNavigate();
   const store = getStore();
   // Дашборд менеджера показывает только разрешённые ему данные (ТЗ)
   const okSup = canAccess('suppliers');
@@ -32,7 +40,7 @@ export default function Dashboard() {
   const okSupport = canAccess('support');
   const okMedia = canAccess('media');
   // Сервис поиска: условия, ожидающие обработки менеджером (всё, что не «Загружено»)
-  const ssItems = (okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : []).flatMap(sup =>
+  const ssItems = mgrFilter(okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : []).flatMap(sup => // v1.20
     (sup.serviceSearch || [])
       .filter(c => (c.status || 'Новое') !== 'Загружено')
       .map(c => ({ supplierId: sup.id, supplierName: sup.tradeName, city: c.city, status: c.status || 'Новое' }))
@@ -40,8 +48,8 @@ export default function Dashboard() {
   const ssNew = ssItems.filter(i => i.status === 'Новое').length;
   const ssChanged = ssItems.length - ssNew;
 
-  const activeSuppliers = okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : [];
-  const activeBuyers = okBuy ? store.buyers.filter(b => !b.deletedAt && canSeeBuyer(b)) : [];
+  const activeSuppliers = mgrFilter(okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : []); // v1.20
+  const activeBuyers = mgrFilter(okBuy ? store.buyers.filter(b => !b.deletedAt && canSeeBuyer(b)) : []); // v1.20
   const mediaRecords = okMedia ? (store.mediaRecords || []).filter(r => !r.deletedAt) : [];
 
   const endingSoonRecords = mediaRecords.filter(r => r.status !== 'Анулирован' && isEndingSoon(r.endDate));
@@ -84,10 +92,10 @@ export default function Dashboard() {
   const curStart = `${nowKey}-01`;
   const curEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  const todayTasks = (okTasks ? store.tasks : []).filter(t => !t.completed && (isToday(t.dueDate) || isOverdue(t.dueDate)));
+  const todayTasks = mgrFilter((okTasks ? store.tasks : []).filter(t => !t.completed && (isToday(t.dueDate) || isOverdue(t.dueDate)))); // v1.20
   // v_1.9: заявки Маркетинг-кит из форм сайта (статусы «Запрос МК» / «Отправлен МК»)
   const mkRequests = store.mediaRecords.filter(r => r.status === 'Запрос МК' || r.status === 'Отправлен МК');
-  const newTickets = (okSupport ? store.tickets.filter(t => canSeeTicket(t)) : []).filter(t => (t.status === 'Новый запрос' || t.status === 'Новый запрос с формы') && !t.deletedAt); // v_1.9: «Новый запрос» / «Новый запрос с формы»
+  const newTickets = mgrFilter((okSupport ? store.tickets.filter(t => canSeeTicket(t)) : []).filter(t => (t.status === 'Новый запрос' || t.status === 'Новый запрос с формы') && !t.deletedAt)); // v1.20: менеджер — свои/без ответственного
 
   // Формы: заявки, пришедшие с публичных форм (Настройки → Формы) и ещё не
   // обработанные менеджером — статус "Новый с сайта" служит тем же
@@ -210,7 +218,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {(showBlock('support') || showBlock('tasks')) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today tasks */}
         <div className="card-base p-4">
           <div className="flex items-center justify-between mb-4">
@@ -266,6 +275,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      )}
 
       {/* Формы: заявки с сайта */}
       {formSubmissions.length > 0 && (
@@ -313,7 +323,8 @@ export default function Dashboard() {
       </div>
 
 {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {showBlock('sources') && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card-base p-4">
           <h2 className="section-title mb-4">Поставщики по статусам</h2>
           {supplierPieData.length > 0 ? (
@@ -376,9 +387,12 @@ export default function Dashboard() {
           ) : <p className="text-sm text-gray-400 text-center py-4">Нет данных</p>}
         </div>
       </div>
+      )}
 
       {/* v_1.9: типы под источниками */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="card-base p-4">
+          {showBlock('types') && (
         <div className="card-base p-4">
           <h2 className="section-title mb-4">Поставщики по типам</h2>
           {Object.keys(suppliersByType).length > 0 ? (
@@ -414,6 +428,84 @@ export default function Dashboard() {
       </div>
 
             {/* Plan/fact link */}
+      {showBlock('planfact') && (
+        <div className="card-base p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2"><TrendingUp size={18} className="text-brand-red" /><h2 className="section-title">План / Факт</h2></div>
+          <button onClick={() => navigate('/planfact')} className="btn-secondary text-xs">Открыть →</button>
+        </div>
+        {/* v_1.9: сводки план-факт по текущему месяцу */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+          {(['suppliers', 'buyers'] as const).map(kind => {
+            const label = kind === 'suppliers' ? 'Активная сводка поставщики' : 'Активная сводка покупатели';
+            const list = kind === 'suppliers' ? activeSuppliers : activeBuyers;
+            const key = nowKey;
+            const plan = (store.settings.planFact || []).filter(e => !e.deletedAt && e.kind === kind && e.startDate <= curEnd && e.endDate >= curStart).reduce((s, e) => s + (e.plan || 0), 0);
+            const act = list.filter(x => x.status === 'Активный' && (x.createdAt || '').slice(0, 7) === key).length;
+            const pct = plan ? Math.min(100, Math.round((act / plan) * 100)) : null;
+            return (
+              <div key={kind} className="rounded-xl border border-brand-gray-mid px-4 py-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-semibold text-gray-700">{label}</p>
+                  <span className="text-[10px] text-gray-400">Период: текущий месяц</span>
+                </div>
+                <div className="flex items-end gap-3">
+                  <p className="text-2xl font-bold text-brand-black leading-none">{pct === null ? '—' : `${pct}%`}</p>
+                  <span className="text-[11px] text-gray-400 pb-0.5">выполнения общего плана</span>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[12px] font-semibold"
+                    style={{ backgroundColor: '#e5e7ebcc', color: 'rgb(55 65 81 / var(--tw-text-opacity, 1))' }}>План: {plan}</span>
+                  <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[12px] font-semibold"
+                    style={{ backgroundColor: 'rgb(220 252 231 / var(--tw-bg-opacity, 1))', color: 'rgb(21 128 61 / var(--tw-text-opacity, 1))' }}>Активный факт: {act}</span>
+                </div>
+                {plan > 0 && <div className="mt-2 h-2 rounded-full bg-brand-gray overflow-hidden"><div className="h-full bg-brand-black rounded-full transition-all" style={{ width: `${pct}%` }} /></div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      )}
+</div>
+      )}
+      {/* v_1.9: график «Добавлено» ниже */}
+      {showBlock('added') && (
+        <div>
+          <div className="card-base p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h2 className="section-title">Добавлено</h2>
+          <div className="flex flex-wrap items-center gap-1">
+            {(['quarter', 'half', 'year', 'custom'] as const).map(p => (
+              <button key={p} onClick={() => setAddedPeriod(p)}
+                className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${addedPeriod === p ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>
+                {p === 'quarter' ? 'За квартал' : p === 'half' ? 'Полугодие' : p === 'year' ? 'Текущий год' : 'Произвольный'}
+              </button>
+            ))}
+            {addedPeriod === 'custom' && (
+              <input type="month" className="form-input text-[11px] py-0.5 px-2 w-auto" value={addedCustomMonth} onChange={e => setAddedCustomMonth(e.target.value)} />
+            )}
+          </div>
+        </div>
+        <div className="flex gap-4 text-[11px] text-gray-500 mb-3">
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#3B82F6' }} /> Поставщиков</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#10B981' }} /> Покупателей</span>
+        </div>
+        <div className="flex items-end gap-3 h-36">
+          {addedByMonth.map(m => (
+            <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
+              <div className="w-full flex items-end justify-center gap-1 h-28">
+                <div className="w-1/3 rounded-t" style={{ height: `${(m.sup / maxAdded) * 100}%`, background: '#3B82F6', minHeight: m.sup ? 3 : 0 }} title={`Поставщиков: ${m.sup}`} />
+                <div className="w-1/3 rounded-t" style={{ height: `${(m.buy / maxAdded) * 100}%`, background: '#10B981', minHeight: m.buy ? 3 : 0 }} title={`Покупателей: ${m.buy}`} />
+              </div>
+              <span className="text-[10px] text-gray-400">{m.label}</span>
+              <span className="text-[10px] font-medium text-gray-600">{m.sup}/{m.buy}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+        </div>
+      )}
+      {/* Plan/fact link */}
       <div className="card-base p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2"><TrendingUp size={18} className="text-brand-red" /><h2 className="section-title">План / Факт</h2></div>

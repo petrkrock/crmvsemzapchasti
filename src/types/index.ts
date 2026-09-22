@@ -508,7 +508,17 @@ export interface AppUser {
     knowledge: boolean;
     /** Право редактировать и создавать записи План/Факт (просмотр раздела — галочка planfact) */
     planfactEdit: boolean;
+    leads?: boolean;             // v1.20: база лидов
   };
+  // v1.20: подправа разделов (для роли Менеджер)
+  subPermissions?: {
+    suppliers?: { list?: boolean; card?: boolean; create?: boolean; import?: boolean };
+    buyers?: { list?: boolean; card?: boolean; create?: boolean };
+    support?: { list?: boolean; card?: boolean };
+    planfact?: { view?: boolean; edit?: boolean };
+  };
+  // v1.20: блоки дашборда, видимые пользователю (undefined = все)
+  dashboardBlocks?: string[];
   access: UserAccess;
   status: UserStatus;
   createdAt: string;

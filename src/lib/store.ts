@@ -34,7 +34,7 @@ function defaultAdmin(): AppUser {
     id: 'admin-1', name: 'Администратор', email: 'admin@vz.tech', password: 'admin123',
     role: 'admin',
     // Администратору все разделы доступны всегда — permissions/access для него не используются
-    permissions: { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true },
+    permissions: { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true, leads: true } // v1.20,
     access: { ...EMPTY_ACCESS },
     note: '',
     status: 'active',
@@ -314,12 +314,14 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
       delete migrated.active;
       if (!migrated.status) migrated.status = u.active === false ? 'blocked' : 'active';
       const perms = { ...(migrated.permissions || {}) } as unknown as Record<string, unknown>;
-      delete perms['leads'];
+      if (perms['leads'] === undefined) perms['leads'] = true; // v1.20: база лидов — право по умолчанию
       if (perms['dashboard'] === undefined) perms['dashboard'] = true;
       if (perms['knowledge'] === undefined) perms['knowledge'] = true;
       if (perms['planfactEdit'] === undefined) perms['planfactEdit'] = migrated.role === 'admin';
       if (migrated.note === undefined) migrated.note = '';
       migrated.permissions = perms as AppUser['permissions'];
+      // v1.20: подправа разделов для менеджера — по умолчанию полные (кроме импорта плана)
+      if (migrated.role === 'manager' && !migrated.subPermissions) migrated.subPermissions = { suppliers: { list: true, card: true, create: true, import: true }, buyers: { list: true, card: true, create: true }, support: { list: true, card: true }, planfact: { view: true, edit: false } };
       if (!migrated.access) migrated.access = { ...EMPTY_ACCESS };
       return migrated;
     });
