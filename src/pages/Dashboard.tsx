@@ -389,10 +389,8 @@ const navigate = useNavigate();
       </div>
       )}
 
-      {/* v_1.9: типы под источниками */}
+      {showBlock('types') && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="card-base p-4">
-          {showBlock('types') && (
         <div className="card-base p-4">
           <h2 className="section-title mb-4">Поставщики по типам</h2>
           {Object.keys(suppliersByType).length > 0 ? (
@@ -426,6 +424,7 @@ const navigate = useNavigate();
           ) : <p className="text-sm text-gray-400 text-center py-4">Нет данных</p>}
         </div>
       </div>
+      )}
 
             {/* Plan/fact link */}
       {showBlock('planfact') && (
@@ -465,8 +464,6 @@ const navigate = useNavigate();
           })}
         </div>
       </div>
-      )}
-</div>
       )}
       {/* v_1.9: график «Добавлено» ниже */}
       {showBlock('added') && (
@@ -541,40 +538,7 @@ const navigate = useNavigate();
             );
           })}
         </div>
-      </div>
-{/* v_1.9: график «Добавлено» — 6 месяцев, поставщики/покупатели */}
-      <div className="card-base p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-          <h2 className="section-title">Добавлено</h2>
-          <div className="flex flex-wrap items-center gap-1">
-            {(['quarter', 'half', 'year', 'custom'] as const).map(p => (
-              <button key={p} onClick={() => setAddedPeriod(p)}
-                className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${addedPeriod === p ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>
-                {p === 'quarter' ? 'За квартал' : p === 'half' ? 'Полугодие' : p === 'year' ? 'Текущий год' : 'Произвольный'}
-              </button>
-            ))}
-            {addedPeriod === 'custom' && (
-              <input type="month" className="form-input text-[11px] py-0.5 px-2 w-auto" value={addedCustomMonth} onChange={e => setAddedCustomMonth(e.target.value)} />
-            )}
-          </div>
-        </div>
-        <div className="flex gap-4 text-[11px] text-gray-500 mb-3">
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#3B82F6' }} /> Поставщиков</span>
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#10B981' }} /> Покупателей</span>
-        </div>
-        <div className="flex items-end gap-3 h-36">
-          {addedByMonth.map(m => (
-            <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
-              <div className="w-full flex items-end justify-center gap-1 h-28">
-                <div className="w-1/3 rounded-t" style={{ height: `${(m.sup / maxAdded) * 100}%`, background: '#3B82F6', minHeight: m.sup ? 3 : 0 }} title={`Поставщиков: ${m.sup}`} />
-                <div className="w-1/3 rounded-t" style={{ height: `${(m.buy / maxAdded) * 100}%`, background: '#10B981', minHeight: m.buy ? 3 : 0 }} title={`Покупателей: ${m.buy}`} />
-              </div>
-              <span className="text-[10px] text-gray-400">{m.label}</span>
-              <span className="text-[10px] font-medium text-gray-600">{m.sup}/{m.buy}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+
 
     </div>
   );
