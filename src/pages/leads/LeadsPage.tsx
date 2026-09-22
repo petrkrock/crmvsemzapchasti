@@ -60,7 +60,8 @@ const [rowStatusChoice, setRowStatusChoice] = useState('');
   const [form, setForm] = useState<Lead>({ id: '', type: 'supplier', tradeName: '', inn: '', subType: '', city: '', contactName: '', status: 'ЛИД', phone: '', email: '', comment: '', createdAt: '' });
 
   const statuses = useMemo(() => (store.settings.statuses || []).filter(s => s.entityTypes.includes('lead')).sort((a, b) => (a.order ?? 99) - (b.order ?? 99)), [store.settings.statuses]);
-  const allLeads = store.settings.leads || [];
+  // ТЗ v1.21.5: у менеджера с заданной базой лидов — весь раздел показывает только её.
+  const allLeads = (store.settings.leads || []).filter(x => !(user?.role === 'manager' && user.leadsBase) || x.type === (user.leadsBase === 'buyers' ? 'buyer' : 'supplier'));
 
   const activeTypes = base.supplier && !base.buyer ? (store.settings as any).supplierTypes || []
     : base.buyer && !base.supplier ? (store.settings as any).buyerTypes || []

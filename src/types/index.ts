@@ -533,6 +533,10 @@ export interface AppUser {
   /** Тип дашборда менеджера (v1.21.3): 'mop' — МОП (продажи, покупатели), 'moz' — МОЗ (закупки, поставщики).
    *  Только для роли manager; выбирается ровно один. */
   dashboardType?: 'mop' | 'moz';
+  /** База План/Факт для менеджера (v1.21.5): если задана — менеджер видит только её, переключатель заблокирован. */
+  planfactBase?: 'buyers' | 'suppliers';
+  /** Чья база лидов доступна менеджеру (v1.21.5): 'buyers' — покупатели, 'suppliers' — поставщики. */
+  leadsBase?: 'buyers' | 'suppliers';
   status: UserStatus;
   createdAt: string;
 }

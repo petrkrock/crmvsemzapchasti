@@ -50,8 +50,8 @@ const dstr = (d: Date) => d.toISOString().slice(0, 10);
 function monthLabel(iso: string): string {
   const m = parseInt(iso.slice(5, 7), 10) - 1;
   const name = MONTH_NAMES[m] || '';
-  const base = name.charAt(0).toUpperCase() + name.slice(1) + ' ' + iso.slice(2, 4) + 'г.';
-  return base;
+  const baseRaw = name.charAt(0).toUpperCase() + name.slice(1) + ' ' + iso.slice(2, 4) + 'г.';
+  return baseRaw;
 }
 
 const PlanFormFields = ({ form, setF, forAdd, cities, buyerTypesList, supplierTypesList, supplierServicesList, onPeriod }: {
@@ -192,7 +192,13 @@ export default function PlanFactPage() {
   const store = getStore();
   const [period, setPeriod] = useState('month');
   // ТЗ 1.7.7 (этап 1): жёсткий выбор базы + режим сводки
-  const [base, setBase] = useState<'buyer' | 'supplier'>('buyer'); // по умолчанию — покупатели
+  const [baseRaw, setBase] = useState<'buyer' | 'supplier'>('buyer');
+  // ТЗ v1.21.5: у менеджера с выбранной базой в правах — показываем только её (переключатель заблокирован).
+  const meUser = getCurrentUser();
+  const baseLocked = meUser?.role === 'manager' && !!meUser.planfactBase;
+  const base: 'buyer' | 'supplier' = meUser?.role === 'manager' && meUser.planfactBase
+    ? (meUser.planfactBase === 'buyers' ? 'buyer' : 'supplier')
+    : baseRaw; // по умолчанию — покупатели
   const switchBase = (b: 'buyer' | 'supplier') => { setBase(b); setEditingId(null); setReportId(null); setShowAddForm(false); setSelected([]); };
   const [viewMode, setViewMode] = useState<'current' | 'next' | 'custom' | 'archive'>('current');
   const [customMonth, setCustomMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; });
@@ -233,7 +239,7 @@ export default function PlanFactPage() {
   const entries = useMemo(() => {
     const cur = monthRange(0);
     const nxt = monthRange(1);
-    const all = (store.settings.planFact || []).filter(e => (viewMode === 'archive' || !e.deletedAt) && (!e.cityName || canSeePlanCity(e.cityName)) && e.kind === (base === 'buyer' ? 'buyers' : 'suppliers')); // своя таблица на каждую секцию; на «Архиве» — и удалённые записи
+    const all = (store.settings.planFact || []).filter(e => (viewMode === 'archive' || !e.deletedAt) && (!e.cityName || canSeePlanCity(e.cityName)) && e.kind === (baseRaw === 'buyer' ? 'buyers' : 'suppliers')); // своя таблица на каждую секцию; на «Архиве» — и удалённые записи
     if (viewMode === 'archive') {
       // Архив = удалённые записи (любого периода) + записи прошлых периодов (ТЗ)
       return all.filter(e => e.deletedAt || (!(e.startDate <= cur.endDate && e.endDate >= cur.startDate) && !(e.startDate <= nxt.endDate && e.endDate >= nxt.startDate)));
@@ -241,7 +247,7 @@ export default function PlanFactPage() {
     const sel = viewMode === 'current' ? cur : viewMode === 'next' ? nxt
       : (() => { const [y, m] = customMonth.split('-').map(Number); return { startDate: dstr(new Date(y, m - 1, 1)), endDate: dstr(new Date(y, m, 0)) }; })();
     return all.filter(e => e.startDate <= sel.endDate && e.endDate >= sel.startDate);
-  }, [store, base, viewMode, customMonth, filterCity, filterService]);
+  }, [store, baseRaw, viewMode, customMonth, filterCity, filterService]);
 
   // ТЗ: записи таблицы с учётом фильтров отчётов и города
   const visibleEntries = useMemo(
@@ -284,7 +290,7 @@ export default function PlanFactPage() {
     const cur = monthRange(0);
     const nxt = monthRange(1);
     const overlap = (e: PlanFactEntry, r: { startDate: string; endDate: string }) => e.startDate <= r.endDate && e.endDate >= r.startDate;
-    const allEntries = (store.settings.planFact || []).filter(e => (viewMode === 'archive' || !e.deletedAt) && e.kind === (base === 'buyer' ? 'buyers' : 'suppliers'));
+    const allEntries = (store.settings.planFact || []).filter(e => (viewMode === 'archive' || !e.deletedAt) && e.kind === (baseRaw === 'buyer' ? 'buyers' : 'suppliers'));
     let sel: { startDate: string; endDate: string } | null = null;
     if (viewMode === 'current') sel = cur;
     else if (viewMode === 'next') sel = nxt;
@@ -298,7 +304,7 @@ export default function PlanFactPage() {
     // ТЗ: фильтр по городу (только покупатели) — сужает и план, и факт сводки
     if (filterCity) planEntries = planEntries.filter(e => e.cityName === filterCity);
     const plan = planEntries.reduce((s, e) => s + (e.plan || 0), 0);
-    let fact = (base === 'buyer' ? store.buyers : store.suppliers) as Array<{ status?: string; type?: string; city?: string; createdAt?: string; responsibleId?: string }>;
+    let fact = (baseRaw === 'buyer' ? store.buyers : store.suppliers) as Array<{ status?: string; type?: string; city?: string; createdAt?: string; responsibleId?: string }>;
     if (filterCity) fact = fact.filter(x => x.city === filterCity);
     // ТЗ (v1.21.2): фильтр по ответственному сужает и план, и факт сводки
     if (filterResponsible) {
@@ -306,7 +312,7 @@ export default function PlanFactPage() {
       fact = fact.filter(x => filterResponsible === '__none__' ? !x.responsibleId : x.responsibleId === filterResponsible);
     }
     // ТЗ: фильтр сервисов продаж (только поставщики); записи без сервисов покрывают все
-    if (base === 'supplier' && filterService) {
+    if (baseRaw === 'supplier' && filterService) {
       planEntries = planEntries.filter(e => !(e.serviceIds || []).length || (e.serviceIds || []).includes(filterService));
       fact = fact.filter(x => (x as { services?: string[] }).services?.includes(filterService));
     }
@@ -320,7 +326,7 @@ export default function PlanFactPage() {
     const act = fact.filter(x => isAct(x.status)).length;
     const pot = fact.filter(x => !!x.status && !isExcluded(x.status)).length;
     const pct = plan ? Math.round(((act + pot) / plan) * 100) : null;
-    const typeList = (base === 'buyer' ? store.settings.buyerTypes : store.settings.supplierTypes) || [];
+    const typeList = (baseRaw === 'buyer' ? store.settings.buyerTypes : store.settings.supplierTypes) || [];
     const typeRows = typeList.map(tp => {
       const sub = fact.filter(x => x.type === tp);
       return {
@@ -336,7 +342,7 @@ export default function PlanFactPage() {
       return { name: ct, act: sub.filter(x => isAct(x.status)).length, pot: sub.filter(x => !!x.status && !isExcluded(x.status)).length, plan: planEntries.filter(e => e.cityName === ct).reduce((s, e) => s + (e.plan || 0), 0) };
     }).filter(r => r.act || r.pot || r.plan);
     return { plan, act, pot, pct, typeRows, cityRows, count: fact.length };
-  }, [store, base, viewMode, customMonth, filterCity, filterResponsible]);
+  }, [store, baseRaw, viewMode, customMonth, filterCity, filterResponsible]);
 
 
   const [addForm, setAddForm] = useState<Partial<PlanFactEntry>>({ startDate: dstr(new Date()), endDate: monthRange(0).endDate, kind: 'suppliers', plan: 0 }); // по умолчанию — Текущий месяц (остаток месяца)
@@ -372,7 +378,7 @@ export default function PlanFactPage() {
     };
     updateStore(s => ({ ...s, settings: { ...s.settings, planFact: [...(s.settings.planFact || []), entry] } }));
     setShowAddForm(false);
-    setAddForm({ startDate: dstr(new Date()), endDate: monthRange(0).endDate, kind: base === 'buyer' ? 'buyers' : 'suppliers', plan: 0, serviceIds: base === 'supplier' ? [] : undefined });
+    setAddForm({ startDate: dstr(new Date()), endDate: monthRange(0).endDate, kind: baseRaw === 'buyer' ? 'buyers' : 'suppliers', plan: 0, serviceIds: baseRaw === 'supplier' ? [] : undefined });
     forceUpdate(n => n + 1);
     toast.success('Запись добавлена');
   }
@@ -482,18 +488,18 @@ export default function PlanFactPage() {
         <h1 className="page-title">План / Факт</h1>
         {/* ТЗ: выбор базы в шапке (как в базе лидов); кнопки «Добавить запись» здесь НЕТ */}
         <div className="flex items-center gap-2">
-          <button onClick={() => switchBase('buyer')} className={`btn-secondary text-xs py-1.5 px-3 ${base === 'buyer' ? 'bg-gray-200' : ''}`}>Покупатели</button>
-          <button onClick={() => switchBase('supplier')} className={`btn-secondary text-xs py-1.5 px-3 ${base === 'supplier' ? 'bg-gray-200' : ''}`}>Поставщики</button>
+          <button onClick={() => switchBase('buyer')} disabled={baseLocked} title={baseLocked ? 'База задана в правах менеджера' : undefined} className={`btn-secondary text-xs py-1.5 px-3 ${base === 'buyer' ? 'bg-gray-200' : ''} ${baseLocked ? 'opacity-50 cursor-not-allowed' : ''}`}>Покупатели</button>
+          <button onClick={() => switchBase('supplier')} disabled={baseLocked} title={baseLocked ? 'База задана в правах менеджера' : undefined} className={`btn-secondary text-xs py-1.5 px-3 ${base === 'supplier' ? 'bg-gray-200' : ''} ${baseLocked ? 'opacity-50 cursor-not-allowed' : ''}`}>Поставщики</button>
         </div>
       </div>
 
       {/* ═══ АКТИВНАЯ СВОДКА (дизайн v2) ═══ */}
-      <div className="card-base p-0 mb-4 overflow-hidden">
+      <div className="card-baseRaw p-0 mb-4 overflow-hidden">
         {/* Шапка: заголовок + сегменты базы и периода */}
         <div className="px-4 pt-3 pb-2.5 border-b border-brand-gray-mid bg-gradient-to-r from-brand-gray/60 to-transparent">
           <div className="flex flex-wrap items-center justify-between gap-2.5">
             <div>
-              <h2 className="section-title">Активная сводка {base === 'buyer' ? 'покупатели' : 'поставщики'}</h2>
+              <h2 className="section-title">Активная сводка {baseRaw === 'buyer' ? 'покупатели' : 'поставщики'}</h2>
               <p className="text-[11px] text-gray-400 mt-0.5">Период: {' '}
                 {viewMode === 'current' ? 'текущий месяц' : viewMode === 'next' ? 'следующий месяц' : viewMode === 'archive' ? 'архив' : `период: ${customMonth}`}
               </p>
@@ -506,13 +512,13 @@ export default function PlanFactPage() {
                 {store.settings.users.filter(u => u.status === 'active').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
               {/* Период — пилюли; все контролы единой высоты h-8 */}
-              {base === 'buyer' && (
+              {baseRaw === 'buyer' && (
                 <select className="form-input text-xs py-1.5 px-3 w-auto" value={filterCity} onChange={e => setFilterCity(e.target.value)} title="Фильтр по городу">
                   <option value="">Все города</option>
                   {visibleCities.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               )}
-              {base === 'supplier' && (
+              {baseRaw === 'supplier' && (
                 <select className="form-input text-xs py-1.5 px-3 w-auto" value={filterService} onChange={e => setFilterService(e.target.value)} title="Фильтр по сервису продаж">
                   <option value="">Все сервисы</option>
                   {supplierServicesList.map(sv => <option key={sv} value={sv}>{sv}</option>)}
@@ -523,8 +529,8 @@ export default function PlanFactPage() {
               <input type="month" className="form-input text-xs py-1.5 px-3 w-auto" value={customMonth} onChange={e => { setCustomMonth(e.target.value); setViewMode('custom'); }} title="Произвольный месяц" />
               <button onClick={() => setViewMode('archive')} className={`btn-secondary text-xs py-1.5 px-3 ${viewMode === 'archive' ? 'bg-gray-200' : ''}`}>Архив</button>
               {canEdit && (
-                <button onClick={() => { setAddForm({ startDate: dstr(new Date()), endDate: monthRange(0).endDate, kind: base === 'buyer' ? 'buyers' : 'suppliers', plan: 0, cityId: undefined, filterType: undefined, serviceIds: base === 'buyer' ? undefined : [] }); setShowAddForm(true); setEditingId(null); }}
-                  className="btn-primary text-xs py-1.5 px-3 flex items-center" title={base === 'buyer' ? 'Новая запись (покупатели)' : 'Новая запись (поставщики)'}>
+                <button onClick={() => { setAddForm({ startDate: dstr(new Date()), endDate: monthRange(0).endDate, kind: baseRaw === 'buyer' ? 'buyers' : 'suppliers', plan: 0, cityId: undefined, filterType: undefined, serviceIds: baseRaw === 'buyer' ? undefined : [] }); setShowAddForm(true); setEditingId(null); }}
+                  className="btn-primary text-xs py-1.5 px-3 flex items-center" title={baseRaw === 'buyer' ? 'Новая запись (покупатели)' : 'Новая запись (поставщики)'}>
                   <Plus size={18} strokeWidth={2.5} />
                 </button>
               )}
@@ -559,7 +565,7 @@ export default function PlanFactPage() {
 
         {/* По типам */}
         <div className="px-4 pb-2">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-2">По типам {base === 'buyer' ? 'покупателей' : 'поставщиков'}</h3>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-2">По типам {baseRaw === 'buyer' ? 'покупателей' : 'поставщиков'}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
             {summary.typeRows.map(r => (
               <div key={r.name} className="flex flex-col gap-1 border border-brand-gray-mid rounded-xl px-3 py-2.5 text-xs hover:bg-brand-gray/50 transition-colors">
@@ -574,7 +580,7 @@ export default function PlanFactPage() {
           </div>
         </div>
 
-        {base === 'buyer' && (
+        {baseRaw === 'buyer' && (
         <div>
         {/* По городам — только покупатели (ТЗ) */}
         <div className="px-4 pb-3">
@@ -624,7 +630,7 @@ export default function PlanFactPage() {
 
 {/* Форма добавления */}
       {showAddForm && canEdit && (
-        <div className="card-base p-4 bg-blue-50 border-blue-200 animate-fade-in">
+        <div className="card-baseRaw p-4 bg-blue-50 border-blue-200 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
             <h3 className="section-title">Новая запись ({addForm.kind === 'buyers' ? 'покупатели' : 'поставщики'})</h3>
             <button onClick={() => setShowAddForm(false)} className="text-gray-400 hover:text-brand-red"><X size={18} /></button>
@@ -641,7 +647,7 @@ export default function PlanFactPage() {
 
       {/* ТЗ: панель выгрузки отчётов — появляется при выбранных чекбоксах */}
       {selected.length > 0 && (
-        <div className="card-base p-3 flex flex-wrap items-center gap-2 bg-blue-50 border-blue-200 animate-fade-in">
+        <div className="card-baseRaw p-3 flex flex-wrap items-center gap-2 bg-blue-50 border-blue-200 animate-fade-in">
           <span className="text-xs font-medium text-blue-700">Выбрано: {selected.length}</span>
           <button onClick={exportReports} className="btn-primary text-xs py-1">Выгрузить отчеты</button>
           <button onClick={() => setSelected([])} className="btn-secondary text-xs py-1">Снять выбор</button>
@@ -651,7 +657,7 @@ export default function PlanFactPage() {
       {/* ═══ Записи плана: своя таблица на каждую вкладку (ТЗ этап 3) ═══
           Карточка держится на записях периода; пустой фильтр отчётов показывает подсказку, а не прячет блок */}
       {entries.length > 0 && (
-        <div className="card-base overflow-hidden">
+        <div className="card-baseRaw overflow-hidden">
           <div className="p-3 border-b border-brand-gray-mid flex items-center justify-between">
             <h3 className="section-title">Активные планы</h3>
             <div className="flex items-center gap-2">
@@ -676,9 +682,9 @@ export default function PlanFactPage() {
                       }} />
                     Месяц
                   </th>
-                  {base === 'buyer' && <th className="table-header">Город *</th>}
-                  {base === 'supplier' && <th className="table-header">Сервис продаж *</th>}
-                  <th className="table-header">{base === 'buyer' ? 'Тип покупателей *' : 'Тип поставщиков *'}</th>
+                  {baseRaw === 'buyer' && <th className="table-header">Город *</th>}
+                  {baseRaw === 'supplier' && <th className="table-header">Сервис продаж *</th>}
+                  <th className="table-header">{baseRaw === 'buyer' ? 'Тип покупателей *' : 'Тип поставщиков *'}</th>
                   <th className="table-header">Ответственный *</th>
                   <th className="table-header">План *</th>
                   <th className="table-header" title="Активные">АКТ</th>
@@ -711,9 +717,9 @@ export default function PlanFactPage() {
                             {monthLabel(entry.startDate)}
                             {entry.deletedAt && <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 align-middle">АРХИВ</span>}
                           </td>
-                          {base === 'buyer' && <td className="table-cell text-xs">{entry.cityName || '—'}</td>}
-                          {base === 'supplier' && <td className="table-cell text-xs max-w-[200px] truncate" title={(entry.serviceIds || []).join(', ')}>{(entry.serviceIds || []).join(', ') || '—'}</td>}
-                          <td className="table-cell text-xs">{entry.filterType || (base === 'buyer' ? 'Все' : 'Любой')}</td>
+                          {baseRaw === 'buyer' && <td className="table-cell text-xs">{entry.cityName || '—'}</td>}
+                          {baseRaw === 'supplier' && <td className="table-cell text-xs max-w-[200px] truncate" title={(entry.serviceIds || []).join(', ')}>{(entry.serviceIds || []).join(', ') || '—'}</td>}
+                          <td className="table-cell text-xs">{entry.filterType || (baseRaw === 'buyer' ? 'Все' : 'Любой')}</td>
                           <td className="table-cell text-xs">{entry.responsibleName || '—'}</td>
                           <td className="table-cell font-medium">{entry.plan}</td>
                           {(() => { const f = entryFact(entry); return (<>

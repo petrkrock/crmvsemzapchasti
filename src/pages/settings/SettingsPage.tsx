@@ -242,7 +242,10 @@ const [tab, setTab] = useState('Статусы');
       const nu: AppUser = {
         id, name, email,
         password: isSupabaseConfigured() ? '' : (userForm.password || 'password123'),
-        role, dashboardType: role === 'manager' ? (userForm.dashboardType ?? 'mop') : undefined, permissions, access, note: (userForm.note || '').trim(), notifyChatId: (userForm.notifyChatId || '').trim(), notifyChannel: userForm.notifyChannel, notifyEmail: (userForm.notifyEmail || '').trim(), status: 'active', createdAt: new Date().toISOString(),
+        role, dashboardType: role === 'manager' ? (userForm.dashboardType ?? 'mop') : undefined,
+        planfactBase: role === 'manager' ? userForm.planfactBase : undefined,
+        leadsBase: role === 'manager' ? userForm.leadsBase : undefined,
+        permissions, access, note: (userForm.note || '').trim(), notifyChatId: (userForm.notifyChatId || '').trim(), notifyChannel: userForm.notifyChannel, notifyEmail: (userForm.notifyEmail || '').trim(), status: 'active', createdAt: new Date().toISOString(),
       };
       updateStore(s => ({ ...s, settings: { ...s.settings, users: [...s.settings.users, nu] } }));
       setShowNewUser(false);
@@ -255,7 +258,7 @@ const [tab, setTab] = useState('Статусы');
 
   function startEditUser(u: AppUser) {
     setEditingUserId(u.id);
-    setEditForm({ name: u.name, email: u.email, role: u.role, dashboardType: u.dashboardType, permissions: { ...u.permissions }, access: { ...EMPTY_ACCESS, ...u.access }, password: '', note: u.note || '', notifyChatId: u.notifyChatId || '', notifyChannel: u.notifyChannel, notifyEmail: u.notifyEmail || '' });
+    setEditForm({ name: u.name, email: u.email, role: u.role, dashboardType: u.dashboardType, planfactBase: u.planfactBase, leadsBase: u.leadsBase, permissions: { ...u.permissions }, access: { ...EMPTY_ACCESS, ...u.access }, password: '', note: u.note || '', notifyChatId: u.notifyChatId || '', notifyChannel: u.notifyChannel, notifyEmail: u.notifyEmail || '' });
   }
   function cancelEditUser() { setEditingUserId(null); setEditForm({}); }
 
@@ -277,7 +280,9 @@ const [tab, setTab] = useState('Статусы');
         settings: {
           ...s.settings,
           users: s.settings.users.map(u => u.id === id
-            ? { ...u, name, email, role, dashboardType: role === 'manager' ? (editForm.dashboardType ?? u.dashboardType ?? 'mop') : undefined, permissions, access, note: (editForm.note || '').trim(), notifyChatId: (editForm.notifyChatId || '').trim(), notifyChannel: editForm.notifyChannel, notifyEmail: (editForm.notifyEmail || '').trim(), password: isSupabaseConfigured() ? u.password : (editForm.password || u.password) }
+            ? { ...u, name, email, role, dashboardType: role === 'manager' ? (editForm.dashboardType ?? u.dashboardType ?? 'mop') : undefined,
+              planfactBase: role === 'manager' ? (editForm.planfactBase ?? u.planfactBase) : undefined,
+              leadsBase: role === 'manager' ? (editForm.leadsBase ?? u.leadsBase) : undefined, permissions, access, note: (editForm.note || '').trim(), notifyChatId: (editForm.notifyChatId || '').trim(), notifyChannel: editForm.notifyChannel, notifyEmail: (editForm.notifyEmail || '').trim(), password: isSupabaseConfigured() ? u.password : (editForm.password || u.password) }
             : u),
         },
       }));
@@ -545,33 +550,19 @@ const [tab, setTab] = useState('Статусы');
   const citiesList = freshStore.settings.cities || [];
   const ticketTypesList = freshStore.settings.ticketTypes || [];
   const FILTER_SECTIONS = [
-    { perm: 'suppliers' as const, label: 'Поставщики', dims: [
-      { key: 'supplierTypes' as const, label: 'Типы поставщиков', options: supplierTypesList },
-      { key: 'supplierCities' as const, label: 'Города поставщиков', options: citiesList },
-    ] },
-    { perm: 'buyers' as const, label: 'Покупатели', dims: [
-      { key: 'buyerTypes' as const, label: 'Типы покупателей', options: buyerTypesList },
-      { key: 'buyerCities' as const, label: 'Города покупателей', options: citiesList },
-    ] },
+    { perm: 'suppliers' as const, label: 'Поставщики', dims: [] },
+    { perm: 'buyers' as const, label: 'Покупатели', dims: [] },
     { perm: 'support' as const, label: 'Поддержка', dims: [
       { key: 'ticketTypes' as const, label: 'Типы обращений', options: ticketTypesList },
     ] },
     { perm: 'leads' as const, label: 'База лидов', dims: [] },
-    { perm: 'planfact' as const, label: 'План/Факт', dims: [
-      { key: 'planCities' as const, label: 'Города (общие)', options: citiesList },
-    ] },
-    { perm: 'dashboard' as const, label: 'Дашборд', dims: [
-      { key: 'dashboardCities' as const, label: 'Города (общие)', options: citiesList },
-    ] },
+    { perm: 'planfact' as const, label: 'План/Факт', dims: [] },
+    { perm: 'dashboard' as const, label: 'Дашборд', dims: [] },
     { perm: 'tasks' as const, label: 'Задачи', dims: [
       { key: 'taskTypes' as const, label: 'Типы задач', options: freshStore.settings.taskTypes || [] },
       { key: 'taskEntityTypes' as const, label: 'Типы сущностей', options: taskEntityTypes.map(et => et.key) },
     ] },
-    { perm: 'media' as const, label: 'Медиа сервис', dims: [
-      { key: 'mediaAdTypes' as const, label: 'Форматы (типы рекламы)', options: mediaAdTypes.map(a => a.name) },
-      { key: 'mediaDurationOptions' as const, label: 'Длительность', options: Array.from(new Set(mediaAdTypes.flatMap(a => (a.durationOptions || []).map(d => d.periodLabel)))) },
-      { key: 'mediaStatuses' as const, label: 'Статусы медиа', options: mediaStatuses.map(s => s.name) },
-    ] },
+    { perm: 'media' as const, label: 'Медиа сервис', dims: [] },
     { perm: 'knowledge' as const, label: 'База знаний', dims: [] },
   ];
   // Порядок блоков «Доступ к разделам» (ТЗ v1.21.0): Дашборд → План/Факт → Поставщики → Покупатели →
@@ -597,6 +588,10 @@ const [tab, setTab] = useState('Статусы');
     onAccess: (dim: keyof UserAccess, value: string) => void,
     dashboardType?: 'mop' | 'moz',
     onDashboardType?: (t: 'mop' | 'moz') => void,
+    planfactBase?: 'buyers' | 'suppliers',
+    onPlanfactBase?: (t: 'buyers' | 'suppliers') => void,
+    leadsBase?: 'buyers' | 'suppliers',
+    onLeadsBase?: (t: 'buyers' | 'suppliers') => void,
   ) => (
     <div className="space-y-2">
       <p className="text-xs text-gray-500">Пустой список фильтра = без ограничений: менеджер видит все позиции раздела.</p>
@@ -647,14 +642,23 @@ const [tab, setTab] = useState('Статусы');
               <Link to={`/dashboard-preview/${dashboardType ?? 'mop'}`} className="inline-block text-xs text-brand-red hover:underline">Предпросмотр дашборда →</Link>
             </div>
           )}
+          {(sec.perm === 'planfact' || sec.perm === 'leads') && (
+            <div className="ml-6 mt-2 space-y-1.5">
+              <p className="text-xs text-gray-500">{sec.perm === 'planfact' ? 'Какая база доступна менеджеру (выбирается один):' : 'Чья база лидов (выбирается один):'}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {([['buyers', 'Покупатели'], ['suppliers', 'Поставщики']] as const).map(([v, l]) => {
+                  const val = sec.perm === 'planfact' ? planfactBase : leadsBase;
+                  const onCh = sec.perm === 'planfact' ? onPlanfactBase : onLeadsBase;
+                  return (
+                    <button key={v} type="button" onClick={() => onCh?.(v)}
+                      className={`text-xs px-2 py-1 rounded-full border ${val === v ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{l}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {sec.perm === 'knowledge' && (
             <p className="ml-6 mt-2 text-xs text-gray-500">Доступ к материалам настраивается в самой базе знаний — флажок «доступно менеджеру» у материала.</p>
-          )}
-          {sec.perm === 'planfact' && (
-            <label className="ml-6 mt-2 flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={perms.planfactEdit} onChange={e => onPerm('planfactEdit', e.target.checked)} className="rounded" />
-              <span className="text-xs">Может редактировать и создавать записи План/Факт</span>
-            </label>
           )}
         </div>
       ))}
@@ -885,6 +889,10 @@ const [tab, setTab] = useState('Статусы');
                       (dim, value) => setUserForm(f => { const acc = { ...EMPTY_ACCESS, ...(f.access || {}) }; return { ...f, access: { ...acc, [dim]: acc[dim].includes(value) ? acc[dim].filter(x => x !== value) : [...acc[dim], value] } }; }),
                       userForm.dashboardType,
                       t => setUserForm(f => ({ ...f, dashboardType: t })),
+                      userForm.planfactBase,
+                      t => setUserForm(f => ({ ...f, planfactBase: t })),
+                      userForm.leadsBase,
+                      t => setUserForm(f => ({ ...f, leadsBase: t })),
                     )}</div>
                   ) : (
                     <p className="text-xs text-gray-500 mb-3">Администратору доступны все разделы, включая «Настройки» и «Базу данных».</p>
@@ -930,6 +938,10 @@ const [tab, setTab] = useState('Статусы');
                             (dim, value) => setEditForm(f => { const acc = { ...EMPTY_ACCESS, ...(f.access || {}) }; return { ...f, access: { ...acc, [dim]: acc[dim].includes(value) ? acc[dim].filter(x => x !== value) : [...acc[dim], value] } }; }),
                             editForm.dashboardType,
                             t => setEditForm(f => ({ ...f, dashboardType: t })),
+                            editForm.planfactBase,
+                            t => setEditForm(f => ({ ...f, planfactBase: t })),
+                            editForm.leadsBase,
+                            t => setEditForm(f => ({ ...f, leadsBase: t })),
                           )}</div>
                         ) : (
                           <p className="text-xs text-gray-500">Администратору доступны все разделы.</p>
