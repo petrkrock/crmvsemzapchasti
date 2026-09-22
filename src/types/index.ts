@@ -470,6 +470,16 @@ export interface UserAccess {
   buyerCities: string[];
   ticketTypes: string[];
   planCities: string[];
+  // НОВОЕ (v1.20.9): фильтры разделов Дашборд, Задачи, Медиа сервис, Аналитика, База знаний —
+  // та же логика: пустой массив = без ограничений внутри доступного раздела.
+  dashboardCities: string[];
+  taskTypes: string[];
+  taskEntityTypes: string[];
+  mediaAdTypes: string[];
+  mediaDurationOptions: string[];
+  mediaStatuses: string[];
+  analyticsCities: string[];
+  knowledgeCategories: string[];
 }
 
 export const EMPTY_ACCESS: UserAccess = {
@@ -479,6 +489,14 @@ export const EMPTY_ACCESS: UserAccess = {
   buyerCities: [],
   ticketTypes: [],
   planCities: [],
+  dashboardCities: [],
+  taskTypes: [],
+  taskEntityTypes: [],
+  mediaAdTypes: [],
+  mediaDurationOptions: [],
+  mediaStatuses: [],
+  analyticsCities: [],
+  knowledgeCategories: [],
 };
 
 /** Разделы, доступные для выдачи менеджеру. «Настройки» и «База данных» сюда НЕ входят — они только для администратора. */
@@ -508,17 +526,7 @@ export interface AppUser {
     knowledge: boolean;
     /** Право редактировать и создавать записи План/Факт (просмотр раздела — галочка planfact) */
     planfactEdit: boolean;
-    leads?: boolean;             // v1.20: база лидов
   };
-  // v1.20: подправа разделов (для роли Менеджер)
-  subPermissions?: {
-    suppliers?: { list?: boolean; card?: boolean; create?: boolean; import?: boolean };
-    buyers?: { list?: boolean; card?: boolean; create?: boolean };
-    support?: { list?: boolean; card?: boolean };
-    planfact?: { view?: boolean; edit?: boolean };
-  };
-  // v1.20: блоки дашборда, видимые пользователю (undefined = все)
-  dashboardBlocks?: string[];
   access: UserAccess;
   status: UserStatus;
   createdAt: string;

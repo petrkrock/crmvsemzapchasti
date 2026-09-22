@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getStore, useStoreVersion } from '@/lib/store';
 import { formatDateTime, formatDate, isToday, isOverdue } from '@/lib/utils';
-import { canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, getCurrentUser } from '@/lib/auth'; // v1.20
+import { canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, canSeeDashboardCity } from '@/lib/auth';
 import StatusBadge from '@/components/features/StatusBadge';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Globe, Truck, ShoppingCart, CheckSquare, HeadphonesIcon, TrendingUp, Plus, AlertCircle, Clock, Video, AlertTriangle, FileEdit } from 'lucide-react';
@@ -23,15 +23,7 @@ function daysLeft(date: string): number {
 
 export default function Dashboard() {
   useStoreVersion(); // re-render on real-time changes from other users (see src/lib/realtime.ts)
-  // v1.20: блоки дашборда по настройкам пользователя (undefined = все)
-const dbBlocks = getCurrentUser()?.dashboardBlocks;
-const showBlock = (k: string) => !dbBlocks || dbBlocks.includes(k);
-// v1.20: менеджер видит контент, где он ответственный, или где ответственных нет
-const me = getCurrentUser();
-function mgrFilter<T extends { responsibleId?: string }>(arr: T[]): T[] {
-  return me && me.role !== 'admin' ? arr.filter(x => !x.responsibleId || x.responsibleId === me.id) : arr;
-}
-const navigate = useNavigate();
+  const navigate = useNavigate();
   const store = getStore();
   // Дашборд менеджера показывает только разрешённые ему данные (ТЗ)
   const okSup = canAccess('suppliers');
@@ -40,16 +32,16 @@ const navigate = useNavigate();
   const okSupport = canAccess('support');
   const okMedia = canAccess('media');
   // Сервис поиска: условия, ожидающие обработки менеджером (всё, что не «Загружено»)
-  const ssItems = mgrFilter(okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : []).flatMap(sup => // v1.20
+  const ssItems = (okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : []).flatMap(sup =>
     (sup.serviceSearch || [])
       .filter(c => (c.status || 'Новое') !== 'Загружено')
-      .map(c => ({ supplierId: sup.id, supplierName: sup.tradeName, city: c.city, status: c.status || 'Новое' }))
+      .map(c => ({ supplierId: sup.id, supplierName: sup.tradeName, city: c.city, status: c.status || 'Новое' })).filter(c => canSeeDashboardCity(c.city))
   );
   const ssNew = ssItems.filter(i => i.status === 'Новое').length;
   const ssChanged = ssItems.length - ssNew;
 
-  const activeSuppliers = mgrFilter(okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : []); // v1.20
-  const activeBuyers = mgrFilter(okBuy ? store.buyers.filter(b => !b.deletedAt && canSeeBuyer(b)) : []); // v1.20
+  const activeSuppliers = okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : [];
+  const activeBuyers = okBuy ? store.buyers.filter(b => !b.deletedAt && canSeeBuyer(b)) : [];
   const mediaRecords = okMedia ? (store.mediaRecords || []).filter(r => !r.deletedAt) : [];
 
   const endingSoonRecords = mediaRecords.filter(r => r.status !== 'Анулирован' && isEndingSoon(r.endDate));
@@ -92,10 +84,10 @@ const navigate = useNavigate();
   const curStart = `${nowKey}-01`;
   const curEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  const todayTasks = mgrFilter((okTasks ? store.tasks : []).filter(t => !t.completed && (isToday(t.dueDate) || isOverdue(t.dueDate)))); // v1.20
+  const todayTasks = (okTasks ? store.tasks : []).filter(t => !t.completed && (isToday(t.dueDate) || isOverdue(t.dueDate)));
   // v_1.9: заявки Маркетинг-кит из форм сайта (статусы «Запрос МК» / «Отправлен МК»)
   const mkRequests = store.mediaRecords.filter(r => r.status === 'Запрос МК' || r.status === 'Отправлен МК');
-  const newTickets = mgrFilter((okSupport ? store.tickets.filter(t => canSeeTicket(t)) : []).filter(t => (t.status === 'Новый запрос' || t.status === 'Новый запрос с формы') && !t.deletedAt)); // v1.20: менеджер — свои/без ответственного
+  const newTickets = (okSupport ? store.tickets.filter(t => canSeeTicket(t)) : []).filter(t => (t.status === 'Новый запрос' || t.status === 'Новый запрос с формы') && !t.deletedAt); // v_1.9: «Новый запрос» / «Новый запрос с формы»
 
   // Формы: заявки, пришедшие с публичных форм (Настройки → Формы) и ещё не
   // обработанные менеджером — статус "Новый с сайта" служит тем же
@@ -218,8 +210,7 @@ const navigate = useNavigate();
         </div>
       )}
 
-      {(showBlock('support') || showBlock('tasks')) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today tasks */}
         <div className="card-base p-4">
           <div className="flex items-center justify-between mb-4">
@@ -275,7 +266,6 @@ const navigate = useNavigate();
           )}
         </div>
       </div>
-      )}
 
       {/* Формы: заявки с сайта */}
       {formSubmissions.length > 0 && (
@@ -323,8 +313,7 @@ const navigate = useNavigate();
       </div>
 
 {/* Charts */}
-      {showBlock('sources') && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card-base p-4">
           <h2 className="section-title mb-4">Поставщики по статусам</h2>
           {supplierPieData.length > 0 ? (
@@ -387,9 +376,8 @@ const navigate = useNavigate();
           ) : <p className="text-sm text-gray-400 text-center py-4">Нет данных</p>}
         </div>
       </div>
-      )}
 
-      {showBlock('types') && (
+      {/* v_1.9: типы под источниками */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="card-base p-4">
           <h2 className="section-title mb-4">Поставщики по типам</h2>
@@ -424,11 +412,9 @@ const navigate = useNavigate();
           ) : <p className="text-sm text-gray-400 text-center py-4">Нет данных</p>}
         </div>
       </div>
-      )}
 
             {/* Plan/fact link */}
-      {showBlock('planfact') && (
-        <div className="card-base p-4">
+      <div className="card-base p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2"><TrendingUp size={18} className="text-brand-red" /><h2 className="section-title">План / Факт</h2></div>
           <button onClick={() => navigate('/planfact')} className="btn-secondary text-xs">Открыть →</button>
@@ -464,11 +450,8 @@ const navigate = useNavigate();
           })}
         </div>
       </div>
-      )}
-      {/* v_1.9: график «Добавлено» ниже */}
-      {showBlock('added') && (
-        <div>
-          <div className="card-base p-4">
+{/* v_1.9: график «Добавлено» — 6 месяцев, поставщики/покупатели */}
+      <div className="card-base p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <h2 className="section-title">Добавлено</h2>
           <div className="flex flex-wrap items-center gap-1">
@@ -500,9 +483,7 @@ const navigate = useNavigate();
           ))}
         </div>
       </div>
-        </div>
-      )}
-      {/* Plan/fact link */}
+
     </div>
   );
 }

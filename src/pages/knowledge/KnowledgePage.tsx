@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId, formatDate } from '@/lib/utils';
-import { getCurrentUser, isAdmin } from '@/lib/auth';
+import { getCurrentUser, isAdmin, canSeeKnowledge } from '@/lib/auth';
 import { isSupabaseConfigured, uploadKnowledgeFile } from '@/lib/supabase';
 import type { KnowledgeItem, KnowledgeCategory, KnowledgeItemType, KnowledgeComment } from '@/types';
 import {
@@ -97,7 +97,7 @@ export default function KnowledgePage() {
     const cu = getCurrentUser();
     const isManager = cu?.role === 'manager';
     // Менеджеры видят только материалы с флагом «Доступен менеджерам» (ТЗ)
-    let list = (store.settings.knowledgeItems || []).filter(i => !i.deletedAt && (!isManager || i.availableToManagers));
+    let list = (store.settings.knowledgeItems || []).filter(i => !i.deletedAt && (!isManager || i.availableToManagers) && canSeeKnowledge(i)); // фильтр категорий менеджера (v1.20.9)
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(i =>

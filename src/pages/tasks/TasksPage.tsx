@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId, formatDate, isToday, isOverdue } from '@/lib/utils';
-import { getCurrentUser, canDelete } from '@/lib/auth';
+import { getCurrentUser, canDelete, canSeeTask } from '@/lib/auth';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import type { DbLog, Task, HistoryEntry } from '@/types';
 import { TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_TASK_TYPES, SYSTEM_TASK_TYPE } from '@/constants';
@@ -59,7 +59,7 @@ export default function TasksPage() {
   const taskTypes: string[] = missingSys.length ? [...missingSys, ...rawTypes] : rawTypes;
 
   // Только НЕ удалённые задачи участвуют в списках и счётчиках
-  const liveTasks = store.tasks.filter(t => !t.deletedAt);
+  const liveTasks = store.tasks.filter(t => !t.deletedAt && canSeeTask(t)); // фильтры типов/сущностей менеджера (v1.20.9)
 
   const [search, setSearch] = useState('');
   // ТЗ: подгрузка списка «Показать ещё»

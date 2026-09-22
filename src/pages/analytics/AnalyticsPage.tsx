@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId } from '@/lib/utils';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canSeeAnalyticsCity } from '@/lib/auth';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/utils';
 import MarketVolumeTab from './MarketVolumeTab';
@@ -132,7 +132,7 @@ export default function AnalyticsPage() {
 
   const suppliersByStatus = suppliers.reduce<Record<string, number>>((acc, s) => { acc[s.status] = (acc[s.status] || 0) + 1; return acc; }, {});
   const buyersByStatus = buyers.reduce<Record<string, number>>((acc, b) => { acc[b.status] = (acc[b.status] || 0) + 1; return acc; }, {});
-  const buyersByCity = buyers.reduce<Record<string, number>>((acc, b) => { if (b.city) acc[b.city] = (acc[b.city] || 0) + 1; return acc; }, {});
+  const buyersByCity = buyers.reduce<Record<string, number>>((acc, b) => { if (b.city && canSeeAnalyticsCity(b.city)) acc[b.city] = (acc[b.city] || 0) + 1; return acc; }, {});
   const buyerCityData = Object.entries(buyersByCity).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, value]) => ({ name, value }));
   const buyersByType = buyers.reduce<Record<string, number>>((acc, b) => { acc[b.type] = (acc[b.type] || 0) + 1; return acc; }, {});
   const suppliersByType = suppliers.reduce<Record<string, number>>((acc, s) => { acc[s.type] = (acc[s.type] || 0) + 1; return acc; }, {});
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
   const buyerSources = buyers.reduce<Record<string, number>>((acc, b) => { if (b.source) acc[b.source] = (acc[b.source] || 0) + 1; return acc; }, {});
   const sourceData = [...new Set([...Object.keys(supplierSources), ...Object.keys(buyerSources)])].map(src => ({ name: src, suppliers: supplierSources[src] || 0, buyers: buyerSources[src] || 0 }));
 
-  const scoringCities = useMemo(() => [...new Set(allActiveSuppliers.map(s => s.city).filter(Boolean))].sort(), [allActiveSuppliers]);
+  const scoringCities = useMemo(() => [...new Set(allActiveSuppliers.map(s => s.city).filter(Boolean))].filter(canSeeAnalyticsCity).sort(), [allActiveSuppliers]);
   const SUPPLIER_STATUSES_LIST = useMemo(() => store.settings.statuses.filter(s => s.entityTypes.includes('supplier')).map(s => s.name), [store.settings.statuses]);
 
   const scoringSuppliers = useMemo(() => {

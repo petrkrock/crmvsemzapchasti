@@ -44,12 +44,6 @@ function firstAllowedPath(): string {
 
 function IndexRedirect() { return <Navigate to={firstAllowedPath()} replace />; }
 
-// v1.20: разделы только для администратора
-function RequireAdmin({ children }: { children: React.ReactNode }) {
-  if (getCurrentUser()?.role !== 'admin') return <Navigate to="/dashboard" replace />;
-  return <>{children}</>;
-}
-
 /** Гард раздела: менеджер без галочки — на первый доступный раздел. */
 function RequireAccess({ section, children }: { section: keyof AppUser['permissions']; children: React.ReactNode }) {
   if (!canAccess(section)) return <Navigate to={firstAllowedPath()} replace />;
@@ -170,10 +164,10 @@ export default function App() {
           <Route path="media" element={<RequireAccess section="media"><MediaPage /></RequireAccess>} />
           <Route path="planfact" element={<RequireAccess section="planfact"><PlanFactPage /></RequireAccess>} />
           <Route path="analytics" element={<RequireAccess section="analytics"><AnalyticsPage /></RequireAccess>} />
-          <Route path="settings" element={<RequireAdmin><SettingsPage /></RequireAdmin>} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="knowledge" element={<RequireAccess section="knowledge"><KnowledgePage /></RequireAccess>} />
-          <Route path="database" element={<RequireAdmin><DatabasePage /></RequireAdmin>} />
-          <Route path="server" element={<RequireAdmin><ServerPage /></RequireAdmin>} />
+          <Route path="database" element={<DatabasePage />} />
+          <Route path="server" element={<ServerPage />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

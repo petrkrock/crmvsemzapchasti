@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId } from '@/lib/utils';
 import type { MarketVolumeRecord } from '@/types';
+import { canSeeAnalyticsCity } from '@/lib/auth';
 
 /** Аналитика → «Объём рынка»: снимки по поставщикам (общие, с ручным «всего на рынке»)
  *  и по покупателям (по городам). Авто-значения фиксируются в момент снимка. */
@@ -31,7 +32,7 @@ function Section({ kind, title, icon }: { kind: 'suppliers' | 'buyers'; title: s
   const [form, setForm] = useState<{ date: string; city?: string; marketTotal?: number }>({ date: dstr(new Date()) });
 
   const list = records
-    .filter(r => !filterCity || r.city === filterCity)
+    .filter(r => (!filterCity || r.city === filterCity) && canSeeAnalyticsCity(r.city))
     .sort((a, b) => b.date.localeCompare(a.date));
   const [selectedDate, setSelectedDate] = useState('');
   const selected = list.find(r => r.date === selectedDate) || list[0];
@@ -157,7 +158,7 @@ function BuyerCitiesDashboard() {
   const records = (store.settings.marketVolumes || []).filter(r => r.kind === 'buyers');
   const buyers = store.buyers.filter(b => !b.deletedAt);
 
-  const rows = cities.map(city => {
+  const rows = cities.filter(canSeeAnalyticsCity).map(city => {
     const cityBuyers = buyers.filter(b => b.city === city);
     const snaps = records.filter(r => r.city === city).sort((a, b) => b.date.localeCompare(a.date));
     const latest = snaps[0];

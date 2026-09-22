@@ -6,39 +6,6 @@ import { startRealtimeSync, stopRealtimeSync } from './realtime';
 
 const SESSION_KEY = 'vz_crm_session';
 
-// ═══ v1.20.0: права доступа ═══
-
-/** Разделы, доступные ТОЛЬКО администратору (менеджер всегда получает false) */
-export function isAdminSection(key: string): boolean {
-  return key === 'settings' || key === 'server' || key === 'analytics' || key === 'database';
-}
-
-/** Может ли текущий пользователь открыть раздел: admin — всё; manager — по permissions; admin-разделы менеджеру закрыты */
-export function canAccessSection(key: string): boolean {
-  const u = getCurrentUser();
-  if (!u) return false;
-  if (u.role === 'admin') return true;
-  if (isAdminSection(key)) return false; // v1.20: настройки/сервер/аналитика/база данных — только admin
-  const p = u.permissions as Record<string, boolean | undefined>;
-  return !!p[key];
-}
-
-/** Подправа раздела (v1.20): напр. canSub('suppliers', 'create'). Admin — всегда true */
-export function canSub(section: 'suppliers' | 'buyers' | 'support' | 'planfact', sub: string): boolean {
-  const u = getCurrentUser();
-  if (!u) return false;
-  if (u.role === 'admin') return true;
-  const sp = (u.subPermissions || {}) as Record<string, Record<string, boolean | undefined>>;
-  const block = sp[section] || {};
-  return !!block[sub];
-}
-
-/** Блоки дашборда текущего пользователя (v1.20): undefined = все */
-export function getDashboardBlocks(): string[] | undefined {
-  const u = getCurrentUser();
-  return u?.dashboardBlocks;
-}
-
 export function getCurrentUser(): AppUser | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -202,8 +169,6 @@ export function canAccess(section: keyof AppUser['permissions']): boolean {
   const user = getCurrentUser();
   if (!user) return false;
   if (user.role === 'admin') return true;
-  // v1.20: аналитика — только admin (независимо от галочки в permissions)
-  if (section === 'analytics') return false;
   return user.permissions[section] === true;
 }
 
@@ -233,7 +198,9 @@ export function canDelete(): boolean {
 export function getAccessFilters(): UserAccess | null {
   const user = getCurrentUser();
   if (!user || user.role === 'admin') return null;
-  return user.access || EMPTY_ACCESS;
+  // Нормализация (v1.20.9): у пользователей, созданных до появления новых измерений,
+  // в access нет новых ключей — мержим с EMPTY_ACCESS, чтобы не было undefined.includes().
+  return { ...EMPTY_ACCESS, ...(user.access || {}) };
 }
 
 export function canSeeSupplier(s: { type: string; city: string; responsibleId?: string }): boolean {
@@ -263,6 +230,41 @@ export function canSeePlanCity(cityName?: string): boolean {
   const f = getAccessFilters();
   if (!f) return true;
   return f.planCities.length === 0 || (cityName ? f.planCities.includes(cityName) : false);
+}
+
+// ── ФИЛЬТРЫ РАЗДЕЛОВ Дашборд / Задачи / Медиа сервис / Аналитика / База знаний (v1.20.9) ──
+// Та же логика, что у canSeeSupplier/canSeeTicket: пустой массив в access = без ограничений.
+export function canSeeDashboardCity(cityName?: string): boolean {
+  const f = getAccessFilters();
+  if (!f) return true;
+  return f.dashboardCities.length === 0 || (cityName ? f.dashboardCities.includes(cityName) : false);
+}
+
+export function canSeeTask(t: { title: string; entityType?: string }): boolean {
+  const f = getAccessFilters();
+  if (!f) return true;
+  return (f.taskTypes.length === 0 || f.taskTypes.includes(t.title))
+    && (f.taskEntityTypes.length === 0 || f.taskEntityTypes.includes(t.entityType || ''));
+}
+
+export function canSeeMedia(m: { adTypeName?: string; durationLabel?: string; status?: string }): boolean {
+  const f = getAccessFilters();
+  if (!f) return true;
+  return (f.mediaAdTypes.length === 0 || f.mediaAdTypes.includes(m.adTypeName || ''))
+    && (f.mediaDurationOptions.length === 0 || f.mediaDurationOptions.includes(m.durationLabel || ''))
+    && (f.mediaStatuses.length === 0 || f.mediaStatuses.includes(m.status || ''));
+}
+
+export function canSeeAnalyticsCity(cityName?: string): boolean {
+  const f = getAccessFilters();
+  if (!f) return true;
+  return f.analyticsCities.length === 0 || (cityName ? f.analyticsCities.includes(cityName) : false);
+}
+
+export function canSeeKnowledge(a: { categoryName?: string }): boolean {
+  const f = getAccessFilters();
+  if (!f) return true;
+  return f.knowledgeCategories.length === 0 || f.knowledgeCategories.includes(a.categoryName || '');
 }
 
 /** Право создавать/редактировать План/Факт: админ или менеджер с planfactEdit (ТЗ). */

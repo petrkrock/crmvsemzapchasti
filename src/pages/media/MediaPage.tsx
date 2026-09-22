@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId, formatDate } from '@/lib/utils';
-import { isAdmin } from '@/lib/auth';
+import { isAdmin, canSeeMedia } from '@/lib/auth';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import type { MediaRecord, MediaDurationOption } from '@/types';
 import { Plus, Search, X, Edit2, Trash2, AlertTriangle, Clock, ChevronDown, ChevronUp, FileText, Save } from 'lucide-react';
@@ -68,7 +68,7 @@ const [deleteWord, setDeleteWord] = useState('');
   const durationOptions: MediaDurationOption[] = selectedAdType?.durationOptions || [];
 
   const records = useMemo(() => {
-    let list = (store.mediaRecords || []).filter(r => showArchived ? !!r.deletedAt : !r.deletedAt);
+    let list = (store.mediaRecords || []).filter(r => showArchived ? !!r.deletedAt : !r.deletedAt).filter(canSeeMedia); // фильтры форматов/длительности/статусов менеджера (v1.20.9)
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(r => r.supplierName.toLowerCase().includes(q) || r.adTypeName.toLowerCase().includes(q) || r.status.toLowerCase().includes(q));
