@@ -119,6 +119,19 @@ export default function SettingsPage() {
   }, [admin, navigate]);
 
   const [apiEditing, setApiEditing] = useState(false); // этап 1.8
+  // v_1.9: переименование типов/городов
+  const [renaming, setRenaming] = useState<{ list: 'supplierTypes' | 'buyerTypes' | 'cities'; old: string } | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  function startRename(list: 'supplierTypes' | 'buyerTypes' | 'cities', old: string) { setRenaming({ list, old }); setRenameValue(old); }
+  function applyRename() {
+    if (!renaming) return;
+    const nv = renameValue.trim();
+    if (!nv || nv === renaming.old) { setRenaming(null); return; }
+    updateStore(s => ({ ...s, settings: { ...s.settings, [renaming.list]: (s.settings[renaming.list] || []).map((x: string) => x === renaming.old ? nv : x) } }));
+    forceUpdate(n => n + 1);
+    toast.success(`Переименовано: ${renaming.old} → ${nv}`);
+    setRenaming(null);
+  }
 const [apiKeyDraft, setApiKeyDraft] = useState(''); // этап 1.8
 const checkoSettings = getStore().settings; // этап 1.8
 const checkoEnabled = !!checkoSettings.checkoApiEnabled && !!(checkoSettings.checkoApiKey || '').trim();
@@ -945,13 +958,29 @@ const [tab, setTab] = useState('Статусы');
           {/* ── TYPES & CITIES ── */}
           {tab === 'Типы и города' && (
             <div className="space-y-6">
-              <div><h3 className="section-title flex items-center gap-2 mb-3"><Settings2 size={16} className="text-brand-red" /> Типы поставщиков</h3><div className="flex gap-2 mb-3"><input className="form-input flex-1" value={newSupplierType} onChange={e => setNewSupplierType(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSupplierType()} /><button onClick={addSupplierType} className="btn-primary text-xs"><Plus size={14} /></button></div><div className="flex flex-wrap gap-2">{(freshStore.settings.supplierTypes || []).map(t => <span key={t} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{t}<ChipDelete inUse={itemInUse('supplierType', t)} onClick={() => removeSupplierType(t)} /></span>)}</div></div>
-              <div><h3 className="section-title flex items-center gap-2 mb-3"><Settings2 size={16} className="text-brand-red" /> Типы покупателей</h3><div className="flex gap-2 mb-3"><input className="form-input flex-1" value={newBuyerType} onChange={e => setNewBuyerType(e.target.value)} onKeyDown={e => e.key === 'Enter' && addBuyerType()} /><button onClick={addBuyerType} className="btn-primary text-xs"><Plus size={14} /></button></div><div className="flex flex-wrap gap-2">{(freshStore.settings.buyerTypes || []).map(t => <span key={t} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{t}<ChipDelete inUse={itemInUse('buyerType', t)} onClick={() => removeBuyerType(t)} /></span>)}</div></div>
+              <div><h3 className="section-title flex items-center gap-2 mb-3"><Settings2 size={16} className="text-brand-red" /> Типы поставщиков</h3><div className="flex gap-2 mb-3"><input className="form-input flex-1" value={newSupplierType} onChange={e => setNewSupplierType(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSupplierType()} /><button onClick={addSupplierType} className="btn-primary text-xs"><Plus size={14} /></button></div><div className="flex flex-wrap gap-2">{(freshStore.settings.supplierTypes || []).map(t => renaming?.list === 'supplierTypes' && renaming.old === t ? (
+                    <input key={t} className="form-input text-sm px-2 py-1 w-44" autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && applyRename()} onBlur={applyRename} />
+                  ) : (
+                    <span key={t} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{t}
+                      <button onClick={() => startRename('supplierTypes', t)} className="text-gray-400 hover:text-brand-black" title="Переименовать"><Edit2 size={12} /></button>
+                      <ChipDelete inUse={itemInUse('supplierType', t)} onClick={() => removeSupplierType(t)} /></span>
+                  ))}</div></div>
+              <div><h3 className="section-title flex items-center gap-2 mb-3"><Settings2 size={16} className="text-brand-red" /> Типы покупателей</h3><div className="flex gap-2 mb-3"><input className="form-input flex-1" value={newBuyerType} onChange={e => setNewBuyerType(e.target.value)} onKeyDown={e => e.key === 'Enter' && addBuyerType()} /><button onClick={addBuyerType} className="btn-primary text-xs"><Plus size={14} /></button></div><div className="flex flex-wrap gap-2">{(freshStore.settings.buyerTypes || []).map(t => renaming?.list === 'buyerTypes' && renaming.old === t ? (
+                    <input key={t} className="form-input text-sm px-2 py-1 w-44" autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && applyRename()} onBlur={applyRename} />
+                  ) : (
+                    <span key={t} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{t}
+                      <button onClick={() => startRename('buyerTypes', t)} className="text-gray-400 hover:text-brand-black" title="Переименовать"><Edit2 size={12} /></button>
+                      <ChipDelete inUse={itemInUse('buyerType', t)} onClick={() => removeBuyerType(t)} /></span>
+                  ))}</div></div>
               <div><h3 className="section-title flex items-center gap-2 mb-3"><MapPin size={16} className="text-brand-red" /> Города (для поставщиков и покупателей)</h3>
                 <div className="flex gap-2 mb-3"><input className="form-input flex-1" placeholder="Новый город..." value={newCityName} onChange={e => setNewCityName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCity()} /><button onClick={addCity} className="btn-primary text-xs"><Plus size={14} /></button></div>
-                <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">{(freshStore.settings.cities || []).map(c => (
-                  <span key={c} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}
-                    <ChipDelete inUse={itemInUse('city', c)} onClick={() => removeCity(c)} /></span>))}
+                <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">{(freshStore.settings.cities || []).map(c => renaming?.list === 'cities' && renaming.old === c ? (
+                    <input key={c} className="form-input text-sm px-2 py-1 w-44" autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && applyRename()} onBlur={applyRename} />
+                  ) : (
+                    <span key={c} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}
+                      <button onClick={() => startRename('cities', c)} className="text-gray-400 hover:text-brand-black" title="Переименовать"><Edit2 size={12} /></button>
+                      <ChipDelete inUse={itemInUse('city', c)} onClick={() => removeCity(c)} /></span>
+                  ))}
                   {(freshStore.settings.cities || []).length === 0 && <p className="text-sm text-gray-400">Список пуст — добавьте города, они появятся в выпадающих списках в карточках</p>}</div>
               </div>
                           </div>

@@ -262,8 +262,11 @@ export function getStore(): CRMStore {
     // Существующие задачи/обращения со старыми типами в данных не теряются —
     // они по-прежнему видны через «Все типы».
     const NEW_TASK_TYPES = ['Ждет активации', 'От поддержки', 'Обратная связь', 'Техподдержка', 'Документы', 'Отправить КП'];
-    const NEW_TICKET_TYPES = ['Обратная связь', 'Техподдержка', 'Маркетинг-кит', 'Партнерство'];
-    settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t: string) => NEW_TASK_TYPES.includes(t)), ...NEW_TASK_TYPES]));
+    const NEW_TICKET_TYPES = ['Обратная связь', 'Техподдержка', 'Регистрация', 'Партнерство', 'Пожелания']; // v_1.9: + Пожелания (системный)
+        // v_1.9: переименование «Маркетинг-кит» → «Регистрация» в существующих базах
+    settings.ticketTypes = (settings.ticketTypes || []).map(t => t === 'Маркетинг-кит' ? 'Регистрация' : t);
+    for (const t of NEW_TICKET_TYPES) { if (!(settings.ticketTypes || []).includes(t)) settings.ticketTypes = [...(settings.ticketTypes || []), t]; }
+settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t: string) => NEW_TASK_TYPES.includes(t)), ...NEW_TASK_TYPES]));
     settings.ticketTypes = Array.from(new Set([...(settings.ticketTypes || []).filter((t: string) => NEW_TICKET_TYPES.includes(t)), ...NEW_TICKET_TYPES]));
     if (!settings.ticketTypes || !Array.isArray(settings.ticketTypes)) settings.ticketTypes = [...DEFAULT_TICKET_TYPES];
     // Города для карточек поставщиков/покупателей
