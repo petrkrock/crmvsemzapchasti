@@ -252,13 +252,13 @@ export default function Dashboard() {
             <div className="space-y-2">
               {newTickets.slice(0, 5).map(t => (
                 <div key={t.id} onClick={() => navigate(`/support/${t.id}`)} className="p-2 bg-brand-gray rounded-md cursor-pointer hover:bg-brand-gray-mid transition-colors">
-                  {/* v_1.9: одна горизонтальная строка: тема (…) · статус · мета */}
+                  {/* v_1.9: слева тема+мета, статус — в правый угол */}
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-brand-black truncate min-w-0" title={t.subject}>{t.subject}</p>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <StatusBadge status={t.status} />
-                      <span className="text-xs text-gray-400 whitespace-nowrap">{t.contactName && <span className="font-medium text-gray-600">{t.contactName} · </span>}{t.type} · {formatDateTime(t.createdAt)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-brand-black truncate" title={t.subject}>{t.subject}</p>
+                      <p className="text-xs text-gray-400 truncate">{t.contactName && <span className="font-medium text-gray-600">{t.contactName} · </span>}{t.type} · {formatDateTime(t.createdAt)}</p>
                     </div>
+                    <div className="shrink-0"><StatusBadge status={t.status} /></div>
                   </div>
                 </div>
               ))}
