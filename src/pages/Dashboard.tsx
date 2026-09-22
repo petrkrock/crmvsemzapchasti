@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getStore, useStoreVersion } from '@/lib/store';
 import { formatDateTime, formatDate, isToday, isOverdue } from '@/lib/utils';
-import { canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket } from '@/lib/auth';
+import { canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, getCurrentUser } from '@/lib/auth'; // v1.20
 import StatusBadge from '@/components/features/StatusBadge';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Globe, Truck, ShoppingCart, CheckSquare, HeadphonesIcon, TrendingUp, Plus, AlertCircle, Clock, Video, AlertTriangle, FileEdit } from 'lucide-react';
