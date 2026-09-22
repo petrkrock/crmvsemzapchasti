@@ -34,7 +34,7 @@ function defaultAdmin(): AppUser {
     id: 'admin-1', name: 'Администратор', email: 'admin@vz.tech', password: 'admin123',
     role: 'admin',
     // Администратору все разделы доступны всегда — permissions/access для него не используются
-    permissions: { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true, leads: true } // v1.20,
+    permissions: { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true, leads: true }, // v1.20
     access: { ...EMPTY_ACCESS },
     note: '',
     status: 'active',
