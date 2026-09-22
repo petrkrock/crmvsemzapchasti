@@ -503,43 +503,6 @@ const navigate = useNavigate();
         </div>
       )}
       {/* Plan/fact link */}
-      <div className="card-base p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2"><TrendingUp size={18} className="text-brand-red" /><h2 className="section-title">План / Факт</h2></div>
-          <button onClick={() => navigate('/planfact')} className="btn-secondary text-xs">Открыть →</button>
-        </div>
-        {/* v_1.9: сводки план-факт по текущему месяцу */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-          {(['suppliers', 'buyers'] as const).map(kind => {
-            const label = kind === 'suppliers' ? 'Активная сводка поставщики' : 'Активная сводка покупатели';
-            const list = kind === 'suppliers' ? activeSuppliers : activeBuyers;
-            const key = nowKey;
-            const plan = (store.settings.planFact || []).filter(e => !e.deletedAt && e.kind === kind && e.startDate <= curEnd && e.endDate >= curStart).reduce((s, e) => s + (e.plan || 0), 0);
-            const act = list.filter(x => x.status === 'Активный' && (x.createdAt || '').slice(0, 7) === key).length;
-            const pct = plan ? Math.min(100, Math.round((act / plan) * 100)) : null;
-            return (
-              <div key={kind} className="rounded-xl border border-brand-gray-mid px-4 py-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs font-semibold text-gray-700">{label}</p>
-                  <span className="text-[10px] text-gray-400">Период: текущий месяц</span>
-                </div>
-                <div className="flex items-end gap-3">
-                  <p className="text-2xl font-bold text-brand-black leading-none">{pct === null ? '—' : `${pct}%`}</p>
-                  <span className="text-[11px] text-gray-400 pb-0.5">выполнения общего плана</span>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[12px] font-semibold"
-                    style={{ backgroundColor: '#e5e7ebcc', color: 'rgb(55 65 81 / var(--tw-text-opacity, 1))' }}>План: {plan}</span>
-                  <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[12px] font-semibold"
-                    style={{ backgroundColor: 'rgb(220 252 231 / var(--tw-bg-opacity, 1))', color: 'rgb(21 128 61 / var(--tw-text-opacity, 1))' }}>Активный факт: {act}</span>
-                </div>
-                {plan > 0 && <div className="mt-2 h-2 rounded-full bg-brand-gray overflow-hidden"><div className="h-full bg-brand-black rounded-full transition-all" style={{ width: `${pct}%` }} /></div>}
-              </div>
-            );
-          })}
-        </div>
-
-
     </div>
   );
 }
