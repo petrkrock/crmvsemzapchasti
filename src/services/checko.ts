@@ -31,12 +31,24 @@ export async function fetchCheckoCompany(key: string, inn: string): Promise<Scor
     throw new Error(json?.error?.message || json?.error || `HTTP ${resp.status}`);
   }
   const data = json.data || json;
-  const finances: Array<Record<string, unknown>> = data['Финансы'] || data.finances || [];
+  // ТЗ v1.22.13: «Финансы» приходит то массивом [{year,...}], то объектом {"2023": {...}} —
+  // раньше объект давал пустые блоки. Приводим оба формата к списку.
+  const rawFin: unknown = data['Финансы'] || data.finances || [];
+  const finances: Array<Record<string, unknown>> = Array.isArray(rawFin)
+    ? rawFin
+    : Object.entries((rawFin && typeof rawFin === 'object') ? rawFin as Record<string, unknown> : {})
+        .map(([y, v]) => ({ year: Number(y), ...((v && typeof v === 'object') ? v as Record<string, unknown> : {}) }));
   const latest = [...finances].sort((a, b) => Number(b.year || 0) - Number(a.year || 0))[0] || {};
   const year = Number(latest.year) || new Date().getFullYear() - 1;
-  const revenue = num(latest['2110']);       // Выручка
-  const inventory = num(latest['1210']);     // Запасы
-  const grossProfit = num(latest['2100']);   // Валовая прибыль
+  // ТЗ v1.22.13: API отдаёт суммы в тысячах — дописываем три нуля (только API-путь;
+  // ручной ввод в форме скоринга не масштабируется).
+  const scale = (v?: number) => (v == null ? undefined : Math.round(v * 1000));
+  const revenue = scale(num(latest['2110']));       // Выручка
+  const inventory = scale(num(latest['1210']));     // Запасы
+  const grossProfit = scale(num(latest['2100']));   // Валовая прибыль
+  if (revenue == null && grossProfit == null) {
+    throw new Error('Финансовые данные не найдены в ответе Checko (нет строк 2110/2100)');
+  }
   const name = data['Наименование'] as { Полнное?: string; Сокращенное?: string } | undefined;
   return {
     year, revenue, inventory, grossProfit,

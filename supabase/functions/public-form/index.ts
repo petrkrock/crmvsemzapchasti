@@ -76,7 +76,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН', inputType: 'text' },
+    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true }, // ТЗ v1.22.12: обязательное ИНН
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
     { key: 'warehouseCount', label: 'Количество складов', inputType: 'number' },
@@ -96,7 +96,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН', inputType: 'text' },
+    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true }, // ТЗ v1.22.12: обязательное ИНН
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
     { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
@@ -354,7 +354,8 @@ async function handleSubmit(req: Request): Promise<Response> {
 
   // Согласие на обработку персональных данных — обязательно (152-ФЗ).
   // Проверяется на сервере, а не только галочкой в браузере.
-  const consent = (values as Record<string, unknown>).consent;
+  // ТЗ v1.22.12: consent приходит на верхнем уровне тела запроса (фронт), не в values
+  const consent = (body as Record<string, unknown>).consent ?? (values as Record<string, unknown>).consent;
   if (consent !== true && consent !== 'on' && consent !== 'true') {
     return json({ error: 'Необходимо согласие на обработку персональных данных' }, 400);
   }

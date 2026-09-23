@@ -46,7 +46,8 @@ interface PublicFormConfig {
 export default function PublicFormPage() {
   const { entityType } = useParams<{ entityType: string }>();
   const type = (entityType || '') as EntityType;
-  const isValidType = type === 'supplier' || type === 'buyer' || type === 'ticket';
+  // ТЗ v1.22.12: + форма Маркетинг-кит (slug marketingKit)
+  const isValidType = type === 'supplier' || type === 'buyer' || type === 'ticket' || type === 'marketingKit';
 
   const [config, setConfig] = useState<PublicFormConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,16 +119,16 @@ export default function PublicFormPage() {
   }
 
   const fieldClass =
-    'w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-400 hover:border-gray-300';
+    'w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-sm text-gray-900 placeholder-gray-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-400 hover:border-gray-300';
 
   return (
     <div
-      className="min-h-screen bg-[#f5f5f5] flex items-start justify-center p-3 sm:p-6 md:p-10"
+      className="min-h-screen bg-[#f5f5f5] flex items-start justify-center p-3 sm:p-4 md:p-10"
       style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}
     >
       <div ref={wrapperRef} className="w-full max-w-lg py-2">
         {loading && (
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-4 py-16 px-6">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2.5 py-16 px-6">
             {/* Красный круговой индикатор загрузки */}
             <div className="w-11 h-11 rounded-full border-4 border-red-100 border-t-red-600 animate-spin" aria-hidden="true" />
             <p className="text-sm text-gray-500 text-center">Подождите пожалуйста, форма загружается…</p>
@@ -135,21 +136,21 @@ export default function PublicFormPage() {
         )}
 
         {!loading && (loadError || !isValidType) && (
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center text-center py-12 gap-3">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-12 gap-2">
             <AlertCircle className="text-gray-300" size={34} />
             <p className="text-sm text-gray-400">Форма недоступна</p>
           </div>
         )}
 
         {!loading && !loadError && config && !config.enabled && (
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center text-center py-12 gap-3">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-12 gap-2">
             <AlertCircle className="text-gray-300" size={34} />
             <p className="text-sm text-gray-400">Эта форма сейчас отключена</p>
           </div>
         )}
 
         {!loading && !loadError && config && config.enabled && submitted && (
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center text-center py-14 px-6 gap-4 animate-fade-in">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-14 px-6 gap-2.5 animate-fade-in">
             <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
               <CheckCircle2 className="text-green-500" size={30} />
             </div>
@@ -158,7 +159,7 @@ export default function PublicFormPage() {
         )}
 
         {!loading && !loadError && config && config.enabled && !submitted && (
-          <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-8 space-y-5">
+          <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 sm:p-8 space-y-3">
             {/* Заголовок с красным акцентом */}
             <div className="pb-4 border-b border-gray-100">
               <div className="w-9 h-1 rounded-full bg-red-600 mb-3" />
@@ -233,8 +234,8 @@ export default function PublicFormPage() {
             </div>
 
             {/* Согласие на обработку персональных данных — обязательная галочка */}
-            <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
-              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5">
+              <label className="flex items-start gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   required
@@ -257,7 +258,7 @@ export default function PublicFormPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold text-sm rounded-xl py-3 px-4 transition-colors duration-150 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold text-sm rounded-xl py-2.5 px-4 transition-colors duration-150 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <><Loader2 className="animate-spin" size={16} /> Отправка...</>
