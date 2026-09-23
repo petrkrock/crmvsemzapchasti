@@ -237,11 +237,6 @@ export default function AnalyticsPage() {
     };
   }, [store.settings.users, store.suppliers, store.buyers, store.settings.planFact, uFrom, uTo]);
 
-    if (pct === null) return 'text-gray-300';
-    if (pct >= 100) return 'text-green-600';
-    if (pct >= 80) return 'text-yellow-600';
-    return 'text-red-500';
-  }
 
 
 
