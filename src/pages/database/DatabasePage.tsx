@@ -147,6 +147,8 @@ export default function DatabasePage() {
       case 'Задачи': return ['title', 'entityType', 'entityName', 'dueDate', 'taskStatus', 'createdAt'];
       case 'Поддержка': return ['subject', 'type', 'status', 'priority', 'contactName', 'contactEmail', 'createdAt'];
       case 'Сервис поиска': return ['timestamp', 'userName', 'supplierName', 'details'];
+      // ТЗ v1.22.11: без этого кейса таблица «Пользователи» рендерилась без колонок и строки не были видны
+      case 'Пользователи': return ['id', 'дата создания', 'имя', 'роль', 'дата блокировки или увольнения'];
       case 'База лидов': return ['type', 'subType', 'inn', 'tradeName', 'city', 'contactName', 'status', 'phone', 'email', 'deletedAt'];
       case 'План/факт': return ['startDate', 'endDate', 'cityName', 'filterType', 'serviceIds', 'responsibleName', 'plan', 'report', 'notes', 'createdAt', 'updatedAt', 'deletedAt'];
       case 'Медиа сервис': return ['supplierName', 'adTypeName', 'durationLabel', 'pricePerMonth', 'totalPrice', 'status', 'startDate', 'endDate', 'responsibleName', 'notes', 'createdAt', 'updatedAt', 'deletedAt'];
