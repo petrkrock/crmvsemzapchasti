@@ -537,6 +537,9 @@ export interface AppUser {
   planfactBase?: 'buyers' | 'suppliers';
   /** Чья база лидов доступна менеджеру (v1.21.5): 'buyers' — покупатели, 'suppliers' — поставщики. */
   leadsBase?: 'buyers' | 'suppliers';
+  /** Доступные города менеджера с дашбордом МОП (v1.21.6): список названий городов из «Типы и города»;
+   *  пустой список/не задано = все города. Работает только при dashboardType === 'mop'. */
+  allowedCities?: string[];
   status: UserStatus;
   createdAt: string;
 }

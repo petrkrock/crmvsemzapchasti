@@ -1,405 +1,254 @@
-# ВсемЗапчасти CRM
+# ВСЕМЗАПЧАСТИ CRM (vzcrm)
 
-Production CRM для управления поставщиками, покупателями, лидами, задачами, поддержкой, медиа, план/фактом и базой знаний.
+CRM-система для управления поставщиками, покупателями, лидами, задачами, поддержкой,
+медиа-размещениями, планом/фактом и базой знаний. Веб-приложение (SPA + PWA):
+десктоп, планшет, мобильный. Русскоязычный интерфейс, роли «Администратор» и «Менеджер»
+(с подтипами дашбордов **МОП** — продажи/покупатели и **МОЗ** — закупки/поставщики).
 
-## Стек
+> Текущая версия: **1.21.9**
 
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-- Supabase Auth
-- Supabase PostgreSQL
-- Row Level Security
-- Supabase Edge Functions
-- Realtime
-- PWA / Workbox
-- Docker / Nginx
+---
+
+## Стек технологий
+
+| Слой | Технологии |
+|---|---|
+| Фронтенд | React 18 + TypeScript, Vite 5, Tailwind CSS 3, Recharts, lucide-react |
+| PWA | vite-plugin-pwa (service worker, офлайн-оболочка, автообновление) |
+| Состояние | `src/lib/store.ts` (собственный store с версионированием + localStorage + демо-режим) |
+| Бэкенд | **Supabase**: PostgreSQL 15 + Row Level Security, Supabase Auth (GoTrue, JWT), Edge Functions (Deno), Storage |
+| Мониторинг | `server/monitor-server.js` (Node, без фреймворков): SPA + защищённое API серверных метрик для раздела «Сервер» |
+| Деплой | Vercel (вариант А) или свой сервер: Nginx + PM2 (вариант Б) |
 
 ## Архитектура
 
-```text
-Browser
-  │
-  ├── React SPA / PWA
-  │
-  ├── Supabase Auth
-  │
-  ├── PostgREST
-  │      └── PostgreSQL + RLS
-  │
-  ├── Realtime
-  │
-  └── Edge Functions
-         ├── public-form
-         ├── supplier-service
-         ├── create-manager
-         └── update-manager
+```
+┌─────────────┐   HTTPS    ┌──────────────────────── Supabase Cloud ────────────────────────┐
+│  Браузер    │ ─────────► │ PostgreSQL (RLS, 30+ политик)  Auth (JWT)  Storage (knowledge) │
+│ React SPA   │  anon key  │ Edge Functions: public-form, create-manager, update-manager,   │
+│ (PWA, кэш)  │            │                supplier-service, checko, monitor-proxy         │
+└─────────────┘            └────────────────────────────────────────────────────────────────┘
+       ▲ same-origin (вариант Б)
+┌──────┴──────┐  service_role key живёт ТОЛЬКО здесь (.env сервера, в браузер не попадает)
+│ Nginx → PM2 │
+│ monitor-    │  Раздаёт dist/ (SPA-fallback) и /api/* мониторинга (проверка JWT + роль admin)
+│ server.js   │
+└─────────────┘
 ```
 
-`service_role` используется только на серверной стороне Edge Functions/monitor server и никогда не должен попадать в Vite environment variables.
+**Поток данных:** фронтенд хранит рабочее состояние в памяти + localStorage и синхронизирует
+его с Supabase (таблицы `suppliers`, `buyers`, `tasks`, `tickets`, `media_records`,
+`market_volumes`; справочники и пользователи — в JSONB-таблице `app_settings`).
+Права менеджеров (тип дашборда, база План/Факт, база лидов, города, фильтры разделов)
+хранятся в профиле пользователя внутри `app_settings` — миграции БД под них не нужны.
 
-## Важное ограничение self-hosted
+**Модель безопасности:**
+- Доступ к данным — через PostgREST с anon key; все таблицы закрыты **Row Level Security**,
+  политики проверяют JWT и роль (`profiles`, `user_access`).
+- Административные операции (создание/бан менеджеров) — через Edge Functions с
+  `verify_jwt` и проверкой роли admin внутри функции.
+- Service-role ключ используется только серверным `monitor-server.js`.
+- Публичная форма заявок — отдельная Edge Function с rate limit и honeypot-защитой.
 
-Текущий репозиторий умеет самостоятельно собирать и запускать **frontend/CRM**.
+## Структура проекта
 
-Обычный PostgreSQL сам по себе не является заменой Supabase: приложение использует Supabase Auth, PostgREST и RLS. Для полностью автономного backend необходимо отдельно развернуть Supabase self-hosted либо переработать backend.
+```
+├── index.html                  # SPA-точка входа
+├── src/
+│   ├── main.tsx, App.tsx       # bootstrap и роутинг (lazy-загрузка страниц)
+│   ├── components/             # layout (шапка/меню), ui/, ErrorBoundary
+│   ├── pages/                  # Dashboard, ManagerDashboardPage (МОП/МОЗ),
+│   │                           # suppliers, buyers, leads, tasks, support, media,
+│   │                           # analytics, planfact, knowledge, settings, server…
+│   ├── lib/                    # store.ts, auth.ts (RBAC), supabase.ts (синк),
+│   │                           # env.ts (переменные окружения), utils.ts, format.ts
+│   ├── types/index.ts          # все интерфейсы (Supplier, Buyer, Task, Ticket, …)
+│   └── constants/index.ts      # справочные константы
+├── supabase/
+│   ├── schema.sql              # вся схема БД: таблицы, RLS, политики, триггеры,
+│   │                           # индексы, storage-бакет knowledge (для чистовика)
+│   └── functions/              # 7 Edge Functions (Deno)
+├── server/monitor-server.js    # прод-сервер: статика + API мониторинга (PM2/Nginx)
+├── .env.example                # шаблон переменных окружения
+└── vite.config.ts              # PWA, chunk-сплиттинг, dev-proxy
+```
+
+## Роли и доступ
+
+- **Администратор** — полный доступ, главный дашборд, аналитика, настройки, база данных,
+  серверный мониторинг, предпросмотр дашбордов менеджеров.
+- **Менеджер (МОП)** — дашборд МОП, покупатели (в закреплённых городах), задачи, поддержка,
+  база лидов (покупатели), база знаний, План/Факт (база «покупатели», read-only).
+  Видит только записи, закреплённые за ним, и записи без ответственного.
+- **Менеджер (МОЗ)** — дашборд МОЗ, поставщики, медиа сервис, задачи, поддержка,
+  база лидов (поставщики), база знаний, План/Факт (база «поставщики», read-only).
+  Та же модель видимости «мои + без ответственного».
+
+Настройка прав: **Настройки → Пользователи → (карандаш) → «Доступ к разделам»**.
 
 ---
 
-# Вариант A — облако: Vercel + Supabase
+# РАЗВЁРТЫВАНИЕ
 
-## 1. Создать Supabase project
+## Вариант А. Облако: Vercel + Supabase (рекомендуется)
 
-Откройте Supabase Dashboard и создайте новый проект.
+### Шаг 1. Подготовьте Supabase
+1. Зайдите на https://supabase.com → **New project** (регион eu-central-1, задайте пароль БД).
+2. Откройте **SQL Editor** → **New query** → вставьте **всё содержимое** `supabase/schema.sql`
+   → **Run**. Создаются таблицы, RLS-политики, триггеры, индексы и storage-бакет `knowledge`.
+3. **Authentication → Providers**: включите Email (подтверждение письма — по желанию).
+4. Создайте первого администратора: **Authentication → Add user → Create new user**
+   (email + пароль). Затем в **Table Editor → profiles** убедитесь, что у него `role = admin`
+   (триггер `handle_new_auth_user` создаёт запись автоматически; роль по умолчанию `manager` —
+   при необходимости поправьте вручную один раз).
 
-После создания откройте SQL Editor.
-
-Выполните целиком:
-
-```text
-supabase/schema.sql
-```
-
-Не пропускайте конец файла: там находятся security policies и `app_logs`.
-
-## 2. Создать первого администратора
-
-В Supabase:
-
-```text
-Authentication → Users → Add user
-```
-
-Создайте email/password.
-
-После создания проверьте таблицу:
-
-```text
-public.profiles
-```
-
-Для первого пользователя роль должна быть:
-
-```text
-admin
-```
-
-## 3. Получить API settings
-
-Откройте:
-
-```text
-Project Settings → API
-```
-
-Нужны:
-
-```env
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_ANON_PUBLIC_KEY
-```
-
-Никогда не используйте `service_role` key в `VITE_*`.
-
-## 4. Подготовить Git repository
-
-Перед production:
-
+### Шаг 2. Deploy Edge Functions
 ```bash
-npm install
+npm i -g supabase
+supabase login
+supabase link --project-ref <ВАШ_PROJECT_REF>
+supabase functions deploy public-form
+supabase functions deploy create-manager
+supabase functions deploy update-manager
+supabase functions deploy supplier-service
+supabase functions deploy checko
+supabase functions deploy monitor-proxy
+supabase functions deploy telegram-bot   # если используете
 ```
+Секреты функций (Supabase Dashboard → **Edge Functions → Manage secrets**):
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MAX_BOT_TOKEN`, `MAX_CHAT_ID`,
+`RESEND_API_KEY`, `NOTIFY_EMAIL`, `NOTIFY_EMAIL_FROM`.
 
-После этого обязательно создайте и закоммитьте:
+### Шаг 3. Залейте код на Vercel
+1. Пушните репозиторий на GitHub/GitLab.
+2. https://vercel.com → **Add New → Project** → импортируйте репозиторий.
+3. Framework: **Vite** (определится автоматически), build: `npm run build`, output: `dist`.
 
-```text
-package-lock.json
+### Шаг 4. Переменные окружения (Vercel → Project → Settings → Environment Variables)
 ```
-
-В дальнейшем используйте:
-
-```bash
-npm ci
+VITE_SUPABASE_URL        = https://<ref>.supabase.co
+VITE_SUPABASE_ANON_KEY   = <anon public key из Supabase → Settings → API>
 ```
+(Ключи берутся в Supabase: **Project Settings → API**. Именно **anon public**, НЕ service_role.)
 
-## 5. Создать Vercel project
-
-В Vercel:
-
-```text
-Add New → Project → Import Git Repository
-```
-
-Для Vite:
-
-```text
-Framework Preset: Vite
-Build Command: npm run build
-Output Directory: dist
-```
-
-## 6. Добавить Environment Variables
-
-В Vercel:
-
-```text
-Project → Settings → Environment Variables
-```
-
-Добавьте:
-
-```env
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_ANON_PUBLIC_KEY
-```
-
-Для Production, Preview и Development задайте нужные значения отдельно.
-
-Не добавляйте:
-
-```env
-SUPABASE_SERVICE_ROLE_KEY
-```
-
-во frontend Vercel environment.
-
-## 7. Deploy
-
-Нажмите:
-
-```text
-Deploy
-```
-
-После deploy проверьте:
-
-- `/login`
-- вход администратора;
-- suppliers;
-- buyers;
-- tasks;
-- support;
-- settings;
-- forms;
-- realtime;
-- upload knowledge file.
+### Шаг 5. Деплой
+**Deployments → Redeploy**. Через ~1 минуту приложение живёт на `https://<проект>.vercel.app`.
+Зайдите под админом, проверьте: Пользователи, Дашборд, План/Факт, загрузку файлов в Базу знаний.
 
 ---
 
-# Вариант B — свой сервер
+## Вариант Б. Свой сервер (Ubuntu 22.04/24.04 + Nginx + PM2)
 
-Есть два разных сценария.
-
-## B1. Self-hosted frontend + облачный Supabase
-
-Это самый простой вариант.
-
-### Шаг 1. Ubuntu
-
-Рекомендуется Ubuntu 22.04/24.04.
-
-Установка Node.js:
-
+### Шаг 1. Системные зависимости
 ```bash
+sudo apt update && sudo apt -y upgrade
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt update
-sudo apt install -y nodejs nginx git
+sudo apt install -y nodejs nginx
+sudo npm i -g pm2
+node -v   # v20.x
 ```
 
-Проверка:
-
+### Шаг 2. Код и сборка
 ```bash
-node -v
-npm -v
-git --version
-```
-
-## Шаг 2. Получить проект
-
-```bash
-cd /var/www
-sudo git clone YOUR_REPOSITORY vsemzapchasti-crm
-sudo chown -R $USER:$USER /var/www/vsemzapchasti-crm
-cd /var/www/vsemzapchasti-crm
-```
-
-## Шаг 3. Установить зависимости
-
-После появления `package-lock.json`:
-
-```bash
+sudo mkdir -p /var/www/crm && sudo chown $USER:$USER /var/www/crm
+git clone <ВАШ_РЕПОЗИТОРИЙ> /var/www/crm
+cd /var/www/crm
+cp .env.example .env          # и заполните (см. таблицу ниже)
 npm ci
+npm run build                 # появится dist/
 ```
 
-## Шаг 4. Создать `.env`
-
+### Шаг 3. Переменные окружения (`/var/www/crm/.env`)
 ```bash
-cp .env.example .env
-nano .env
+VITE_SUPABASE_URL=https://<ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon public key>
+PORT=3000
+PM2_APP_NAME=crm
+SUPABASE_SERVICE_ROLE_KEY=<service_role key — ТОЛЬКО на сервере>
+`APP_ORIGINS` | Secrets Edge Functions | CORS-allowlist для create-manager / update-manager (origin'ы через запятую) |
+NGINX_ERROR_LOG=/var/log/nginx/error.log
+NGINX_ACCESS_LOG=/var/log/nginx/access.log
 ```
+Supabase-бэкенд берём облачный (шаги 1–2 варианта А) — собственная PostgreSQL-машина
+не нужна: вся БД/Auth/Functions живут в Supabase, сервер раздаёт только фронт и мониторинг.
 
-Заполнить:
-
-```env
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_ANON_PUBLIC_KEY
-```
-
-## Шаг 5. Проверки
-
+### Шаг 4. Запуск через PM2 (автозапуск)
 ```bash
-npm run lint
-npm run typecheck
-npm run build
+cd /var/www/crm
+pm2 start server/monitor-server.js --name crm
+pm2 save
+sudo pm2 startup systemd -u $USER --hp $HOME   # автозапуск при перезагрузке ОС
+curl -I http://127.0.0.1:3000                  # проверка
 ```
 
-## Шаг 6. Разместить dist
-
-Например:
-
+### Шаг 5. Nginx
 ```bash
-sudo mkdir -p /var/www/vz-crm
-sudo cp -r dist/* /var/www/vz-crm/
+sudo nano /etc/nginx/sites-available/crm
 ```
-
-## Шаг 7. Nginx
-
-Создайте:
-
-```bash
-sudo nano /etc/nginx/sites-available/vz-crm
-```
-
-Минимальная конфигурация:
-
 ```nginx
 server {
     listen 80;
-    server_name crm.example.ru;
-
-    root /var/www/vz-crm;
-    index index.html;
-
-    location /assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
+    server_name crm.вашдомен.ru;
+    client_max_body_size 50m;
 
     location / {
-        try_files $uri $uri/ /index.html;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
     }
-
-    location = /index.html {
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
-    }
-
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
 }
 ```
-
-Активировать:
-
 ```bash
-sudo ln -s /etc/nginx/sites-available/vz-crm /etc/nginx/sites-enabled/vz-crm
-sudo nginx -t
-sudo systemctl reload nginx
+sudo ln -s /etc/nginx/sites-available/crm /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-## Шаг 8. HTTPS
-
+### Шаг 6. HTTPS (Let's Encrypt)
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d crm.example.ru
+sudo certbot --nginx -d crm.вашдомен.ru
 ```
 
-После этого проверить:
-
-```text
-https://crm.example.ru
+### Шаг 7. Обновления
+```bash
+cd /var/www/crm
+git pull
+npm ci && npm run build
+pm2 restart crm
 ```
 
 ---
 
-# Вариант B2 — полностью self-hosted Supabase
+## Переменные окружения (шпаргалка)
 
-Обычный PostgreSQL недостаточен.
+| Переменная | Где | Назначение |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Vercel / `.env` | URL проекта Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Vercel / `.env` | anon public ключ (безопасен для браузера) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **только сервер** `.env` | полный доступ; используется monitor-server.js для проверки JWT админа |
+| `PORT` | сервер `.env` | порт monitor-server.js (по умолчанию 3000) |
+| `TELEGRAM_BOT_TOKEN` и др. | Secrets Edge Functions | уведомления о заявках с форм |
 
-Нужно отдельно развернуть официальный self-hosted Supabase stack с:
-
-- PostgreSQL
-- Auth
-- PostgREST
-- Realtime
-- Storage
-- API gateway
-
-После этого заменить:
-
-```env
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
-```
-
-на URL self-hosted Supabase.
-
-Сам CRM repository не содержит полный self-hosted Supabase stack, поэтому нельзя обещать запуск только командами `docker compose up` из этого репозитория.
-
----
-
-# Production checklist
-
-Перед первым релизом:
-
+## Демо-режим (без сервера)
 ```bash
-npm ci
-npm run lint
-npm run typecheck
-npm run build
-npm audit --audit-level=high
-```
-
-Проверить:
-
-- [ ] `package-lock.json` закоммичен
-- [ ] нет `.env` в Git
-- [ ] нет `service_role` во frontend
-- [ ] Supabase schema выполнена целиком
-- [ ] RLS включён
-- [ ] первый admin создан
-- [ ] Edge Functions deployed
-- [ ] rate limit настроен
-- [ ] backups включены
-- [ ] HTTPS включён
-- [ ] HSTS включён после проверки HTTPS
-- [ ] smoke tests пройдены
-- [ ] RLS tests пройдены
-- [ ] mobile QA пройден
-- [ ] logs проверены
-
-## Команды
-
-```bash
+cp .env.example .env   # VITE_SUPABASE_* оставить пустыми
+# в .env: VITE_DEMO_MODE=true
 npm run dev
-npm run lint
-npm run typecheck
-npm run build
-npm run preview
-npm audit
 ```
+Вход: `admin@admin.com` / `admin123`. Данные — только в localStorage браузера.
 
-Docker:
+## Резервное копирование и диагностика
+- Бэкап БД: Supabase Dashboard → Database → Backups (плановые) либо
+  `supabase db dump` (CLI).
+- Логи приложения: `pm2 logs crm` (вариант Б); Vercel → Logs (вариант А).
+- Раздел **«Сервер»** в CRM (только главный админ): статус PM2, логи PM2/Nginx,
+  срок SSL-сертификата, перезапуск — работает только в варианте Б.
 
-```bash
-docker build -t vz-crm .
-docker run -d -p 8080:80 --name vz-crm vz-crm
-```
-
-Проверка:
-
-```bash
-docker ps
-docker logs vz-crm
-```
+## Лицензия
+Внутренний продукт. Все права у правообладателя.

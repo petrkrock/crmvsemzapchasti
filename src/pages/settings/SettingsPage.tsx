@@ -199,7 +199,7 @@ const [tab, setTab] = useState('Статусы');
   // ── USERS (ТЗ «Управление пользователями») ──
   // Разделы, выдаваемые менеджеру. «Настройки» и «База данных» в списке нет
   // принципиально — они доступны только администратору (ТЗ п.3).
-  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: false, support: false, leads: false, media: false, planfact: false, analytics: false, knowledge: false , planfactEdit: false };
+  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: true, support: true, leads: false, media: false, planfact: false, analytics: false, knowledge: true , planfactEdit: false }; // дефолт менеджера (ТЗ v1.21.6): задачи/поддержка/база знаний — включены, медиа — нет
   const PERM_LABELS: Array<{ key: keyof AppUser['permissions']; label: string }> = [
     { key: 'dashboard', label: 'Дашборд' }, { key: 'planfact', label: 'План/Факт' },
     { key: 'suppliers', label: 'Поставщики' }, { key: 'buyers', label: 'Покупатели' },
@@ -245,7 +245,8 @@ const [tab, setTab] = useState('Статусы');
         role, dashboardType: role === 'manager' ? (userForm.dashboardType ?? 'mop') : undefined,
         planfactBase: role === 'manager' ? userForm.planfactBase : undefined,
         leadsBase: role === 'manager' ? userForm.leadsBase : undefined,
-        permissions, access, note: (userForm.note || '').trim(), notifyChatId: (userForm.notifyChatId || '').trim(), notifyChannel: userForm.notifyChannel, notifyEmail: (userForm.notifyEmail || '').trim(), status: 'active', createdAt: new Date().toISOString(),
+        allowedCities: role === 'manager' ? userForm.allowedCities : undefined,
+        permissions: applyDashboardSections(role, userForm.dashboardType ?? 'mop', permissions), access, note: (userForm.note || '').trim(), notifyChatId: (userForm.notifyChatId || '').trim(), notifyChannel: userForm.notifyChannel, notifyEmail: (userForm.notifyEmail || '').trim(), status: 'active', createdAt: new Date().toISOString(),
       };
       updateStore(s => ({ ...s, settings: { ...s.settings, users: [...s.settings.users, nu] } }));
       setShowNewUser(false);
@@ -258,7 +259,7 @@ const [tab, setTab] = useState('Статусы');
 
   function startEditUser(u: AppUser) {
     setEditingUserId(u.id);
-    setEditForm({ name: u.name, email: u.email, role: u.role, dashboardType: u.dashboardType, planfactBase: u.planfactBase, leadsBase: u.leadsBase, permissions: { ...u.permissions }, access: { ...EMPTY_ACCESS, ...u.access }, password: '', note: u.note || '', notifyChatId: u.notifyChatId || '', notifyChannel: u.notifyChannel, notifyEmail: u.notifyEmail || '' });
+    setEditForm({ name: u.name, email: u.email, role: u.role, dashboardType: u.dashboardType, planfactBase: u.planfactBase, leadsBase: u.leadsBase, allowedCities: u.allowedCities, permissions: { ...u.permissions }, access: { ...EMPTY_ACCESS, ...u.access }, password: '', note: u.note || '', notifyChatId: u.notifyChatId || '', notifyChannel: u.notifyChannel, notifyEmail: u.notifyEmail || '' });
   }
   function cancelEditUser() { setEditingUserId(null); setEditForm({}); }
 
@@ -282,7 +283,9 @@ const [tab, setTab] = useState('Статусы');
           users: s.settings.users.map(u => u.id === id
             ? { ...u, name, email, role, dashboardType: role === 'manager' ? (editForm.dashboardType ?? u.dashboardType ?? 'mop') : undefined,
               planfactBase: role === 'manager' ? (editForm.planfactBase ?? u.planfactBase) : undefined,
-              leadsBase: role === 'manager' ? (editForm.leadsBase ?? u.leadsBase) : undefined, permissions, access, note: (editForm.note || '').trim(), notifyChatId: (editForm.notifyChatId || '').trim(), notifyChannel: editForm.notifyChannel, notifyEmail: (editForm.notifyEmail || '').trim(), password: isSupabaseConfigured() ? u.password : (editForm.password || u.password) }
+              leadsBase: role === 'manager' ? (editForm.leadsBase ?? u.leadsBase) : undefined,
+              allowedCities: role === 'manager' ? (editForm.allowedCities ?? u.allowedCities) : undefined,
+              permissions: applyDashboardSections(role, editForm.dashboardType ?? u.dashboardType ?? 'mop', permissions), access, note: (editForm.note || '').trim(), notifyChatId: (editForm.notifyChatId || '').trim(), notifyChannel: editForm.notifyChannel, notifyEmail: (editForm.notifyEmail || '').trim(), password: isSupabaseConfigured() ? u.password : (editForm.password || u.password) }
             : u),
         },
       }));
@@ -326,7 +329,6 @@ const [tab, setTab] = useState('Статусы');
     forceUpdate(n => n + 1);
   }
 
-  function updateUserPerm(id: string, key: keyof AppUser['permissions'], value: boolean) { updateStore(s => ({ ...s, settings: { ...s.settings, users: s.settings.users.map(u => u.id === id ? { ...u, permissions: { ...u.permissions, [key]: value } } : u) } })); forceUpdate(n => n + 1); }
 
   // ── TYPES & CITIES ──
   const [newSupplierType, setNewSupplierType] = useState('');
@@ -565,6 +567,18 @@ const [tab, setTab] = useState('Статусы');
     { perm: 'media' as const, label: 'Медиа сервис', dims: [] },
     { perm: 'knowledge' as const, label: 'База знаний', dims: [] },
   ];
+  // Тип дашборда менеджера определяет доступные разделы (ТЗ v1.21.6): МОП — только покупательские,
+  // МОЗ — только поставщические; недоступные блоки скрываем, а права на сохранении принудительно снимаем.
+  const DASH_SECTIONS: Record<'mop' | 'moz', Array<keyof AppUser['permissions']>> = {
+    mop: ['dashboard', 'planfact', 'buyers', 'tasks', 'support', 'leads', 'knowledge'],
+    moz: ['dashboard', 'planfact', 'suppliers', 'tasks', 'support', 'leads', 'media', 'knowledge'],
+  };
+  const applyDashboardSections = (role: AppUser['role'], dashboardType: 'mop' | 'moz' | undefined, perms: AppUser['permissions']): AppUser['permissions'] => {
+    if (role !== 'manager' || !dashboardType) return perms;
+    const next = { ...perms };
+    (dashboardType === 'mop' ? ['suppliers', 'media'] as const : ['buyers'] as const).forEach(k => { next[k] = false; });
+    return next;
+  };
   // Порядок блоков «Доступ к разделам» (ТЗ v1.21.0): Дашборд → План/Факт → Поставщики → Покупатели →
   // Задачи → Поддержка → База лидов → Медиа сервис → Аналитика* → База знаний → Настройки* → База данных*
   // (* — доступно только администратору, менеджеру не выдаётся).
@@ -592,6 +606,8 @@ const [tab, setTab] = useState('Статусы');
     onPlanfactBase?: (t: 'buyers' | 'suppliers') => void,
     leadsBase?: 'buyers' | 'suppliers',
     onLeadsBase?: (t: 'buyers' | 'suppliers') => void,
+    allowedCities?: string[],
+    onCities?: (city: string) => void,
   ) => (
     <div className="space-y-2">
       <p className="text-xs text-gray-500">Пустой список фильтра = без ограничений: менеджер видит все позиции раздела.</p>
@@ -603,7 +619,7 @@ const [tab, setTab] = useState('Статусы');
           </label>
         ))}
       </div>
-      {ACCESS_FLOW.map(sec => sec.perm === null ? (
+      {(dashboardType ? ACCESS_FLOW.filter(b => b.perm === null || DASH_SECTIONS[dashboardType].includes(b.perm)) : ACCESS_FLOW).map(sec => sec.perm === null ? (
         <div key={sec.label} className="border border-brand-gray-mid rounded-lg p-3 bg-gray-50">
           <p className="text-sm font-medium text-gray-500">{sec.label}</p>
           <p className="text-xs text-gray-400 mt-1">{sec.note}</p>
@@ -640,6 +656,20 @@ const [tab, setTab] = useState('Статусы');
                 ))}
               </div>
               <Link to={`/dashboard-preview/${dashboardType ?? 'mop'}`} className="inline-block text-xs text-brand-red hover:underline">Предпросмотр дашборда →</Link>
+            </div>
+          )}
+          {sec.perm === 'dashboard' && dashboardType === 'mop' && (
+            <div className="ml-6 mt-2 space-y-1.5">
+              <p className="text-xs text-gray-500">Выбор доступных городов (пусто = все города):</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(freshStore.settings.cities || []).map(city => {
+                  const on = (allowedCities || []).includes(city);
+                  return (
+                    <button key={city} type="button" onClick={() => onCities?.(city)}
+                      className={`text-xs px-2 py-1 rounded-full border ${on ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{city}</button>
+                  );
+                })}
+              </div>
             </div>
           )}
           {(sec.perm === 'planfact' || sec.perm === 'leads') && (
@@ -893,6 +923,8 @@ const [tab, setTab] = useState('Статусы');
                       t => setUserForm(f => ({ ...f, planfactBase: t })),
                       userForm.leadsBase,
                       t => setUserForm(f => ({ ...f, leadsBase: t })),
+                      userForm.allowedCities,
+                      c => setUserForm(f => ({ ...f, allowedCities: (f.allowedCities || []).includes(c) ? (f.allowedCities || []).filter(x => x !== c) : [...(f.allowedCities || []), c] })),
                     )}</div>
                   ) : (
                     <p className="text-xs text-gray-500 mb-3">Администратору доступны все разделы, включая «Настройки» и «Базу данных».</p>
@@ -942,6 +974,8 @@ const [tab, setTab] = useState('Статусы');
                             t => setEditForm(f => ({ ...f, planfactBase: t })),
                             editForm.leadsBase,
                             t => setEditForm(f => ({ ...f, leadsBase: t })),
+                            editForm.allowedCities,
+                            c => setEditForm(f => ({ ...f, allowedCities: (f.allowedCities || []).includes(c) ? (f.allowedCities || []).filter(x => x !== c) : [...(f.allowedCities || []), c] })),
                           )}</div>
                         ) : (
                           <p className="text-xs text-gray-500">Администратору доступны все разделы.</p>
@@ -960,7 +994,13 @@ const [tab, setTab] = useState('Статусы');
                             <span className={`text-xs px-1.5 py-0.5 rounded-full ${u.status === 'active' ? 'bg-green-100 text-green-700' : u.status === 'blocked' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-500'}`}>{u.status === 'active' ? 'Активен' : u.status === 'blocked' ? 'Заблокирован' : 'Уволен'}</span>
                           </div>
                           <p className="text-xs text-gray-400">{u.email}</p>
-                          {u.role === 'manager' && <div className="flex flex-wrap gap-1 mt-2">{PERM_LABELS.map(({ key, label }) => <button key={key} onClick={() => updateUserPerm(u.id, key, !u.permissions[key])} className={`text-xs px-1.5 py-0.5 rounded border cursor-pointer ${u.permissions[key] ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{label}</button>)}</div>}
+                          {u.role === 'manager' && (u.allowedCities && u.allowedCities.length > 0) && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {u.allowedCities.map(city => (
+                                <span key={city} className="text-xs px-1.5 py-0.5 rounded border bg-gray-50 border-gray-200 text-gray-500">{city}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div className="flex gap-1">
                           <button onClick={() => startEditUser(u)} className="p-1.5 text-gray-400 hover:text-brand-black rounded" title="Редактировать"><Edit2 size={14} /></button>

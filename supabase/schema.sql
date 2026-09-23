@@ -576,35 +576,35 @@ CREATE POLICY "Authenticated insert media" ON public.media_records
 FOR INSERT TO authenticated
 WITH CHECK (is_active_employee() AND (is_admin() OR has_section_permission('media')));
 
-CREATE POLICY "Authenticated update suppliers" ON public.suppliers
+CREATE POLICY "Authorized update suppliers" ON public.suppliers
 FOR UPDATE TO authenticated
-USING (is_active_employee())
-WITH CHECK (is_active_employee());
+USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('suppliers') AND (cardinality(access_supplier_types()) = 0 OR type = ANY(access_supplier_types())) AND (cardinality(access_supplier_cities()) = 0 OR city = ANY(access_supplier_cities())))))
+WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('suppliers') AND (cardinality(access_supplier_types()) = 0 OR type = ANY(access_supplier_types())) AND (cardinality(access_supplier_cities()) = 0 OR city = ANY(access_supplier_cities())))));
 
-CREATE POLICY "Authenticated update buyers" ON public.buyers
+CREATE POLICY "Authorized update buyers" ON public.buyers
 FOR UPDATE TO authenticated
-USING (is_active_employee())
-WITH CHECK (is_active_employee());
+USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('buyers') AND (cardinality(access_buyer_types()) = 0 OR type = ANY(access_buyer_types())) AND (cardinality(access_buyer_cities()) = 0 OR city = ANY(access_buyer_cities())))))
+WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('buyers') AND (cardinality(access_buyer_types()) = 0 OR type = ANY(access_buyer_types())) AND (cardinality(access_buyer_cities()) = 0 OR city = ANY(access_buyer_cities())))));
 
-CREATE POLICY "Authenticated update tasks" ON public.tasks
+CREATE POLICY "Authorized update tasks" ON public.tasks
 FOR UPDATE TO authenticated
-USING (is_active_employee())
-WITH CHECK (is_active_employee());
+USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('tasks'))))
+WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('tasks'))));
 
-CREATE POLICY "Authenticated update tickets" ON public.tickets
+CREATE POLICY "Authorized update tickets" ON public.tickets
 FOR UPDATE TO authenticated
-USING (is_active_employee())
-WITH CHECK (is_active_employee());
+USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('support') AND (cardinality(access_ticket_types()) = 0 OR type = ANY(access_ticket_types())))))
+WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('support') AND (cardinality(access_ticket_types()) = 0 OR type = ANY(access_ticket_types())))));
 
-CREATE POLICY "Authenticated update media" ON public.media_records
+CREATE POLICY "Authorized update media_records" ON public.media_records
 FOR UPDATE TO authenticated
-USING (is_active_employee())
-WITH CHECK (is_active_employee());
+USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('media'))))
+WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('media'))));
 
-CREATE POLICY "Active employees update settings" ON public.app_settings
+CREATE POLICY "Admin update settings" ON public.app_settings
 FOR UPDATE TO authenticated
-USING (is_active_employee() AND id = 'global')
-WITH CHECK (is_active_employee() AND id = 'global');
+USING (is_active_employee() AND is_admin() AND id = 'global')
+WITH CHECK (is_active_employee() AND is_admin() AND id = 'global');
 
 CREATE POLICY "Admin insert settings" ON public.app_settings
 FOR INSERT TO authenticated
@@ -639,9 +639,10 @@ USING (is_admin());
 -- ============================================================
 
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('knowledge', 'knowledge', true)
-ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+VALUES ('knowledge', 'knowledge', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
 
+CREATE POLICY "Active employees read knowledge files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'knowledge' AND is_active_employee());
 CREATE POLICY "Authenticated upload to knowledge" ON storage.objects
 FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'knowledge' AND is_active_employee());

@@ -1,475 +1,143 @@
-# READMEstart — ВсемЗапчасти CRM
+# READMEstart — запуск проекта с нуля (памятка по командам)
 
-Памятка для новичка: от чистого компьютера до работающей CRM.
+Цель: за минимум команд получить работающую CRM. Два пути: **локальная разработка**
+и **продакшен на своём сервере**. Облачный вариант (Vercel) — пошагово в README.md.
 
-## 1. Установить программы
+---
+## 0. Что должно быть установлено (один раз)
+| Инструмент | Проверка | Где взять |
+|---|---|---|
+| Node.js 20+ | `node -v` | https://nodejs.org |
+| Git | `git -v` | https://git-scm.com |
+| PM2 (только прод) | `pm2 -v` | `npm i -g pm2` |
+| Supabase CLI (только прод) | `supabase -v` | `npm i -g supabase` |
 
-Нужны:
-
-- Node.js 20 LTS
-- Git
-- VS Code
-- Docker — только если используете Docker
-
-Проверка:
-
-```bash
-node -v
-npm -v
-git --version
-docker --version
-```
-
-## 2. Скачать проект
+---
+## 1. ЛОКАЛЬНЫЙ ЗАПУСК (разработка / демо)
 
 ```bash
-git clone YOUR_REPOSITORY vsemzapchasti-crm
-cd vsemzapchasti-crm
-```
+# 1. Клонируем репозиторий
+git clone <ВАШ_РЕПОЗИТОРИЙ> vzcrm
+cd vzcrm
 
-## 3. Установить зависимости
+# 2. Ставим зависимости
+npm ci            # (или npm install)
 
-Если в проекте есть `package-lock.json`:
-
-```bash
-npm ci
-```
-
-Если lock-файла пока нет:
-
-```bash
-npm install
-```
-
-После создания lock-файла его нужно закоммитить.
-
-## 4. Настроить Supabase
-
-Создайте проект в Supabase.
-
-Откройте:
-
-```text
-SQL Editor
-```
-
-Выполните:
-
-```text
-supabase/schema.sql
-```
-
-Целиком.
-
-Затем:
-
-```text
-Project Settings → API
-```
-
-Скопируйте:
-
-```text
-Project URL
-anon public key
-```
-
-## 5. Создать `.env`
-
-Linux/macOS:
-
-```bash
+# 3. Создаём .env из шаблона
 cp .env.example .env
-```
+#    вариант А (своё облако Supabase): заполните VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY
+#    вариант Б (демо без сервера):    добавьте строку VITE_DEMO_MODE=true
 
-Windows CMD:
-
-```cmd
-copy .env.example .env
-```
-
-Откройте:
-
-```bash
-nano .env
-```
-
-или VS Code.
-
-Запишите:
-
-```env
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_ANON_PUBLIC_KEY
-```
-
-Не вставляйте `service_role`.
-
-## 6. Запустить локально
-
-```bash
+# 4. Стартуем dev-сервер (http://localhost:5173)
 npm run dev
 ```
+Остановить: `Ctrl+C`.
 
-Откройте адрес, который покажет Vite, обычно:
-
-```text
-http://localhost:8080
+Полезное при разработке:
+```bash
+npm run lint        # проверка ESLint
+npm run build       # production-сборка в dist/
+npm run preview     # посмотреть собранную сборку локально
+npm run build:strict# сборка с предварительной проверкой типов (tsc)
 ```
 
-## 7. Первый вход
-
-В Supabase:
-
-```text
-Authentication → Users → Add user
-```
-
-Создайте пользователя.
-
-Для первого пользователя в `public.profiles` установите:
-
-```text
-role = admin
-```
-
-После этого войдите в CRM.
-
-## 8. Проверка перед production
+---
+## 2. ПОДНЯТИЕ SUPABASE-БЭКЕНДА (нужно для обоих вариантов)
 
 ```bash
-npm run lint
+# 1. Аккаунт и проект: https://supabase.com → New project (запомните пароль БД)
+
+# 2. Применяем схему: Dashboard → SQL Editor → New query
+#    открываем файл supabase/schema.sql, копируем ВЕСЬ текст, вставляем, Run.
+
+# 3. Edge Functions (терминал):
+supabase login
+supabase link --project-ref <REF из URL проекта: https://<REF>.supabase.co>
+supabase functions deploy public-form
+supabase functions deploy create-manager
+supabase functions deploy update-manager
+supabase functions deploy supplier-service
+supabase functions deploy checko
+supabase functions deploy monitor-proxy
+supabase functions deploy telegram-bot        # опционально
+
+# 4. Секреты функций: Dashboard → Edge Functions → Manage secrets
+#    Дополнительно через CLI: supabase secrets set APP_ORIGINS="https://crm.example.com" (CORS-allowlist для create-manager / update-manager)
+#    TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, MAX_BOT_TOKEN, MAX_CHAT_ID,
+#    RESEND_API_KEY, NOTIFY_EMAIL, NOTIFY_EMAIL_FROM
+
+# 5. Первый админ: Authentication → Add user → Create new user.
+#    Проверьте в Table Editor → profiles, что role = admin (иначе поправьте).
 ```
 
-Затем:
+---
+## 3. ПРОДАКШЕН НА СВОЁМ СЕРВЕРЕ (Ubuntu)
 
 ```bash
-npm run typecheck
-```
+# 1. Система
+sudo apt update && sudo apt -y upgrade
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs nginx
+sudo npm i -g pm2
 
-Затем:
-
-```bash
+# 2. Код
+sudo mkdir -p /var/www/crm && sudo chown $USER:$USER /var/www/crm
+git clone <ВАШ_РЕПОЗИТОРИЙ> /var/www/crm
+cd /var/www/crm
+cp .env.example .env && nano .env        # заполнить VITE_SUPABASE_*, PORT=3000,
+                                         # SUPABASE_SERVICE_ROLE_KEY, пути логов
+# 3. Сборка
+npm ci
 npm run build
-```
 
-Если все прошло:
+# 4. PM2 (процесс + автозапуск)
+pm2 start server/monitor-server.js --name crm
+pm2 save
+sudo pm2 startup systemd -u $USER --hp $HOME
+pm2 status          # статус; pm2 logs crm — логи; pm2 restart crm — перезапуск
 
-```bash
-npm run preview
-```
+# 5. Nginx (прокси на 127.0.0.1:3000) — конфиг в README.md, раздел Вариант Б
+sudo ln -s /etc/nginx/sites-available/crm /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 
-Откройте preview URL.
-
-## 9. Production build
-
-```bash
-npm run build
-```
-
-Результат:
-
-```text
-dist/
-```
-
-Именно содержимое `dist` публикуется через Nginx/Vercel.
-
-## 10. Docker
-
-Создать image:
-
-```bash
-docker build \
-  --build-arg VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
-  --build-arg VITE_SUPABASE_ANON_KEY=YOUR_ANON_PUBLIC_KEY \
-  -t vz-crm .
-```
-
-Запустить:
-
-```bash
-docker run -d \
-  --name vz-crm \
-  -p 8080:80 \
-  --restart unless-stopped \
-  vz-crm
-```
-
-Проверить:
-
-```bash
-docker ps
-docker logs vz-crm
-```
-
-Остановить:
-
-```bash
-docker stop vz-crm
-```
-
-Удалить контейнер:
-
-```bash
-docker rm vz-crm
-```
-
-## 11. Nginx
-
-Проверить конфигурацию:
-
-```bash
-sudo nginx -t
-```
-
-Перезапустить:
-
-```bash
-sudo systemctl reload nginx
-```
-
-Статус:
-
-```bash
-sudo systemctl status nginx
-```
-
-## 12. HTTPS
-
-Установить Certbot:
-
-```bash
-sudo apt update
+# 6. HTTPS
 sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d crm.вашдомен.ru
 ```
 
-Получить сертификат:
-
+**Обновление продакшена:**
 ```bash
-sudo certbot --nginx -d crm.example.ru
+cd /var/www/crm && git pull && npm ci && npm run build && pm2 restart crm
 ```
 
-Проверить:
-
-```bash
-sudo certbot certificates
-```
-
-## 13. Git
-
-Посмотреть изменения:
-
-```bash
-git status
-```
-
-Добавить:
-
-```bash
-git add .
-```
-
-Создать commit:
-
-```bash
-git commit -m "production release"
-```
-
-Отправить:
-
-```bash
-git push origin main
-```
-
-Получить изменения:
-
-```bash
-git pull
-```
-
-## 14. Полезные команды npm
-
-```bash
-npm run dev
-```
-
-Запуск разработки.
-
-```bash
-npm run lint
-```
-
-Проверка ESLint.
-
-```bash
-npm run typecheck
-```
-
-Проверка TypeScript.
-
-```bash
-npm run build
-```
-
-Production build.
-
-```bash
-npm run preview
-```
-
-Локальный просмотр production build.
-
-```bash
-npm audit
-```
-
-Проверка зависимостей.
-
-## 15. Полезные команды Linux
-
-```bash
-pwd
-```
-
-Где я нахожусь.
-
-```bash
-ls -la
-```
-
-Показать файлы.
-
-```bash
-cd /var/www/vsemzapchasti-crm
-```
-
-Перейти в проект.
-
-```bash
-cd ..
-```
-
-На уровень выше.
-
-```bash
-mkdir test
-```
-
-Создать папку.
-
-```bash
-rm -rf test
-```
-
-Удалить папку.
-
-```bash
-nano .env
-```
-
-Редактировать `.env`.
-
-## 16. Полезные команды Docker
-
-```bash
-docker ps
-docker ps -a
-docker images
-docker logs vz-crm
-docker restart vz-crm
-docker stop vz-crm
-docker start vz-crm
-docker rm vz-crm
-```
-
-Docker Compose:
-
-```bash
-docker compose up -d --build
-```
-
-Логи:
-
-```bash
-docker compose logs -f
-```
-
-Остановка:
-
-```bash
-docker compose down
-```
-
-## 17. Если `npm ci` ругается
-
-Удалить старые зависимости:
-
-```bash
-rm -rf node_modules
-```
-
-Linux/macOS.
-
-После этого:
-
-```bash
-npm ci
-```
-
-Не удаляйте `package-lock.json` в production без необходимости.
-
-## 18. Если порт 8080 занят
-
-Linux:
-
-```bash
-sudo lsof -i :8080
-```
-
-или:
-
-```bash
-ss -ltnp | grep 8080
-```
-
-Завершить найденный процесс только если уверены, что он лишний.
-
-## 19. Если Supabase не подключается
-
-Проверить:
-
-```bash
-cat .env
-```
-
-Проверить, что есть:
-
-```env
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
-```
-
-После изменения `.env` перезапустить:
-
-```bash
-npm run dev
-```
-
-## 20. Главное правило
-
-Перед production всегда:
-
-```bash
-npm ci
-npm run lint
-npm run typecheck
-npm run build
-npm audit --audit-level=high
-```
-
-И только после успешных проверок:
-
-```bash
-git push origin main
-```
+---
+## 4. ШПАРГАЛКА ПО КОМАНДАМ
+
+| Задача | Команда |
+|---|---|
+| Дев-сервер | `npm run dev` |
+| Линт | `npm run lint` |
+| Сборка | `npm run build` |
+| Локальный просмотр сборки | `npm run preview` |
+| Проверка типов + сборка | `npm run build:strict` |
+| Статус приложения | `pm2 status` |
+| Логи приложения | `pm2 logs crm` |
+| Перезапуск приложения | `pm2 restart crm` |
+| Проверка Nginx | `sudo nginx -t` |
+| Перечитать Nginx | `sudo systemctl reload nginx` |
+| Статус Nginx | `systemctl status nginx` |
+| Проверка порта 3000 | `curl -I http://127.0.0.1:3000` |
+| SSL-сертификаты | `sudo certbot certificates` |
+| Деплой функции | `supabase functions deploy <имя>` |
+| Бэкап БД (CLI) | `supabase db dump -f backup.sql` |
+
+---
+## 5. ЧАСТЫЕ ПРОБЛЕМЫ
+
+| Симптом | Решение |
+|---|---|
+| «Supabase is not configured» | Не заданы `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` → проверь `.env`, пересобери (`npm run build`) и перезапусти |
+| Вход не работает, 401 | В Authentication отключён Email-провайдер или неверный пароль; проверь `profiles.role` |
+| Файлы базы знаний не грузятся | В SQL Editor выполни `INSERT INTO storage.buckets (id, name, public) VALUES ('knowledge','knowledge', false) ON CONFLICT DO NOTHING;` (в свежей schema.sql это уже есть) |
+| 500 при сохранении | `pm2 logs crm` и Dashboard → Logs (Supabase) |
+| После git pull белый экран | Жёсткая перезагрузка (Ctrl+F5) — обновился service worker PWA |

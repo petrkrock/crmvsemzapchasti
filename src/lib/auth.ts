@@ -278,6 +278,15 @@ export function isMineOrUnassigned(x: { responsibleId?: string }): boolean {
   return !x.responsibleId || x.responsibleId === user.id;
 }
 
+/** Города, доступные менеджеру с дашбордом МОП (ТЗ v1.21.6): видит покупателей только в выбранных
+ *  городах (названия из «Типы и города»). Пустой список или другой тип дашборда — без ограничений. */
+export function canSeeManagerCity(cityName?: string): boolean {
+  const user = getCurrentUser();
+  if (!user || user.role === 'admin') return true;
+  if (user.dashboardType !== 'mop' || !user.allowedCities || user.allowedCities.length === 0) return true;
+  return !!cityName && user.allowedCities.includes(cityName);
+}
+
 /** Право создавать/редактировать План/Факт: админ или менеджер с planfactEdit (ТЗ). */
 export function canEditPlanFact(): boolean {
   const user = getCurrentUser();

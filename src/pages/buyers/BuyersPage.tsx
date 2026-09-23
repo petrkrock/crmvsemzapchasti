@@ -10,7 +10,7 @@ import CitySelect from '@/components/features/CitySelect';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getStore, updateStore, useStoreVersion, getContactPrefs } from '@/lib/store';
 import { generateId, exportToCSV, formatDate } from '@/lib/utils';
-import { getCurrentUser, canExport, canDelete, isAdmin, canSeeBuyer } from '@/lib/auth';
+import { getCurrentUser, canExport, canDelete, isAdmin, canSeeBuyer, canSeeManagerCity } from '@/lib/auth';
 import { isArchiveStatus, findDuplicate } from '@/lib/dedupe';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import StatusBadge from '@/components/features/StatusBadge';
@@ -76,7 +76,7 @@ const [, forceUpdate] = useState(0);
 
   const { list: buyers, statusCounts } = useMemo(() => {
     let list = store.buyers.filter(b => showArchived ? !!b.deletedAt : !b.deletedAt);
-    list = list.filter(b => canSeeBuyer(b)); // фильтры типов/городов менеджера (ТЗ п.2В)
+    list = list.filter(b => canSeeBuyer(b) && canSeeManagerCity(b.city)); // фильтры типов/городов менеджера + города МОП (ТЗ п.2В, v1.21.6)
     if (filterResponsible === '__none__') list = list.filter(b => !b.responsibleId);
     else if (filterResponsible) list = list.filter(b => b.responsibleId === filterResponsible);
     if (search) {

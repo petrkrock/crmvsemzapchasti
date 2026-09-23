@@ -203,6 +203,7 @@ export default function AnalyticsPage() {
   const uFrom = usersRange.from.toISOString().slice(0, 10);
   const uTo = usersRange.to.toISOString().slice(0, 10);
 
+  const [mgrView, setMgrView] = useState<'mop' | 'moz'>('mop'); // ТЗ v1.21.8: таблицы менеджеров МОП/МОЗ
   const usersStats = useMemo(() => {
     const users = store.settings.users.filter(u => u.status === 'active');
     const rows = users.map(u => {
@@ -236,7 +237,6 @@ export default function AnalyticsPage() {
     };
   }, [store.settings.users, store.suppliers, store.buyers, store.settings.planFact, uFrom, uTo]);
 
-  function usersPctColor(pct: number | null): string {
     if (pct === null) return 'text-gray-300';
     if (pct >= 100) return 'text-green-600';
     if (pct >= 80) return 'text-yellow-600';
@@ -777,30 +777,91 @@ export default function AnalyticsPage() {
                 <div className="stat-card"><p className="text-2xl font-bold">{usersStats.managers}</p><p className="text-xs text-gray-500">Менеджеров</p></div>
               </div>
 
+              {/* ТЗ v1.21.8: общая таблица пользователей */}
               <div className="card-base overflow-hidden">
                 <div className="table-scroll">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-brand-gray-mid">
-                        <th className="table-header">Пользователь</th>
+                        <th className="table-header">Дата создания</th>
+                        <th className="table-header">Имя</th>
                         <th className="table-header">Роль</th>
-                        <th className="table-header">Поставщики</th>
-                        <th className="table-header">Покупатели</th>
-                        <th className="table-header">Всего объектов</th>
-                        <th className="table-header">План/Факт %</th>
+                        <th className="table-header">Назначение</th>
+                        <th className="table-header">Статус</th>
+                        <th className="table-header">Телефон</th>
+                        <th className="table-header">Email</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {usersStats.rows.map(r => (
-                        <tr key={r.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
-                          <td className="table-cell font-medium">{r.name}</td>
-                          <td className="table-cell">{r.roleLabel}</td>
-                          <td className="table-cell">{r.suppliers}</td>
-                          <td className="table-cell">{r.buyers}</td>
-                          <td className="table-cell">{r.total}</td>
-                          <td className={`table-cell font-medium ${usersPctColor(r.pct)}`}>{r.pct !== null ? `${r.pct}%` : '—'}</td>
+                      {store.settings.users.map(u => (
+                        <tr key={u.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                          <td className="table-cell whitespace-nowrap">{(u.createdAt || '').slice(0, 10) || '—'}</td>
+                          <td className="table-cell font-medium">{u.name}</td>
+                          <td className="table-cell">{u.role === 'admin' ? 'Администратор' : 'Менеджер'}</td>
+                          <td className="table-cell">
+                            {u.dashboardType === 'mop' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">МОП</span>}
+                            {u.dashboardType === 'moz' && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">МОЗ</span>}
+                            {!u.dashboardType && <span className="text-xs text-gray-400">—</span>}
+                          </td>
+                          <td className="table-cell">
+                            <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full ${u.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`} />
+                              {u.status === 'active' ? 'Работает' : 'Уволен'}
+                            </span>
+                          </td>
+                          <td className="table-cell">{(u as { phone?: string }).phone || '—'}</td>
+                          <td className="table-cell">{u.email || '—'}</td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* ТЗ v1.21.8: две кнопки — каждая со своей таблицей менеджеров */}
+              <div className="flex flex-wrap gap-2 mt-6 mb-3">
+                <button onClick={() => setMgrView('mop')} className={`btn-secondary text-xs py-1.5 px-3 ${mgrView === 'mop' ? 'bg-gray-200' : ''}`}>Менеджеры МОП</button>
+                <button onClick={() => setMgrView('moz')} className={`btn-secondary text-xs py-1.5 px-3 ${mgrView === 'moz' ? 'bg-gray-200' : ''}`}>Менеджеры МОЗ</button>
+              </div>
+              <div className="card-base overflow-hidden">
+                <div className="table-scroll">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-brand-gray-mid">
+                        <th className="table-header">Имя</th>
+                        {mgrView === 'mop' ? <th className="table-header">Покупатели (закреплено)</th> : <th className="table-header">Поставщики (закреплено)</th>}
+                        {mgrView === 'mop' && <th className="table-header">Города</th>}
+                        <th className="table-header">Активные планы</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {store.settings.users
+                        .filter(u => u.role === 'manager' && u.dashboardType === mgrView)
+                        .map(u => {
+                          const isMop = mgrView === 'mop';
+                          const objects = isMop
+                            ? store.buyers.filter(b => !b.deletedAt && b.responsibleId === u.id).length
+                            : store.suppliers.filter(x => !x.deletedAt && x.responsibleId === u.id).length;
+                          const today = new Date().toISOString().slice(0, 10);
+                          const plans = (store.settings.planFact || []).filter(p => !p.deletedAt
+                            && p.kind === (isMop ? 'buyers' : 'suppliers')
+                            && p.responsibleId === u.id
+                            && p.startDate <= today && p.endDate >= today).length;
+                          return (
+                            <tr key={u.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
+                              <td className="table-cell font-medium">{u.name}</td>
+                              <td className="table-cell">{objects}</td>
+                              {isMop && (
+                                <td className="table-cell">
+                                  {(u.allowedCities && u.allowedCities.length > 0)
+                                    ? <div className="flex flex-wrap gap-1">{u.allowedCities.map(c => <span key={c} className="text-xs px-1.5 py-0.5 rounded bg-gray-50 border border-gray-200 text-gray-500">{c}</span>)}</div>
+                                    : <span className="text-xs text-gray-400">Все города</span>}
+                                </td>
+                              )}
+                              <td className="table-cell">{plans}</td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>

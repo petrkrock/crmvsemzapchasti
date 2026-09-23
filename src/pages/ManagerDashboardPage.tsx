@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { getStore, useStoreVersion } from '@/lib/store';
-import { getCurrentUser, canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, canSeeTask, canSeePlanCity, isMineOrUnassigned } from '@/lib/auth';
+import { getCurrentUser, canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, canSeeTask, canSeePlanCity, canSeeManagerCity, isMineOrUnassigned } from '@/lib/auth';
 import { isToday, isOverdue } from '@/lib/utils';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Truck, ShoppingCart, CheckSquare, HeadphonesIcon, Globe, UserX, ArrowLeft } from 'lucide-react';
@@ -36,6 +36,7 @@ export default function ManagerDashboardPage({ previewType }: { previewType?: 'm
     && (isBuyers
       ? canSeeBuyer(x as { type: string; city: string; responsibleId?: string })
       : canSeeSupplier(x as { type: string; city: string; responsibleId?: string }))
+    && (isBuyers ? canSeeManagerCity(x.city) : true) // ТЗ v1.21.6: города МОП
     && isMineOrUnassigned(x));
   const activeCount = entities.filter(x => x.status === 'Активный').length;
   const siteLeads = entities.filter(x => x.fromApi && x.status === 'Лид форма');
