@@ -37,7 +37,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[120px] h-auto mx-auto mb-3" />
+          <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[230px] h-auto mx-auto mb-3" // ТЗ v1.22.7: размер логотипа на логине />
           <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">CRM система отдела продаж</p>
         </div>
 

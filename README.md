@@ -117,7 +117,7 @@ supabase functions deploy telegram-bot   # если используете
 ```
 Секреты функций (Supabase Dashboard → **Edge Functions → Manage secrets**):
 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MAX_BOT_TOKEN`, `MAX_CHAT_ID`,
-`RESEND_API_KEY`, `NOTIFY_EMAIL`, `NOTIFY_EMAIL_FROM`.
+`RESEND_API_KEY`, `NOTIFY_EMAIL`, `NOTIFY_EMAIL_FROM`, `APP_ORIGINS` (CORS-allowlist для create-manager / update-manager).
 
 ### Шаг 3. Залейте код на Vercel
 1. Пушните репозиторий на GitHub/GitLab.
@@ -142,10 +142,10 @@ VITE_SUPABASE_ANON_KEY   = <anon public key из Supabase → Settings → API>
 ### Шаг 1. Системные зависимости
 ```bash
 sudo apt update && sudo apt -y upgrade
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs nginx
 sudo npm i -g pm2
-node -v   # v20.x
+node -v   # v22.x
 ```
 
 ### Шаг 2. Код и сборка
@@ -165,7 +165,6 @@ VITE_SUPABASE_ANON_KEY=<anon public key>
 PORT=3000
 PM2_APP_NAME=crm
 SUPABASE_SERVICE_ROLE_KEY=<service_role key — ТОЛЬКО на сервере>
-`APP_ORIGINS` | Secrets Edge Functions | CORS-allowlist для create-manager / update-manager (origin'ы через запятую) |
 NGINX_ERROR_LOG=/var/log/nginx/error.log
 NGINX_ACCESS_LOG=/var/log/nginx/access.log
 ```

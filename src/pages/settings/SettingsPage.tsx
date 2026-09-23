@@ -302,7 +302,8 @@ const [tab, setTab] = useState('Статусы');
     if (id === me?.id) { toast.error('Нельзя изменить статус самому себе'); return; }
     const label = status === 'fired' ? 'Уволить' : status === 'blocked' ? 'Заблокировать' : 'Разблокировать';
     if (!confirm(`${label} пользователя? ${status !== 'active' ? 'Он не сможет войти в систему.' : ''}`)) return;
-    updateStore(s => ({ ...s, settings: { ...s.settings, users: s.settings.users.map(u => u.id === id ? { ...u, status } : u) } }));
+    // ТЗ v1.22.5: фиксируем дату блокировки/увольнения (снимается при разблокировке)
+    updateStore(s => ({ ...s, settings: { ...s.settings, users: s.settings.users.map(u => u.id === id ? { ...u, status, firedAt: status !== 'active' ? new Date().toISOString() : undefined } : u) } }));
     // В проде дополнительно баним/разбаниваем JWT в Supabase Auth
     if (isSupabaseConfigured()) {
       updateManagerAccount({ id, ban_duration: status === 'active' ? 'none' : '876000h' }).catch(

@@ -196,6 +196,21 @@
   /* Тач-цели и поля: iOS не зумит фокус при 16px, кнопки ≥40px */
   input, select, textarea { font-size: 16px; }
   .btn-primary, .btn-secondary, .btn-danger { min-height: 40px; }
+
+  /* ТЗ v1.22.6 (мобильная вёрстка):
+     1) строка поиска в фильтрах — на всю ширину, селекты переносятся ниже
+     (раньше min-w-0 сжимал поиск до нечитаемого) */
+  [class*="min-w-["].flex-1 { flex-basis: 100% !important; }
+
+  /* 2) вкладки компактнее, чтобы больше помещалось + заметный скролл */
+  [class*="tab-button"] { padding: 0.45rem 0.65rem !important; font-size: 12px !important; }
+  .overflow-x-auto { scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+  .overflow-x-auto::-webkit-scrollbar { height: 4px; }
+  .overflow-x-auto::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+  /* 3) дата-поля и мелкие подписи в фильтрах не обрезаются */
+  input[type="date"] { min-width: 0; }
+  .text-xs.text-gray-400 { flex-shrink: 0; }
 }
 
 /* Совсем узкие экраны (iPhone SE 375 и ужеже) */

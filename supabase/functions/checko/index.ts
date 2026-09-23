@@ -19,8 +19,11 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
   try {
-    const { key, inn } = await req.json();
-    if (!key || !inn) return json({ error: 'key и inn обязательны' }, 400);
+    const { key: clientKey, inn } = await req.json();
+    // ТЗ аудита: серверный секрет CHECKO_API_KEY в приоритете — ключ из браузера
+    // становится необязательным и игнорируется, как только задан секрет функции.
+    const key = Deno.env.get('CHECKO_API_KEY') || clientKey;
+    if (!key || !inn) return json({ error: 'inn обязателен, а ключ задайте секретом CHECKO_API_KEY' }, 400);
     const resp = await fetch('https://api.checko.ru/v2/company', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

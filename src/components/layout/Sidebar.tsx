@@ -49,11 +49,9 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))' }}
         >
           {collapsed ? (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-red to-brand-red-dark flex items-center justify-center text-white text-sm font-extrabold shadow-md shadow-red-200 flex-shrink-0">
-              ВЗ
-            </div>
+            <img src="/logocrmico.png" alt="ВСЕМЗАПЧАСТИ" className="w-10 h-10 rounded-xl shadow-md shadow-red-200 flex-shrink-0" />
           ) : (
-            <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[120px] h-auto" />
+            <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[150px] h-auto" /> {/* ТЗ v1.22.7: развёрнутое меню 150px */}
           )}
           <div className={cn('flex items-center gap-1', collapsed && 'flex-col')}>
             <button

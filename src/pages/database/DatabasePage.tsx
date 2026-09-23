@@ -57,7 +57,7 @@ export default function DatabasePage() {
       ).filter(r => !logSearch || JSON.stringify(r).toLowerCase().includes(logSearch.toLowerCase())).sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
       // ТЗ v1.22.2: вкладка «Пользователи» — только безопасные поля (без пароля/access!)
       case 'Пользователи': return (store.settings.users || [])
-        .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, назначение: u.dashboardType === 'mop' ? 'МОП' : u.dashboardType === 'moz' ? 'МОЗ' : '—', status: u.status, createdAt: u.createdAt }))
+        .map(u => ({ id: u.id, 'дата создания': (u.createdAt || '').slice(0, 10) || '—', имя: u.name, роль: u.role === 'admin' ? 'Администратор' : 'Менеджер', 'дата блокировки или увольнения': u.firedAt ? u.firedAt.slice(0, 10) : '—' }))
         .filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
       case 'База лидов': return ((store.settings.leads || []) as unknown as Record<string, unknown>[])
         .filter(l => (l as { type?: string }).type === leadBase)

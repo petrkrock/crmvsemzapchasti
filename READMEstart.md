@@ -7,7 +7,7 @@
 ## 0. Что должно быть установлено (один раз)
 | Инструмент | Проверка | Где взять |
 |---|---|---|
-| Node.js 20+ | `node -v` | https://nodejs.org |
+| Node.js 22+ | `node -v` | https://nodejs.org |
 | Git | `git -v` | https://git-scm.com |
 | PM2 (только прод) | `pm2 -v` | `npm i -g pm2` |
 | Supabase CLI (только прод) | `supabase -v` | `npm i -g supabase` |
@@ -76,7 +76,7 @@ supabase functions deploy telegram-bot        # опционально
 ```bash
 # 1. Система
 sudo apt update && sudo apt -y upgrade
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs nginx
 sudo npm i -g pm2
 
