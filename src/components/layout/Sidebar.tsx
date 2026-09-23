@@ -51,7 +51,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           {collapsed ? (
             <img src="/logocrmico.png" alt="ВСЕМЗАПЧАСТИ" className="w-10 h-10 rounded-xl shadow-md shadow-red-200 flex-shrink-0" />
           ) : (
-            <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[150px] h-auto" /> {/* ТЗ v1.22.7: развёрнутое меню 150px */}
+            <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[150px] h-auto" />
           )}
           <div className={cn('flex items-center gap-1', collapsed && 'flex-col')}>
             <button
