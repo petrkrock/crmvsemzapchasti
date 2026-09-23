@@ -204,7 +204,7 @@ export default function SupplierServicePage() {
                   <button onClick={() => removeWarehouse(w.id)} className="ml-auto text-gray-300 hover:text-red-600" title="Удалить"><Trash2 size={14} /></button>
                 </div>
               ))}
-              <div className="grid grid-cols-[1fr_110px_auto] gap-2 mt-3">
+              <div className="grid grid-cols-1 min-[480px]:grid-cols-[1fr_110px_auto] gap-2 mt-3">
                 <input className={fld} placeholder="Город склада *" value={whCity} onChange={e => setWhCity(e.target.value)} />
                 <input className={fld} placeholder="SKU" inputMode="numeric" value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
                 <button onClick={addWarehouse} disabled={saving}

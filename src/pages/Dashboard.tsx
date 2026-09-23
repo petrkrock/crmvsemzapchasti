@@ -142,12 +142,12 @@ export default function Dashboard() {
             </div>
             <p className="text-2xl font-bold text-brand-black">{stat.value}</p>
             {stat.label === 'Заявок с сайта' ? (
-              <div className="flex gap-1.5 mt-1.5">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 mt-1.5">
                 <Link to="/suppliers?status=Новый с сайта" onClick={e => e.stopPropagation()}
-                  className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity hover:opacity-80"
+                  className="text-[11px] font-medium px-2 py-1 rounded-md transition-opacity hover:opacity-80 w-full sm:w-auto text-center"
                   style={{ backgroundColor: 'rgb(239, 246, 255)', color: 'rgb(29, 78, 216)' }}>Поставщики: {siteLeadsSup.length}</Link>
                 <Link to="/buyers?status=Новый с сайта" onClick={e => e.stopPropagation()}
-                  className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity hover:opacity-80"
+                  className="text-[11px] font-medium px-2 py-1 rounded-md transition-opacity hover:opacity-80 w-full sm:w-auto text-center"
                   style={{ backgroundColor: 'rgb(239, 246, 255)', color: 'rgb(29, 78, 216)' }}>Покупатели: {siteLeadsBuy.length}</Link>
               </div>
             ) : null}
