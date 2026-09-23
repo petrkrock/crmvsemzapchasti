@@ -8,7 +8,7 @@
 // completely unrelated third-party website, who has never logged into the
 // CRM and never will, needs to be able to submit it.
 //
-//   GET  /public-form?type=supplier|buyer|ticket|marketingKit
+//   GET  /public-form?type=supplier|buyer|ticket
 //        → public, non-sensitive form config (title, fields, messages)
 //   POST /public-form   body: { type, values, honeypot, renderedAt }
 //        → validates + inserts a new record with status "Новый с сайта"
@@ -39,16 +39,13 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// CORS: 'Access-Control-Allow-Origin': '*' is deliberate — this function
-// must be callable from any third-party website that embeds the form.
-// authorization/apikey/x-client-info are allowed because the CRM frontend
-// uses a shared Supabase-functions helper that attaches those headers by
-// default; the function itself never requires a valid token.
 const corsHeaders = {
+  // Deliberately '*' — this function must be callable from any third-party
+  // website that embeds the form. See the security model note above for
+  // why that's safe here (unlike create-manager, which is CRM-origin only).
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, authorization, apikey, x-client-info',
+  'Access-Control-Allow-Headers': 'content-type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Vary': 'Origin',
 };
 
 function json(body: unknown, status = 200): Response {
@@ -107,19 +104,20 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
   ],
   // Форма сайта (новая, ТЗ): контакт, тип, текст*, способ связи.
-  // Ответственного и выбора из списка на сайте НЕТ. Синхронизировать с
-  // FORM_FIELD_DEFINITIONS.ticket в src/constants/index.ts (keep in sync by hand).
+// Ответственного и выбора из списка на сайте НЕТ. Синхронизировать с
+// FORM_FIELD_DEFINITIONS.ticket в src/constants/index.ts (keep in sync by hand).
   ticket: [
     { key: 'contactName', label: 'Имя контакта', inputType: 'text' },
     { key: 'contactPhone', label: 'Телефон', inputType: 'tel' },
     { key: 'contactEmail', label: 'Email', inputType: 'email' },
     { key: 'type', label: 'Тип обращения', inputType: 'select', optionsSource: 'ticketTypes' },
     { key: 'text', label: 'Текст обращения', inputType: 'textarea', core: true },
-    { key: 'contactPref', label: 'Способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
-  ],
+    { key: 'contactPref', label: 'Способ связи', inputType: 'select', optionsSourc,
   // v_1.9: Маркетинг-кит — анкета фиксированная: ТОЛЬКО ИНН (других полей нет)
   marketingKit: [
     { key: 'inn', label: 'ИНН', inputType: 'text', core: true },
+  ],
+: 'contactPrefs' },
   ],
 };
 
@@ -227,18 +225,8 @@ async function handleGetConfig(req: Request): Promise<Response> {
 // Отправка неблокирующая: ошибка канала НИКОГДА не ломает форму.
 // ─────────────────────────────────────────────────────────────
 
-const ENTITY_LABELS: Record<EntityType, string> = {
-  supplier: 'Поставщик',
-  buyer: 'Покупатель',
-  ticket: 'Обращение',
-  marketingKit: 'Маркетинг-кит',
-};
-const SECTION_PERM: Record<EntityType, string> = {
-  supplier: 'suppliers',
-  buyer: 'buyers',
-  ticket: 'support',
-  marketingKit: 'media',
-};
+const ENTITY_LABELS: Record<EntityType, string> = { supplier: 'Поставщик', buyer: 'Покупатель', ticket: 'Обращение' };
+const SECTION_PERM: Record<EntityType, string> = { supplier: 'suppliers', buyer: 'buyers', ticket: 'support' };
 
 function buildNotifyText(type: EntityType, clean: Record<string, unknown>): string {
   const lines = [`🆕 Новая заявка с сайта: ${ENTITY_LABELS[type]}`];
@@ -398,9 +386,9 @@ async function handleSubmit(req: Request): Promise<Response> {
 
   // v_1.9: Маркетинг-кит — анкета ТОЛЬКО ИНН: точное совпадение → заявка «Запрос МК»
   if (type === 'marketingKit') {
-    const inn = String(clean.inn || '').replace(/\D/g, '');
+    const inn = (clean.inn || '').replace(/\D/g, '');
     if (!/^\d{10}$|^\d{12}$/.test(inn)) return json({ error: 'Введите корректный ИНН (10 или 12 цифр)' }, 400);
-    const { data: sup } = await client
+    const { data: sup } = await supabaseAdmin
       .from('suppliers')
       .select('id, trade_name')
       .eq('inn', inn)
@@ -409,7 +397,7 @@ async function handleSubmit(req: Request): Promise<Response> {
       .maybeSingle();
     if (!sup) return json({ error: 'Извините, услуга доступна только поставщикам платформы!' }, 404);
     const today = new Date().toISOString().slice(0, 10);
-    const { error: mkErr } = await client.from('media_records').insert({
+    const { error: mkErr } = await supabaseAdmin.from('media_records').insert({
       supplier_id: sup.id,
       supplier_name: sup.trade_name,
       ad_type_id: '',

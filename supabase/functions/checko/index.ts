@@ -24,16 +24,25 @@ serve(async (req) => {
     // становится необязательным и игнорируется, как только задан секрет функции.
     const key = Deno.env.get('CHECKO_API_KEY') || clientKey;
     if (!key || !inn) return json({ error: 'inn обязателен, а ключ задайте секретом CHECKO_API_KEY' }, 400);
-    const resp = await fetch('https://api.checko.ru/v2/company', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, inn }),
-    });
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok || !data || data.status === 'error') {
-      return json(data || { error: `Checko HTTP ${resp.status}` }, resp.ok ? 502 : resp.status);
+    // ТЗ v1.22.14: финансовая отчётность живёт в ОТДЕЛЬНОМ endpoint /v2/finances
+    // (https://checko.ru/integration/api/finances) — /v2/company её не отдаёт,
+    // из-за чего блоки «Выручка/Запасы/Валовая прибыль» были пустые.
+    const [companyRes, finRes] = await Promise.all([
+      fetch('https://api.checko.ru/v2/company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, inn }),
+      }),
+      fetch(`https://api.checko.ru/v2/finances?key=${encodeURIComponent(key)}&inn=${encodeURIComponent(inn)}`),
+    ]);
+    const company = await companyRes.json().catch(() => null);
+    if (!companyRes.ok || !company || company.status === 'error') {
+      return json(company || { error: `Checko HTTP ${companyRes.status}` }, companyRes.ok ? 502 : companyRes.status);
     }
-    return json(data);
+    const fin = await finRes.json().catch(() => null);
+    // Мерджим Финансы в данные компании — фронт (services/checko.ts) читает их отсюда
+    const merged = { ...company, data: { ...(company.data || {}), ...(fin && fin.data ? fin.data : {}) } };
+    return json(merged);
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

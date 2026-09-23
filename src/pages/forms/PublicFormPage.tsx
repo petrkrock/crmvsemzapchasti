@@ -126,9 +126,9 @@ export default function PublicFormPage() {
       className="min-h-screen bg-[#f5f5f5] flex items-start justify-center p-3 sm:p-4 md:p-10"
       style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}
     >
-      <div ref={wrapperRef} className="w-full max-w-lg py-2">
+      <div ref={wrapperRef} className="w-full max-w-lg">
         {loading && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2.5 py-16 px-6">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 py-10 px-4">
             {/* Красный круговой индикатор загрузки */}
             <div className="w-11 h-11 rounded-full border-4 border-red-100 border-t-red-600 animate-spin" aria-hidden="true" />
             <p className="text-sm text-gray-500 text-center">Подождите пожалуйста, форма загружается…</p>
@@ -150,7 +150,7 @@ export default function PublicFormPage() {
         )}
 
         {!loading && !loadError && config && config.enabled && submitted && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-14 px-6 gap-2.5 animate-fade-in">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-14 px-6 gap-2 animate-fade-in">
             <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
               <CheckCircle2 className="text-green-500" size={30} />
             </div>
@@ -159,11 +159,11 @@ export default function PublicFormPage() {
         )}
 
         {!loading && !loadError && config && config.enabled && !submitted && (
-          <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 sm:p-8 space-y-3">
+          <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 space-y-2.5">
             {/* Заголовок с красным акцентом */}
             <div className="pb-4 border-b border-gray-100">
               <div className="w-9 h-1 rounded-full bg-red-600 mb-3" />
-              <h1 className="text-xl font-bold text-gray-900">{config.title}</h1>
+              <h1 className="text-lg font-bold text-gray-900">{config.title}</h1>
               {config.description && <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{config.description}</p>}
             </div>
 
@@ -258,7 +258,7 @@ export default function PublicFormPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold text-sm rounded-xl py-2.5 px-4 transition-colors duration-150 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold text-sm rounded-xl py-2 px-4 transition-colors duration-150 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <><Loader2 className="animate-spin" size={16} /> Отправка...</>
