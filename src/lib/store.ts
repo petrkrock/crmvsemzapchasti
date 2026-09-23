@@ -327,7 +327,7 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     // Воронка статусов поставщиков (ТЗ): переименование старых статусов,
     // «Не активный» → «АРХИВ», сортировка по этапам воронки.
     const STATUS_RENAMES: Record<string, string> = {
-      from_site: 'Лид форма',
+      from_site: 'Новый с сайта', // ТЗ v1.22.3: канон статуса заявок с формы
       in_work: 'Лид CRM', registered: 'Лид CRM',
       negotiation: 'Переговоры', commercial: 'Переговоры',
       price_setup: 'Приветствие',
@@ -338,7 +338,7 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
       price_setup: 3, active: 4, problem: 5, dup_archive: 6, archive: 7,
     };
     const oldNames: Record<string, string> = {
-      'Зарег. с формы': 'Лид форма',   // ТЗ: переименование системных статусов
+      'Зарег. с формы': 'Новый с сайта', // ТЗ v1.22.3: канон статуса заявок с формы
       'Зарег. в CRM': 'Лид CRM',
     };
     settings.statuses = (settings.statuses || []).map(s => {
@@ -888,6 +888,7 @@ export function ensureSystemStatuses(settings: AppSettings): void {
   const SYS_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
     'Активный': { bg: '#D1FAE5', text: '#065F46' },
     'Лид форма': { bg: '#EFF6FF', text: '#1D4ED8' },
+    'Новый с сайта': { bg: '#EFF6FF', text: '#1D4ED8' }, // ТЗ v1.22.3
     'Лид CRM': { bg: '#F5F3FF', text: '#6D28D9' },
     'Переговоры': { bg: '#FEF3C7', text: '#B45309' },
     'Приветствие': { bg: '#FCE7F3', text: '#9D174D' },

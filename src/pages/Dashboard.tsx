@@ -102,9 +102,10 @@ export default function Dashboard() {
   // обработанные менеджером — статус "Новый с сайта" служит тем же
   // индикатором "требует внимания", что и "Новая" для обращений.
   type FormSubmission = { id: string; kind: 'supplier' | 'buyer' | 'ticket'; title: string; date: string; to: string };
-  // v_1.9: заявки с сайта — все формы (Поставщики+Покупатели) в статусе «Лид форма»
-  const siteLeadsSup = activeSuppliers.filter(s => s.fromApi && s.status === 'Лид форма');
-  const siteLeadsBuy = activeBuyers.filter(b => b.fromApi && b.status === 'Лид форма');
+  // v1.22.3: заявки с сайта — формы пишут статус «Новый с сайта» (legacy — «Лид форма»)
+  const SITE_STATUSES = ['Новый с сайта', 'Лид форма'];
+  const siteLeadsSup = activeSuppliers.filter(s => s.fromApi && !!s.status && SITE_STATUSES.includes(s.status));
+  const siteLeadsBuy = activeBuyers.filter(b => b.fromApi && !!b.status && SITE_STATUSES.includes(b.status));
   const siteLeads = [...siteLeadsSup, ...siteLeadsBuy];
   const formSubmissions: FormSubmission[] = [
     ...activeSuppliers.filter(s => s.fromApi && s.status === 'Новый с сайта').map(s => ({ id: s.id, kind: 'supplier' as const, title: s.tradeName, date: s.createdAt, to: `/suppliers/${s.id}` })),
@@ -142,10 +143,10 @@ export default function Dashboard() {
             <p className="text-2xl font-bold text-brand-black">{stat.value}</p>
             {stat.label === 'Заявок с сайта' ? (
               <div className="flex gap-1.5 mt-1.5">
-                <Link to="/suppliers?status=Лид форма" onClick={e => e.stopPropagation()}
+                <Link to="/suppliers?status=Новый с сайта" onClick={e => e.stopPropagation()}
                   className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity hover:opacity-80"
                   style={{ backgroundColor: 'rgb(239, 246, 255)', color: 'rgb(29, 78, 216)' }}>Поставщики: {siteLeadsSup.length}</Link>
-                <Link to="/buyers?status=Лид форма" onClick={e => e.stopPropagation()}
+                <Link to="/buyers?status=Новый с сайта" onClick={e => e.stopPropagation()}
                   className="text-[11px] font-medium px-2 py-0.5 rounded-md transition-opacity hover:opacity-80"
                   style={{ backgroundColor: 'rgb(239, 246, 255)', color: 'rgb(29, 78, 216)' }}>Покупатели: {siteLeadsBuy.length}</Link>
               </div>

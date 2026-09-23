@@ -747,25 +747,7 @@ export default function AnalyticsPage() {
                 {canExport() && <button onClick={exportUsersStats} className="btn-secondary text-xs"><Download size={14} /> Выгрузить в Excel</button>}
               </div>
 
-              <div>
-                <h3 className="section-title mb-3 flex items-center gap-2"><Calendar size={16} className="text-brand-red" /> Период</h3>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {PERIODS.map(p => (
-                    <button key={p.key} onClick={() => setPeriod(p.key)}
-                      className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${period === p.key ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>
-                      {p.label}
-                    </button>
-                  ))}
-                  {period === 'custom' && (
-                    <>
-                      <input type="date" className="form-input py-1.5 text-xs w-auto" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
-                      <span className="text-xs text-gray-400">—</span>
-                      <input type="date" className="form-input py-1.5 text-xs w-auto" value={customTo} onChange={e => setCustomTo(e.target.value)} />
-                    </>
-                  )}
-                </div>
-              </div>
-
+              
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="stat-card"><p className="text-2xl font-bold">{usersStats.total}</p><p className="text-xs text-gray-500">Всего пользователей</p></div>
                 <div className="stat-card"><p className="text-2xl font-bold">{usersStats.admins}</p><p className="text-xs text-gray-500">Администраторов</p></div>
@@ -783,7 +765,6 @@ export default function AnalyticsPage() {
                         <th className="table-header">Роль</th>
                         <th className="table-header">Назначение</th>
                         <th className="table-header">Статус</th>
-                        <th className="table-header">Телефон</th>
                         <th className="table-header">Email</th>
                       </tr>
                     </thead>
@@ -804,7 +785,6 @@ export default function AnalyticsPage() {
                               {u.status === 'active' ? 'Работает' : 'Уволен'}
                             </span>
                           </td>
-                          <td className="table-cell">{(u as { phone?: string }).phone || '—'}</td>
                           <td className="table-cell">{u.email || '—'}</td>
                         </tr>
                       ))}

@@ -18,7 +18,7 @@ export const DEFAULT_LEAD_STATUSES: StatusColor[] = [
 export const SYSTEM_SUPPLIER_STATUSES = ['Активный', 'Архив дублей'];
 
 export const DEFAULT_STATUSES: StatusColor[] = [
-  { id: 'from_site',   name: 'Лид форма',      color: '#2E90FA', order: 0, entityTypes: ['supplier', 'buyer'] },
+  { id: 'from_site',   name: 'Новый с сайта',  color: '#2E90FA', order: 0, entityTypes: ['supplier', 'buyer'] }, // ТЗ v1.22.3: каноническое имя статуса заявок с формы
   { id: 'in_work',     name: 'Лид CRM',        color: '#6172F3', order: 1, entityTypes: ['supplier', 'buyer'] },
   { id: 'negotiation', name: 'Переговоры',          color: '#DD2590', order: 2, entityTypes: ['supplier', 'buyer'] },
   { id: 'price_setup', name: 'Приветствие',         color: '#EAAA08', order: 3, entityTypes: ['supplier'] },

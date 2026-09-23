@@ -9,7 +9,7 @@ import { EMPTY_ACCESS } from '@/types';
 import { MEDIA_SYSTEM_STATUSES, DEFAULT_STATUSES, FORM_FIELD_DEFINITIONS, DEFAULT_FORM_CONSENT, SYSTEM_TASK_TYPE, SYSTEM_SUPPLIER_STATUSES, SYSTEM_TASK_STATUSES, SYSTEM_TASK_TYPES, SYSTEM_TICKET_TYPES, SYSTEM_LEAD_STATUSES, TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_SUPPLIER_GREETING, TICKET_STATUSES, TICKET_STATUS_COLORS } from '@/constants';
 
 // ТЗ 1.8: полный список системных статусов (редактирование/удаление запрещены)
-const ALL_SYSTEM_STATUSES = ['Активный', 'Лид форма', 'Лид CRM', 'Переговоры', 'Приветствие', 'Проблемный', 'Настройка прайса', 'Архив дублей', 'АРХИВ', 'Лид'];
+const ALL_SYSTEM_STATUSES = ['Активный', 'Новый с сайта', 'Лид CRM', 'Переговоры', 'Приветствие', 'Проблемный', 'Настройка прайса', 'Архив дублей', 'АРХИВ', 'Лид'];
 import { Plus, Save, Trash2, X, Edit2,  Users, CheckCircle2, XCircle, Settings2, Package, Megaphone, MapPin, List, Tag, Video, FileEdit, Copy, ExternalLink , Pencil, Check, Ban, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -98,7 +98,7 @@ function itemInUse(
 /** Кнопка удаления для списков: с связями — неактивна с подсказкой. */
 function GuardedDelete({ inUse, onClick, title }: { inUse: boolean; onClick: () => void; title?: string }) {
   return inUse
-    ? <span className="p-1.5 text-gray-200 cursor-not-allowed" title={`${title || 'Элемент'} используется в данных — удаление запрещено, можно только переименовать`}><Trash2 size={14} /></span>
+    ? <span className="p-1.5 text-gray-200 cursor-not-allowed" title={`${title || 'Элемент'} используется в данных — удалить нельзя, можно только уволить`}><Trash2 size={14} /></span>
     : <button onClick={onClick} className="p-1.5 text-gray-300 hover:text-brand-red rounded"><Trash2 size={14} /></button>;
 }
 
@@ -149,7 +149,7 @@ const [tab, setTab] = useState('Статусы');
 
   function getSectionStatuses(section: string) {
     // ТЗ 1.8: «Активный (системный)» отображается перед «Лид форма» (только порядок показа, данные не меняем)
-    const rank = (n: string) => n === 'Активный' ? 0 : n === 'Лид форма' ? 1 : 2;
+    const rank = (n: string) => n === 'Активный' ? 0 : n === 'Новый с сайта' ? 1 : 2;
     return store.settings.statuses.filter(s => s.entityTypes.includes(section))
       .sort((a, b) => rank(a.name) - rank(b.name));
   }

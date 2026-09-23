@@ -289,8 +289,7 @@ export function canSeeManagerCity(cityName?: string): boolean {
 
 /** Право создавать/редактировать План/Факт: админ или менеджер с planfactEdit (ТЗ). */
 export function canEditPlanFact(): boolean {
+  // ТЗ v1.22.3: создавать/редактировать записи План/Факт может только администратор.
   const user = getCurrentUser();
-  if (!user) return false;
-  if (user.role === 'admin') return true;
-  return user.permissions.planfactEdit === true;
+  return !!user && user.role === 'admin';
 }

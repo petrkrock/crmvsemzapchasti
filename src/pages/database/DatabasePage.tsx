@@ -9,7 +9,7 @@ import { Download, Trash2, Search, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DbLog, HistoryEntry } from '@/types';
 
-const DB_TABS = ['Поставщики', 'Покупатели', 'Задачи', 'Поддержка', 'Сервис поиска', 'База лидов', 'Логи дублей', 'План/факт', 'Медиа сервис', 'Логи'];
+const DB_TABS = ['Поставщики', 'Покупатели', 'Задачи', 'Поддержка', 'Сервис поиска', 'База лидов', 'Логи дублей', 'План/факт', 'Медиа сервис', 'Пользователи', 'Логи'];
 
 function addDbLog(action: DbLog['action'], entityType: string, entityIds: string[], details: string) {
   const u = getCurrentUser();
@@ -55,6 +55,10 @@ export default function DatabasePage() {
         .filter((h: HistoryEntry & { timestamp?: string }) => ['service_search', 'serviceSearch', 'serviceAccess', 'warehouseLocations'].includes(String(h.field || '')))
         .map((h: HistoryEntry & { timestamp?: string }) => ({ id: h.id, timestamp: h.timestamp, userName: h.userName, supplierName: sup.tradeName, details: String(h.newValue || h.comment || '') }))
       ).filter(r => !logSearch || JSON.stringify(r).toLowerCase().includes(logSearch.toLowerCase())).sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+      // ТЗ v1.22.2: вкладка «Пользователи» — только безопасные поля (без пароля/access!)
+      case 'Пользователи': return (store.settings.users || [])
+        .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, назначение: u.dashboardType === 'mop' ? 'МОП' : u.dashboardType === 'moz' ? 'МОЗ' : '—', status: u.status, createdAt: u.createdAt }))
+        .filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
       case 'База лидов': return ((store.settings.leads || []) as unknown as Record<string, unknown>[])
         .filter(l => (l as { type?: string }).type === leadBase)
         .filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
@@ -223,7 +227,7 @@ export default function DatabasePage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-brand-gray-mid bg-brand-gray">
-                {!isLogTab && <th className="table-header w-10"><input type="checkbox" checked={selected.length === pagedData.length && pagedData.length > 0} onChange={toggleAll} className="rounded" /></th>}
+                {!isLogTab && tab !== 'Пользователи' && <th className="table-header w-10"><input type="checkbox" checked={selected.length === pagedData.length && pagedData.length > 0} onChange={toggleAll} className="rounded" /></th>}
                 <th className="table-header text-xs font-semibold text-gray-400">ID</th>
                 {columns.map(c => <th key={c} className="table-header text-xs font-semibold text-gray-400">{colLabels[c] || c}</th>)}
               </tr>
@@ -234,7 +238,7 @@ export default function DatabasePage() {
                 const isDeleted = !!row['deletedAt'];
                 return (
                   <tr key={row['id'] as string} className={`border-b border-brand-gray-mid hover:bg-brand-gray ${isDeleted ? 'opacity-50' : ''}`}>
-                    {!isLogTab && (
+                    {!isLogTab && tab !== 'Пользователи' && (
                       <td className="table-cell" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" checked={selected.includes(row['id'] as string)} onChange={() => toggleSelect(row['id'] as string)} className="rounded" />
                       </td>

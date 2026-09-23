@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { getStore, useStoreVersion } from '@/lib/store';
 import { getCurrentUser, canAccess, canSeeSupplier, canSeeBuyer, canSeeTicket, canSeeTask, canSeePlanCity, canSeeManagerCity, isMineOrUnassigned } from '@/lib/auth';
 import { isToday, isOverdue } from '@/lib/utils';
@@ -20,6 +20,8 @@ export default function ManagerDashboardPage({ previewType }: { previewType?: 'm
   const navigate = useNavigate();
   const store = getStore();
   const me = getCurrentUser();
+  // ТЗ v1.22.2: страховка от «мигания» — администратор никогда не должен видеть дашборд менеджера.
+  if (!previewType && me?.role === 'admin') return <Navigate to="/dashboard" replace />;
   const type: 'mop' | 'moz' = previewType || (me?.role === 'manager' ? me.dashboardType ?? 'mop' : 'mop');
   const isBuyers = type === 'mop';
   const preview = !!previewType;
@@ -39,7 +41,8 @@ export default function ManagerDashboardPage({ previewType }: { previewType?: 'm
     && (isBuyers ? canSeeManagerCity(x.city) : true) // ТЗ v1.21.6: города МОП
     && isMineOrUnassigned(x));
   const activeCount = entities.filter(x => x.status === 'Активный').length;
-  const siteLeads = entities.filter(x => x.fromApi && x.status === 'Лид форма');
+  // ТЗ v1.22.3: формы пишут «Новый с сайта» (legacy — «Лид форма»)
+  const siteLeads = entities.filter(x => x.fromApi && (x.status === 'Новый с сайта' || x.status === 'Лид форма'));
   const noRespEntities = entities.filter(x => !x.responsibleId).length;
 
   const tasksAll = store.tasks.filter(t => !t.deletedAt && canSeeTask(t) && isMineOrUnassigned(t));

@@ -494,7 +494,7 @@ export default function PlanFactPage() {
       </div>
 
       {/* ═══ АКТИВНАЯ СВОДКА (дизайн v2) ═══ */}
-      <div className="card-baseRaw p-0 mb-4 overflow-hidden">
+      <div className="card-base p-0 mb-4 overflow-hidden">
         {/* Шапка: заголовок + сегменты базы и периода */}
         <div className="px-4 pt-3 pb-2.5 border-b border-brand-gray-mid bg-gradient-to-r from-brand-gray/60 to-transparent">
           <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -630,7 +630,7 @@ export default function PlanFactPage() {
 
 {/* Форма добавления */}
       {showAddForm && canEdit && (
-        <div className="card-baseRaw p-4 bg-blue-50 border-blue-200 animate-fade-in">
+        <div className="card-base p-4 bg-blue-50 border-blue-200 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
             <h3 className="section-title">Новая запись ({addForm.kind === 'buyers' ? 'покупатели' : 'поставщики'})</h3>
             <button onClick={() => setShowAddForm(false)} className="text-gray-400 hover:text-brand-red"><X size={18} /></button>
@@ -647,7 +647,7 @@ export default function PlanFactPage() {
 
       {/* ТЗ: панель выгрузки отчётов — появляется при выбранных чекбоксах */}
       {selected.length > 0 && (
-        <div className="card-baseRaw p-3 flex flex-wrap items-center gap-2 bg-blue-50 border-blue-200 animate-fade-in">
+        <div className="card-base p-3 flex flex-wrap items-center gap-2 bg-blue-50 border-blue-200 animate-fade-in">
           <span className="text-xs font-medium text-blue-700">Выбрано: {selected.length}</span>
           <button onClick={exportReports} className="btn-primary text-xs py-1">Выгрузить отчеты</button>
           <button onClick={() => setSelected([])} className="btn-secondary text-xs py-1">Снять выбор</button>
@@ -657,7 +657,7 @@ export default function PlanFactPage() {
       {/* ═══ Записи плана: своя таблица на каждую вкладку (ТЗ этап 3) ═══
           Карточка держится на записях периода; пустой фильтр отчётов показывает подсказку, а не прячет блок */}
       {entries.length > 0 && (
-        <div className="card-baseRaw overflow-hidden">
+        <div className="card-base overflow-hidden">
           <div className="p-3 border-b border-brand-gray-mid flex items-center justify-between">
             <h3 className="section-title">Активные планы</h3>
             <div className="flex items-center gap-2">

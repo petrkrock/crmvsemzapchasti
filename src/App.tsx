@@ -127,6 +127,13 @@ function useBootstrap() {
   return ready;
 }
 
+/** Дашборд выбираем по факту текущего пользователя — без «мигания» МОП у админа (ТЗ v1.22.2). */
+function DashboardRoute() {
+  const user = getCurrentUser();
+  if (!user) return <Navigate to="/login" replace />;
+  return user.role === 'admin' ? <Dashboard /> : <ManagerDashboardPage />;
+}
+
 export default function App() {
   const ready = useBootstrap();
 
@@ -157,7 +164,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
           <Route index element={<IndexRedirect />} />
-          <Route path="dashboard" element={<RequireAccess section="dashboard">{isAdmin() ? <Dashboard /> : <ManagerDashboardPage />}</RequireAccess>} />
+          <Route path="dashboard" element={<RequireAccess section="dashboard"><DashboardRoute /></RequireAccess>} />
           <Route path="suppliers" element={<RequireAccess section="suppliers"><SuppliersPage /></RequireAccess>} />
           <Route path="suppliers/:id" element={<RequireAccess section="suppliers"><SupplierGuard><SupplierCardPage /></SupplierGuard></RequireAccess>} />
           <Route path="buyers" element={<RequireAccess section="buyers"><BuyersPage /></RequireAccess>} />

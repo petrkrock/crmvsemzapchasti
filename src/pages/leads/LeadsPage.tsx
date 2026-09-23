@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Plus, Upload, Download, Search, Edit2, X, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, canExport } from '@/lib/auth';
 import { generateId } from '@/lib/utils';
 import { isArchiveStatus, findDuplicate } from '@/lib/dedupe';
 import type { Lead } from '@/types';
@@ -285,10 +285,10 @@ function commit(leads: Lead[]) {
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setBase({ supplier: false, buyer: true })} className={`btn-secondary text-xs py-1.5 ${base.buyer ? 'bg-gray-200' : ''}`}>Покупатели</button>
           <button onClick={() => setBase({ supplier: true, buyer: false })} className={`btn-secondary text-xs py-1.5 ${base.supplier ? 'bg-gray-200' : ''}`}>Поставщики</button>
-          <button onClick={() => { setShowImport(true); setImportFile(null); }} className="btn-secondary text-xs py-1.5 flex items-center gap-1.5">
+          {canExport() && (<button onClick={() => { setShowImport(true); setImportFile(null); }} className="btn-secondary text-xs py-1.5 flex items-center gap-1.5">
             <Upload size={13} /> Импорт
-          </button>
-          <button onClick={exportCSV} className="btn-secondary text-xs py-1.5 flex items-center gap-1.5"><Download size={13} /> Экспорт</button>
+          </button>)}
+          {canExport() && (<button onClick={exportCSV} className="btn-secondary text-xs py-1.5 flex items-center gap-1.5"><Download size={13} /> Экспорт</button>)}
           <button onClick={() => openForm()} className="btn-primary text-xs flex items-center gap-1.5"><Plus size={13} /> Добавить</button>
         </div>
       </div>
