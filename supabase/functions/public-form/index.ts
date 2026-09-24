@@ -177,6 +177,13 @@ async function loadFormConfig(client: ReturnType<typeof createClient>, type: Ent
 
 function resolveOptions(source: string | undefined, settings: Record<string, unknown>): string[] | undefined {
   if (!source) return undefined;
+  // ТЗ v1.22.26: «Предпочтительный способ связи» — из справочника Настройки → Связь
+  // «Способы связи» (переименовываемый, как в карточках), а не из жёсткого списка.
+  if (source === 'contactPrefs') {
+    const cp = settings.contactPrefs as string[] | undefined;
+    if (Array.isArray(cp) && cp.length) return cp;
+    return STATIC_OPTIONS.contactPrefs;
+  }
   if (source in STATIC_OPTIONS) return STATIC_OPTIONS[source];
   if (source === 'sources') { // ТЗ v1.22.24
     const srcs = (settings.sources as Array<{ name: string; deletedAt?: string }>) || [];
