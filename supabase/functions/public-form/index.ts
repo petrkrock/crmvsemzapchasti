@@ -79,7 +79,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true }, // ТЗ v1.22.12: обязательное ИНН
+    { key: 'inn', label: 'ИНН', inputType: 'text', core: true }, // ТЗ v1.22.20: подпись без '*'; обязательность — через core
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
     { key: 'warehouseCount', label: 'Количество складов', inputType: 'number' },
@@ -99,7 +99,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН', inputType: 'text' }, // ТЗ v1.22.18: у ПОКУПАТЕЛЯ ИНН необязателен (как в карточке покупателя)
+    { key: 'inn', label: 'ИНН/ОГРНИП', inputType: 'text' }, // ТЗ v1.22.20: ИНН/ОГРНИП, необязателен (как в карточке покупателя)
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
     { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
@@ -504,8 +504,8 @@ async function handleSubmit(req: Request): Promise<Response> {
   // ТЗ v1.22.18: если БД старее schema.sql (нет новых колонок), полный INSERT падает с 500 —
   // повторяем вставку ядром гарантированных колонок, заявка не теряется.
   const CORE_KEYS: Record<string, string[]> = {
-    suppliers: ['type', 'trade_name', 'city', 'contact_name', 'phone', 'email', 'status', 'source', 'from_api', 'history'],
-    buyers: ['type', 'trade_name', 'city', 'contact_name', 'phone', 'email', 'status', 'source', 'from_api', 'history'],
+    suppliers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.20: inn переживает fallback
+    buyers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.20: inn переживает fallback
     tickets: ['type', 'status', 'text', 'contact_name', 'contact_phone', 'contact_email', 'from_api', 'history'],
   };
   const { error } = await client.from(table).insert([row]);
