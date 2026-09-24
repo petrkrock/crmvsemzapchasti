@@ -219,3 +219,37 @@
   .section-title { font-size: 0.75rem; }
   .stat-card .text-2xl { font-size: 1.05rem; }
 }
+
+/* ============================================================
+   ТЗ v1.22.36: однотонный минималистичный «салют» успеха
+   (экран успешной отправки публичных форм)
+   ============================================================ */
+.salute { position: relative; width: 56px; height: 56px; margin: 0 auto; }
+.salute::before {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 9999px;
+  background: #16a34a; animation: salute-core 1.8s ease-in-out infinite;
+}
+.salute i {
+  position: absolute; left: 50%; top: 50%;
+  width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 9999px;
+  background: #16a34a; opacity: 0;
+  animation: salute-pop 1.8s cubic-bezier(.2,.7,.3,1) infinite;
+}
+.salute i:nth-child(1) { --sx: -20px; --sy: -14px; }
+.salute i:nth-child(2) { --sx: -8px;  --sy: -24px; animation-delay: .08s; }
+.salute i:nth-child(3) { --sx: 8px;   --sy: -24px; animation-delay: .16s; }
+.salute i:nth-child(4) { --sx: 20px;  --sy: -14px; animation-delay: .24s; }
+.salute i:nth-child(5) { --sx: 24px;  --sy: 2px;   animation-delay: .32s; }
+.salute i:nth-child(6) { --sx: 12px;  --sy: 18px;  animation-delay: .40s; }
+.salute i:nth-child(7) { --sx: -12px; --sy: 18px;  animation-delay: .48s; }
+.salute i:nth-child(8) { --sx: -24px; --sy: 2px;   animation-delay: .56s; }
+@keyframes salute-pop {
+  0%   { transform: translate(0, 0) scale(.6); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translate(var(--sx), var(--sy)) scale(1); opacity: 0; }
+}
+@keyframes salute-core {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.5); opacity: .55; }
+}

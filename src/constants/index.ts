@@ -180,25 +180,29 @@ export const DEFAULT_FORM_CONSENT: FormConsentConfig = {
   documentLabel: 'Политика обработки персональных данных',
 };
 
-function defaultFormConfig(entityType: 'supplier' | 'buyer' | 'ticket', title: string, extraFields: string[]): FormConfig {
+function defaultFormConfig(entityType: 'supplier' | 'buyer' | 'ticket', title: string, extraFields: string[], successMessage?: string): FormConfig {
   return {
     entityType,
     enabled: true,
     title,
     consent: { ...DEFAULT_FORM_CONSENT },
     fields: extraFields.map(key => ({ key, required: false })),
-    successMessage: 'Спасибо! Заявка отправлена, мы свяжемся с вами в ближайшее время.',
+    successMessage: successMessage || 'Спасибо! Заявка отправлена, мы свяжемся с вами в ближайшее время.',
     errorMessage: 'Не удалось отправить форму. Проверьте заполненные поля и попробуйте ещё раз.',
     updatedAt: new Date().toISOString(),
   };
 }
 
 export const DEFAULT_FORM_CONFIGS = {
-  supplier: defaultFormConfig('supplier', 'Стать поставщиком', ['website', 'inn', 'contactRole', 'productGroups']),
-  buyer: defaultFormConfig('buyer', 'Заявка на сотрудничество', ['website', 'inn', 'contactRole']),
-  ticket: defaultFormConfig('ticket', 'Обратная связь', ['type', 'contactPhone', 'contactEmail']),
+  supplier: defaultFormConfig('supplier', 'Стать поставщиком', ['website', 'inn', 'contactRole', 'productGroups'],
+    'Поздравляем с успешной регистрацией на платформе!\n\nВ течение 24 часов мы отправим вам на почту Приглашение и ПИН-КОД для самостоятельной настройки вашего склада в системе.\n\nЭто будет просто - не переживайте! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.'), // ТЗ v1.22.36
+  buyer: defaultFormConfig('buyer', 'Заявка на сотрудничество', ['website', 'inn', 'contactRole'],
+    'Поздравляем с успешной регистрацией на платформе!\n\nВ течение 24 часов мы отправим вам на почту доступ в Ваш личный кабинет. Ожидайте! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.'), // ТЗ v1.22.37
+  ticket: defaultFormConfig('ticket', 'Обратная связь', ['type', 'contactPhone', 'contactEmail'],
+    'Благодарим за обращение!\n\nВаше сообщение уже в поддержке.\n\nОжидайте ответа! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.'), // ТЗ v1.22.37
   // v_1.9: Маркетинг-кит — анкета фиксированная: ТОЛЬКО ИНН (других полей нет)
-  marketingKit: { ...defaultFormConfig('marketingKit', 'Запросить Маркетинг-кит', []), fields: [] },
+  marketingKit: { ...defaultFormConfig('marketingKit', 'Запросить Маркетинг-кит', [],
+    'Благодарим за Ваш интерес! Маркетинг-кит уже в пути.\n\nОжидайте презентацию на почте! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.'), fields: [] }, // ТЗ v1.22.37
 };
 
 // v_1.9: системные статусы медиа — редактирование/удаление запрещены

@@ -162,7 +162,7 @@ async function loadFormConfig(client: ReturnType<typeof createClient>, type: Ent
     title: 'Маркетинг-кит',
     description: '',
     fields: [{ key: 'inn', required: true }],
-    successMessage: 'Заявка на Маркетинг-кит отправлена!',
+    successMessage: 'Благодарим за Ваш интерес! Маркетинг-кит уже в пути.\n\nОжидайте презентацию на почте! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.', // ТЗ v1.22.37
     errorMessage: 'Не удалось отправить заявку. Попробуйте позже.',
   };
   return { config: config ?? (type === 'marketingKit' ? DEFAULT_MK_CONFIG : null), settings };

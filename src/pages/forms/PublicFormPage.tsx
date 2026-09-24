@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Send, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, Send, ArrowLeft, ArrowRight } from 'lucide-react';
 
 type EntityType = 'supplier' | 'buyer' | 'ticket';
 
@@ -173,10 +173,9 @@ export default function PublicFormPage() {
 
         {!loading && !loadError && config && config.enabled && submitted && (
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-10 px-4 gap-2 animate-fade-in">
-            <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
-              <CheckCircle2 className="text-green-500" size={30} />
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed max-w-sm">{config.successMessage}</p>
+            {/* ТЗ v1.22.36: однотонный минималистичный «салют» вместо статичного круга */}
+            <div className="salute" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <p className="text-sm text-gray-700 leading-relaxed max-w-sm whitespace-pre-line">{config.successMessage}</p>
           </div>
         )}
 
