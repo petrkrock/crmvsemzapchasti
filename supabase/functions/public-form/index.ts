@@ -81,7 +81,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'website', label: 'Сайт', inputType: 'text' },
     { key: 'inn', label: 'ИНН', inputType: 'text', core: true }, // ТЗ v1.22.20: подпись без '*'; обязательность — через core
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
-    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
+    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect' // ТЗ v1.22.27: как «Товарные группы» в карточках, optionsSource: 'contactPrefs' },
     { key: 'warehouseCount', label: 'Количество складов', inputType: 'number' },
     { key: 'skuCount', label: 'Количество SKU', inputType: 'number' },
     { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
@@ -102,7 +102,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'website', label: 'Сайт', inputType: 'text' },
     { key: 'inn', label: 'ИНН/ОГРНИП', inputType: 'text' }, // ТЗ v1.22.20: ИНН/ОГРНИП, необязателен (как в карточке покупателя)
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
-    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
+    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect' // ТЗ v1.22.27: как «Товарные группы» в карточках, optionsSource: 'contactPrefs' },
     { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
     { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: источник из справочника «Источники привлечения»
     { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' }, // ТЗ v1.22.25: только комментарии категорий
@@ -473,12 +473,13 @@ async function handleSubmit(req: Request): Promise<Response> {
       email: clean.email,
       status: 'Новый с сайта',
       source: (typeof clean.source === 'string' && clean.source) ? clean.source : 'Форма с сайта', // ТЗ v1.22.24: источник из формы, иначе канал «Форма с сайта»
-      contact_prefs: clean.contactPref ? [clean.contactPref] : [],
+      contact_prefs: Array.isArray(clean.contactPref) ? clean.contactPref : (clean.contactPref ? [clean.contactPref] : []), // ТЗ v1.22.27: мультивыбор
       warehouse_count: clean.warehouseCount ? Number(clean.warehouseCount) : null,
       sku_count: clean.skuCount ? Number(clean.skuCount) : null,
       product_groups: Array.isArray(clean.productGroups) ? clean.productGroups : [],
       own_brands: typeof clean.ownBrands === 'string' ? clean.ownBrands.split(',').map(s => s.trim()).filter(Boolean) : [],
       services: Array.isArray(clean.services) ? clean.services : [],
+      service_search: [{ city: clean.city || '', status: 'Новое' }], // ТЗ v1.22.27: сервис продаж DBS по умолчанию
       comment: clean.comment ?? null,
       additional_contacts: clean.additionalContacts ?? null,
       from_api: true,
@@ -559,8 +560,8 @@ async function handleSubmit(req: Request): Promise<Response> {
   // ТЗ v1.22.18: если БД старее schema.sql (нет новых колонок), полный INSERT падает с 500 —
   // повторяем вставку ядром гарантированных колонок, заявка не теряется.
   const CORE_KEYS: Record<string, string[]> = {
-    suppliers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.20: inn переживает fallback
-    buyers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.20: inn переживает fallback
+    suppliers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'contact_role', 'contact_prefs', 'product_groups', 'own_brands', 'service_search', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.27: поля анкеты переживают fallback
+    buyers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'contact_role', 'contact_prefs', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.27: поля анкеты переживают fallback
     tickets: ['type', 'status', 'text', 'contact_name', 'contact_phone', 'contact_email', 'from_api', 'history'],
   };
   const { error } = await client.from(table).insert([row]);
