@@ -105,7 +105,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
     { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
     { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: источник из справочника «Источники привлечения»
-    { key: 'category', label: 'Категория (A/B/C)', inputType: 'select', optionsSource: 'abcCategories' }, // ТЗ v1.22.23
+    { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' }, // ТЗ v1.22.25: только комментарии категорий
     { key: 'comment', label: 'Комментарий', inputType: 'textarea' },
     { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
   ],
@@ -181,6 +181,10 @@ function resolveOptions(source: string | undefined, settings: Record<string, unk
   if (source === 'sources') { // ТЗ v1.22.24
     const srcs = (settings.sources as Array<{ name: string; deletedAt?: string }>) || [];
     return srcs.filter(x => !x.deletedAt).map(x => x.name);
+  }
+  if (source === 'buyerCategoryComments') { // ТЗ v1.22.25
+    const c = (settings.buyerCategoryComment as Record<string, string>) || { A: '1 500 000 и больше', B: '500 000 – 1 500 000', C: '50 000 – 500 000' };
+    return ['A', 'B', 'C'].map(k => c[k]).filter(Boolean); // выводим ТОЛЬКО комментарий
   }
   if (source === 'supplierTypes') return (settings.supplierTypes as string[]) || [];
   if (source === 'buyerTypes') return (settings.buyerTypes as string[]) || [];
@@ -491,7 +495,12 @@ async function handleSubmit(req: Request): Promise<Response> {
       contact_prefs: Array.isArray(clean.contactPref) ? clean.contactPref : (clean.contactPref ? [clean.contactPref] : []),
       locations_count: clean.locationCount ? Number(clean.locationCount) : null,
       comment: clean.comment ?? null,
-      category: ['A', 'B', 'C'].includes(String(clean.category)) ? String(clean.category) : undefined, // ТЗ v1.22.23
+      // ТЗ v1.22.25: в форме выбран комментарий (оборот) — маппим обратно на букву категории
+      category: (() => {
+        const cc = (settings.buyerCategoryComment as Record<string, string>) || { A: '1 500 000 и больше', B: '500 000 – 1 500 000', C: '50 000 – 500 000' };
+        const byComment = ['A', 'B', 'C'].find(k => cc[k] === clean.category);
+        return byComment ?? (['A', 'B', 'C'].includes(String(clean.category)) ? String(clean.category) : undefined);
+      })(),
       additional_contacts: clean.additionalContacts ?? null,
       from_api: true,
       history: [{ id: crypto.randomUUID(), date: nowIso, field: 'создание', oldValue: undefined, newValue: 'Заявка с сайта', comment: undefined, userId: 'public-form', userName: 'Форма с сайта' }],

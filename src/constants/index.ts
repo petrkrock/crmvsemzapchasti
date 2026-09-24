@@ -128,7 +128,7 @@ export interface FormFieldDefinition {
   label: string;
   inputType: FormFieldInputType;
   core?: boolean; // always included + always required — DB NOT NULL column
-  optionsSource?: 'supplierTypes' | 'buyerTypes' | 'productGroups' | 'supplierServices' | 'roleTypes' | 'contactPrefs' | 'ticketTypes' | 'abcCategories' | 'sources';
+  optionsSource?: 'supplierTypes' | 'buyerTypes' | 'productGroups' | 'supplierServices' | 'roleTypes' | 'contactPrefs' | 'ticketTypes' | 'abcCategories' | 'sources' | 'buyerCategoryComments';
 }
 
 export const FORM_FIELD_DEFINITIONS: Record<'supplier' | 'buyer' | 'ticket', FormFieldDefinition[]> = {
@@ -167,7 +167,7 @@ export const FORM_FIELD_DEFINITIONS: Record<'supplier' | 'buyer' | 'ticket', For
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
     { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
     { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: реальный источник из справочника
-    { key: 'category', label: 'Категория (A/B/C)', inputType: 'select', optionsSource: 'abcCategories' }, // ТЗ v1.22.23
+    { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' }, // ТЗ v1.22.25: только комментарии категорий
     { key: 'comment', label: 'Комментарий', inputType: 'textarea' },
     { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
   ],
