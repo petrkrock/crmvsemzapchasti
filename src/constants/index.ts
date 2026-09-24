@@ -135,11 +135,11 @@ export interface FormFieldDefinition {
 export const FORM_FIELD_DEFINITIONS: Record<'supplier' | 'buyer' | 'ticket', FormFieldDefinition[]> = {
   supplier: [
     { key: 'tradeName', label: 'Торговое название компании', inputType: 'text', core: true }, // ТЗ v1.22.29
-    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true },
+    { key: 'inn', label: 'ИНН', inputType: 'text', core: true }, // ТЗ v1.22.32: подпись без '*'; обязательность — через core
     { key: 'type', label: 'Тип', inputType: 'select', core: true, optionsSource: 'supplierTypes' },
     { key: 'city', label: 'Город ЦС', inputType: 'text', core: true }, // ТЗ v1.22.29
     { key: 'contactName', label: 'Контактное лицо', inputType: 'text', core: true },
-    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
+    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes', alwaysShow: true }, // ТЗ v1.22.32: всегда в форме, но необязательно
     { key: 'phone', label: 'Телефон', inputType: 'tel', core: true },
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'website', label: 'Сайт', inputType: 'text' },
@@ -154,23 +154,23 @@ export const FORM_FIELD_DEFINITIONS: Record<'supplier' | 'buyer' | 'ticket', For
     { key: 'type', label: 'Тип', inputType: 'select', core: true, optionsSource: 'buyerTypes' },
     { key: 'city', label: 'Город нахождения', inputType: 'text', core: true }, // ТЗ v1.22.31
     { key: 'contactName', label: 'Контактное лицо', inputType: 'text', core: true },
-    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
+    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes', alwaysShow: true }, // ТЗ v1.22.32: всегда в форме, но необязательно
     { key: 'phone', label: 'Телефон', inputType: 'tel', core: true },
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'website', label: 'Сайт', inputType: 'text' },
     { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
-    { key: 'locationCount', label: 'Количество торговых точек', inputType: 'number', defaultValue: 1 }, // ТЗ v1.22.31: по умолчанию 1
+    { key: 'locationCount', label: 'Количество торговых точек', inputType: 'number', defaultValue: 1, alwaysShow: true }, // ТЗ v1.22.32 // ТЗ v1.22.31: по умолчанию 1
     { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' },
   ],
   // Форма сайта (новая): без ответственного и выбора из списка — только контакт, тип, текст, способ связи
   ticket: [
-    { key: 'contactName', label: 'Имя контакта', inputType: 'text' },
+    { key: 'type', label: 'Тип обращения', inputType: 'select', optionsSource: 'ticketTypes', core: true }, // ТЗ v1.22.32: первым и обязательным
+    { key: 'contactName', label: 'Контактное лицо', inputType: 'text' },
     { key: 'contactPhone', label: 'Телефон', inputType: 'tel' },
     { key: 'contactEmail', label: 'Email', inputType: 'email' },
-    { key: 'type', label: 'Тип обращения', inputType: 'select', optionsSource: 'ticketTypes' },
+    { key: 'contactPref', label: 'Способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' }, // ТЗ v1.22.32: как в формах поставщик/покупатель
     { key: 'text', label: 'Текст обращения', inputType: 'textarea', core: true },
-    { key: 'contactPref', label: 'Способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
   ],
 };
 

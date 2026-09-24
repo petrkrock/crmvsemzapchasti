@@ -66,6 +66,7 @@ interface FieldDef {
   inputType: 'text' | 'textarea' | 'tel' | 'email' | 'number' | 'select' | 'multiselect';
   core?: boolean;
   defaultValue?: string | number; // ТЗ v1.22.31: предзаполнение поля (например, торговые точки = 1)
+  alwaysShow?: boolean; // ТЗ v1.22.32: показывать в форме всегда (необязательное)
   optionsSource?: 'supplierTypes' | 'buyerTypes' | 'productGroups' | 'supplierServices' | 'roleTypes' | 'contactPrefs' | 'ticketTypes';
 }
 
@@ -73,11 +74,11 @@ interface FieldDef {
 const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
   supplier: [
     { key: 'tradeName', label: 'Торговое название компании', inputType: 'text', core: true }, // ТЗ v1.22.29
-    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true },
+    { key: 'inn', label: 'ИНН', inputType: 'text', core: true }, // ТЗ v1.22.32: подпись без '*'; обязательность — через core
     { key: 'type', label: 'Тип', inputType: 'select', core: true, optionsSource: 'supplierTypes' },
     { key: 'city', label: 'Город ЦС', inputType: 'text', core: true }, // ТЗ v1.22.29
     { key: 'contactName', label: 'Контактное лицо', inputType: 'text', core: true },
-    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
+    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes', alwaysShow: true }, // ТЗ v1.22.32: всегда в форме, но необязательно
     { key: 'phone', label: 'Телефон', inputType: 'tel', core: true },
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'website', label: 'Сайт', inputType: 'text' },
@@ -92,25 +93,25 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'type', label: 'Тип', inputType: 'select', core: true, optionsSource: 'buyerTypes' },
     { key: 'city', label: 'Город нахождения', inputType: 'text', core: true }, // ТЗ v1.22.31
     { key: 'contactName', label: 'Контактное лицо', inputType: 'text', core: true },
-    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
+    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes', alwaysShow: true }, // ТЗ v1.22.32: всегда в форме, но необязательно
     { key: 'phone', label: 'Телефон', inputType: 'tel', core: true },
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'website', label: 'Сайт', inputType: 'text' },
     { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
-    { key: 'locationCount', label: 'Количество торговых точек', inputType: 'number', defaultValue: 1 }, // ТЗ v1.22.31: по умолчанию 1
+    { key: 'locationCount', label: 'Количество торговых точек', inputType: 'number', defaultValue: 1, alwaysShow: true }, // ТЗ v1.22.32 // ТЗ v1.22.31: по умолчанию 1
     { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' },
   ],
   // Форма сайта (новая, ТЗ): контакт, тип, текст*, способ связи.
   // Ответственного и выбора из списка на сайте НЕТ. Синхронизировать с
   // FORM_FIELD_DEFINITIONS.ticket в src/constants/index.ts (keep in sync by hand).
   ticket: [
-    { key: 'contactName', label: 'Имя контакта', inputType: 'text' },
+    { key: 'type', label: 'Тип обращения', inputType: 'select', optionsSource: 'ticketTypes', core: true }, // ТЗ v1.22.32: первым и обязательным
+    { key: 'contactName', label: 'Контактное лицо', inputType: 'text' },
     { key: 'contactPhone', label: 'Телефон', inputType: 'tel' },
     { key: 'contactEmail', label: 'Email', inputType: 'email' },
-    { key: 'type', label: 'Тип обращения', inputType: 'select', optionsSource: 'ticketTypes' },
+    { key: 'contactPref', label: 'Способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' }, // ТЗ v1.22.32: как в формах поставщик/покупатель
     { key: 'text', label: 'Текст обращения', inputType: 'textarea', core: true },
-    { key: 'contactPref', label: 'Способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
   ],
   // v_1.9: Маркетинг-кит — анкета фиксированная: ТОЛЬКО ИНН (других полей нет)
   marketingKit: [
@@ -219,7 +220,7 @@ async function handleGetConfig(req: Request): Promise<Response> {
   const requiredKeys = new Set(config.fields.filter(f => f.required).map(f => f.key));
 
   const fields = FIELD_DEFS[type]
-    .filter(def => def.core || chosenKeys.has(def.key))
+    .filter(def => def.core || def.alwaysShow || chosenKeys.has(def.key)) // ТЗ v1.22.32: alwaysShow-поля всегда в форме
     .map(def => ({
       key: def.key,
       label: def.label,
