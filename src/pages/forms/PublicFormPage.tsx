@@ -306,21 +306,21 @@ export default function PublicFormPage() {
               </button>
             )}
             {(!isWizard || step === 2) && (
+              <>
+                {submitError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{submitError}</p>}
 
-
-            {submitError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{submitError}</p>}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold text-sm rounded-xl py-2 px-4 transition-colors duration-150 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <><Loader2 className="animate-spin" size={16} /> Отправка...</>
-              ) : (
-                <><Send size={15} /> Отправить</>
-              )}
-            </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold text-sm rounded-xl py-2 px-4 transition-colors duration-150 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <><Loader2 className="animate-spin" size={16} /> Отправка...</>
+                  ) : (
+                    <><Send size={15} /> Отправить</>
+                  )}
+                </button>
+              </>
             )}
           </form>
         )}
