@@ -71,25 +71,19 @@ interface FieldDef {
 // Keep in sync with src/constants/index.ts FORM_FIELD_DEFINITIONS.
 const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
   supplier: [
-    { key: 'tradeName', label: 'Название компании', inputType: 'text', core: true },
+    { key: 'tradeName', label: 'Торговое название компании', inputType: 'text', core: true }, // ТЗ v1.22.29
+    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true },
     { key: 'type', label: 'Тип', inputType: 'select', core: true, optionsSource: 'supplierTypes' },
-    { key: 'city', label: 'Город', inputType: 'text', core: true },
+    { key: 'city', label: 'Город ЦС', inputType: 'text', core: true }, // ТЗ v1.22.29
     { key: 'contactName', label: 'Контактное лицо', inputType: 'text', core: true },
+    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'phone', label: 'Телефон', inputType: 'tel', core: true },
     { key: 'email', label: 'Email', inputType: 'email', core: true },
-    { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН', inputType: 'text', core: true }, // ТЗ v1.22.20: подпись без '*'; обязательность — через core
-    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
-    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' }, // ТЗ v1.22.27: как «Товарные группы» в карточках
-    { key: 'warehouseCount', label: 'Количество складов', inputType: 'number' },
-    { key: 'skuCount', label: 'Количество SKU', inputType: 'number' },
-    { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
+    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' },
+    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
     { key: 'ownBrands', label: 'Собственные бренды (через запятую)', inputType: 'text' },
-    { key: 'services', label: 'Услуги', inputType: 'multiselect', optionsSource: 'supplierServices' },
-    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: источник из справочника «Источники привлечения»
-    { key: 'comment', label: 'Комментарий', inputType: 'textarea' },
-    { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
+    { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
   ],
   buyer: [
     { key: 'tradeName', label: 'Название компании', inputType: 'text', core: true },
@@ -183,6 +177,12 @@ function resolveOptions(source: string | undefined, settings: Record<string, unk
     const cp = settings.contactPrefs as string[] | undefined;
     if (Array.isArray(cp) && cp.length) return cp;
     return STATIC_OPTIONS.contactPrefs;
+  }
+  // ТЗ v1.22.30: «Должность контакта» — из справочника Настройки → Источники → Роль
+  if (source === 'roleTypes') {
+    const rt = settings.roleTypes as string[] | undefined;
+    if (Array.isArray(rt) && rt.length) return rt;
+    return STATIC_OPTIONS.roleTypes;
   }
   if (source in STATIC_OPTIONS) return STATIC_OPTIONS[source];
   if (source === 'sources') { // ТЗ v1.22.24

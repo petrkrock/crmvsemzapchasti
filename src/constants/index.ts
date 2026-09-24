@@ -133,25 +133,19 @@ export interface FormFieldDefinition {
 
 export const FORM_FIELD_DEFINITIONS: Record<'supplier' | 'buyer' | 'ticket', FormFieldDefinition[]> = {
   supplier: [
-    { key: 'tradeName', label: 'Название компании', inputType: 'text', core: true },
+    { key: 'tradeName', label: 'Торговое название компании', inputType: 'text', core: true }, // ТЗ v1.22.29
+    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true },
     { key: 'type', label: 'Тип', inputType: 'select', core: true, optionsSource: 'supplierTypes' },
-    { key: 'city', label: 'Город', inputType: 'text', core: true },
+    { key: 'city', label: 'Город ЦС', inputType: 'text', core: true }, // ТЗ v1.22.29
     { key: 'contactName', label: 'Контактное лицо', inputType: 'text', core: true },
+    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'phone', label: 'Телефон', inputType: 'tel', core: true },
     { key: 'email', label: 'Email', inputType: 'email', core: true },
-    { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true }, // v_1.9: обязательное, как в программе
-    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
+    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
-    { key: 'warehouseCount', label: 'Количество складов', inputType: 'number' },
-    { key: 'skuCount', label: 'Количество SKU', inputType: 'number' },
-    { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
     { key: 'ownBrands', label: 'Собственные бренды (через запятую)', inputType: 'text' },
-    { key: 'services', label: 'Услуги', inputType: 'multiselect', optionsSource: 'supplierServices' },
-    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: реальный источник из справочника
-    { key: 'comment', label: 'Комментарий', inputType: 'textarea' },
-    { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
+    { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
   ],
   buyer: [
     { key: 'tradeName', label: 'Название компании', inputType: 'text', core: true },

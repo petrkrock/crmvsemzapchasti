@@ -375,6 +375,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     else {
       const sysMissing = SYSTEM_CONTACT_PREFS.filter(x => !settings.contactPrefs!.some(p => p.toLowerCase() === x));
       if (sysMissing.length) settings.contactPrefs = [...sysMissing, ...settings.contactPrefs];
+      // ТЗ v1.22.30: справочник ролей контактов (редактируемый)
+      if (!Array.isArray(settings.roleTypes) || !settings.roleTypes.length) settings.roleTypes = ['Директор', 'Менеджер', 'Собственник', 'РОП', 'ТП'];
     }
 
     // Приветствие поставщику: дефолтный шаблон, если пусто/отсутствует

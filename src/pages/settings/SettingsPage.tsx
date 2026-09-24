@@ -40,7 +40,7 @@ const MEDIA_SUB_TABS = ['Форматы и тарифы', 'Статусы мед
 function itemInUse(
   kind: 'status' | 'service' | 'user' | 'city' | 'supplierType' | 'buyerType' | 'ticketType' |
         'productGroup' | 'source' | 'taskType' | 'taskEntityType' | 'adType' | 'durationOption' | 'mediaStatus' |
-        'contactPref',
+        'contactPref' | 'roleType', // ТЗ v1.22.30
   v: string,
   alt?: string,
 ): boolean {
@@ -86,7 +86,12 @@ function itemInUse(
     case 'adType': return hit(...(s.mediaRecords || []).filter(m => !m.deletedAt).flatMap(m => [m.adTypeId, m.adTypeName]));
     case 'durationOption': return hit(...(s.mediaRecords || []).filter(m => !m.deletedAt).map(m => m.durationOptionId));
     case 'mediaStatus': return hit(...(s.mediaRecords || []).filter(m => !m.deletedAt).map(m => m.status));
-    case 'contactPref':
+        case 'roleType': // ТЗ v1.22.30: «Должность контакта» в карточках
+      return hit(
+        ...s.suppliers.filter(x => !x.deletedAt).map(x => x.contactRole),
+        ...s.buyers.filter(x => !x.deletedAt).map(x => x.contactRole),
+      );
+case 'contactPref':
       return hit(
         ...s.suppliers.filter(x => !x.deletedAt).map(x => x.contactPref),
         ...s.buyers.filter(x => !x.deletedAt).map(x => x.contactPref),
@@ -353,6 +358,7 @@ const [tab, setTab] = useState('Статусы');
   // ── SOURCES ──
   const [newSourceName, setNewSourceName] = useState('');
   const [newContactPref, setNewContactPref] = useState('');
+  const [newRoleType, setNewRoleType] = useState(''); // ТЗ v1.22.30
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [editSourceForm, setEditSourceForm] = useState<Partial<Source>>({});
   function addSource() { const name = newSourceName.trim(); if (!name) return; const now = new Date().toISOString(); updateStore(s => ({ ...s, settings: { ...s.settings, sources: [...(s.settings.sources || []), { id: generateId(), name, createdAt: now, updatedAt: now }] } })); setNewSourceName(''); forceUpdate(n => n + 1); toast.success('Источник добавлен'); }
@@ -1178,6 +1184,37 @@ const [tab, setTab] = useState('Статусы');
                     if (!v) { toast.error('Введите название'); return; }
                     updateStore(s => ({ ...s, settings: { ...s.settings, contactPrefs: [...(s.settings.contactPrefs || []), v] } }));
                     setNewContactPref(''); forceUpdate(n => n + 1);
+                  }} className="btn-primary text-xs"><Plus size={14} /> Добавить</button>
+                </div>
+              </div>
+
+              {/* ТЗ v1.22.30: РОЛИ КОНТАКТОВ — справочник для карточек и форм сайта «Должность контакта» */}
+              <div className="card-base p-4 space-y-3">
+                <h4 className="text-sm font-semibold">Роль</h4>
+                <p className="text-xs text-gray-400">Роли контактов для выпадающих списков «Должность контакта» в карточках поставщиков/покупателей и в формах для сайта. Названия можно редактировать.</p>
+                <div className="space-y-2">
+                  {(freshStore.settings.roleTypes || []).map((rt, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input className="form-input text-sm" value={rt} onChange={e => {
+                        const next = [...(freshStore.settings.roleTypes || [])];
+                        next[idx] = e.target.value;
+                        updateStore(s => ({ ...s, settings: { ...s.settings, roleTypes: next } }));
+                        forceUpdate(n => n + 1);
+                      }} />
+                      <GuardedDelete inUse={itemInUse('roleType', rt)} onClick={() => {
+                        updateStore(s => ({ ...s, settings: { ...s.settings, roleTypes: (s.settings.roleTypes || []).filter((_, i) => i !== idx) } }));
+                        forceUpdate(n => n + 1);
+                      }} title={rt} />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input className="form-input text-sm" placeholder="Новая роль" value={newRoleType} onChange={e => setNewRoleType(e.target.value)} />
+                  <button onClick={() => {
+                    const v = newRoleType.trim();
+                    if (!v) { toast.error('Введите название'); return; }
+                    updateStore(s => ({ ...s, settings: { ...s.settings, roleTypes: [...(s.settings.roleTypes || []), v] } }));
+                    setNewRoleType(''); forceUpdate(n => n + 1);
                   }} className="btn-primary text-xs"><Plus size={14} /> Добавить</button>
                 </div>
               </div>

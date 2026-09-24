@@ -611,6 +611,8 @@ export interface AppSettings {
   taskTypes?: string[];
   /** Способы связи («Связь») — редактируются в Настройки → Источники; константа CONTACT_PREFS — фолбэк */
   contactPrefs?: string[];
+  /** Роли контактов (ТЗ v1.22.30): справочник Настройки → Источники → «Роль». Директор, Менеджер, Собственник, РОП, ТП — названия редактируемые. */
+  roleTypes?: string[];
   /** Шаблоны приветствий (Настройки → Приветствия) */
   greetings?: { supplier?: string };
   mediaAdTypes: MediaAdType[];
