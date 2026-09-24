@@ -298,6 +298,21 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     }
     // v_1.9: форма «Запросить Маркетинг-кит» (merge для существующих баз)
     settings.forms = { marketingKit: (DEFAULT_FORM_CONFIGS as Record<string, FormConfig>).marketingKit, ...(settings.forms as Record<string, FormConfig>) };
+    // ТЗ v1.22.38: миграция системных текстов успеха — старые сохранённые конфиги
+    // перекрывали новые дефолты, поэтому тексты «не обновлялись».
+    const NEW_SUCCESS: Record<string, string> = {
+      supplier: 'Поздравляем с успешной регистрацией на платформе!\n\nВ течение 24 часов мы отправим вам на почту Приглашение и ПИН-КОД для самостоятельной настройки вашего склада в системе.\n\nЭто будет просто - не переживайте! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.',
+      buyer: 'Поздравляем с успешной регистрацией на платформе!\n\nВ течение 24 часов мы отправим вам на почту доступ в Ваш личный кабинет. Ожидайте! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.',
+      ticket: 'Благодарим за обращение!\n\nВаше сообщение уже в поддержке.\n\nОжидайте ответа! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.',
+      marketingKit: 'Благодарим за Ваш интерес! Маркетинг-кит уже в пути.\n\nОжидайте презентацию на почте! Если что, мы всегда рядом.\n\nС уважением, команда ВсемЗапчасти.',
+    };
+    const OLD_GENERIC = ['Спасибо! Заявка отправлена, мы свяжемся с вами в ближайшее время.', 'Заявка на Маркетинг-кит отправлена!', ''];
+    (Object.keys(settings.forms) as string[]).forEach(k => {
+      const cfg = settings.forms[k] as FormConfig | undefined;
+      if (cfg && OLD_GENERIC.includes((cfg.successMessage || '').trim()) && NEW_SUCCESS[k]) {
+        cfg.successMessage = NEW_SUCCESS[k];
+      }
+    });
     // Согласие на обработку ПДн: у старых конфигов его нет — подставляем дефолт
     (Object.keys(settings.forms) as Array<'supplier' | 'buyer' | 'ticket' | 'marketingKit'>).forEach(k => {
       const cfg = settings.forms[k] as FormConfig & { consent?: FormConsentConfig };

@@ -585,6 +585,10 @@ async function handleSubmit(req: Request): Promise<Response> {
       savedId = ins3.data?.[0]?.id ?? null;
       if (ins3.error) {
         console.error('[public-form] insert failed (all 3 levels):', ins3.error, '| core error:', ins2.error.message, '| full error:', ins1.error.message);
+        // ТЗ v1.22.38: дебаг-режим — секрет PUBLIC_FORM_DEBUG=1 временно показывает точную ошибку Postgres
+        if (Deno.env.get('PUBLIC_FORM_DEBUG') === '1') {
+          return json({ error: 'Не удалось сохранить заявку', debug: String((ins3.error as { message?: string }).message || ins3.error) }, 500);
+        }
         return json({ error: 'Не удалось сохранить заявку' }, 500);
       }
       console.error('[public-form] core insert failed, saved minimal-only. Missing columns? Core error:', ins2.error.message);
