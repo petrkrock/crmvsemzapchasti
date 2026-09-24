@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Send } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Send, ArrowLeft, ArrowRight } from 'lucide-react';
 
 type EntityType = 'supplier' | 'buyer' | 'ticket';
 
@@ -59,8 +59,17 @@ export default function PublicFormPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [step, setStep] = useState(1); // ТЗ v1.22.34: пошаговый мастер (поставщик/покупатель)
+  const [stepError, setStepError] = useState('');
   const renderedAtRef = useRef(Date.now());
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // ТЗ v1.22.34: формы поставщика/покупателя делим на два равных шага
+  const isWizard = type === 'supplier' || type === 'buyer';
+  const halfIdx = config && isWizard ? Math.ceil(config.fields.length / 2) : 0;
+  const stepFields = !config
+    ? []
+    : (isWizard ? (step === 1 ? config.fields.slice(0, halfIdx) : config.fields.slice(halfIdx)) : config.fields);
 
   useEffect(() => {
     if (!isValidType || !isSupabaseConfigured()) { setLoading(false); setLoadError(true); return; }
@@ -89,6 +98,18 @@ export default function PublicFormPage() {
   function setValue(key: string, value: string | string[]) {
     setValues(v => ({ ...v, [key]: value }));
   }
+
+  // ТЗ v1.22.34: переход на шаг 2 с проверкой обязательных полей текущего шага
+  const isEmptyVal = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
+  const goNext = () => {
+    const missing = stepFields.filter(f => f.required && isEmptyVal(values[f.key]));
+    if (missing.length) {
+      setStepError(`Заполните обязательные поля: ${missing.map(f => f.label).join(', ')}`);
+      return;
+    }
+    setStepError('');
+    setStep(2);
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -161,6 +182,14 @@ export default function PublicFormPage() {
 
         {!loading && !loadError && config && config.enabled && !submitted && (
           <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 space-y-2">
+            {isWizard && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Шаг {step} из 2</span>
+                <div className="flex gap-1">
+                  {[1, 2].map(s => <span key={s} className={`h-1.5 w-6 rounded-full ${s <= step ? 'bg-red-600' : 'bg-gray-200'}`} />)}
+                </div>
+              </div>
+            )}
             {/* Заголовок с красным акцентом */}
             <div className="pb-2.5 border-b border-gray-100">
               <div className="w-8 h-1 rounded-full bg-red-600 mb-2" />
@@ -168,7 +197,7 @@ export default function PublicFormPage() {
               {config.description && <p className="text-sm text-gray-500 mt-1 leading-snug">{config.description}</p>}
             </div>
 
-            {config.fields.map(field => (
+            {stepFields.map(field => (
               <div key={field.key}>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
                   {field.label}{field.required && <span className="text-red-500 normal-case"> *</span>}
@@ -235,6 +264,7 @@ export default function PublicFormPage() {
             </div>
 
             {/* Согласие на обработку персональных данных — обязательная галочка */}
+            {(!isWizard || step === 2) && (
             <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5">
               <label className="flex items-start gap-2 cursor-pointer select-none">
                 <input
@@ -253,6 +283,30 @@ export default function PublicFormPage() {
                 </span>
               </label>
             </div>
+            )}
+
+            {stepError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{stepError}</p>}
+
+            {isWizard && step === 1 && (
+              <button
+                type="button"
+                onClick={goNext}
+                className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold text-sm rounded-xl py-2 px-4 transition-colors duration-150 flex items-center justify-center gap-2"
+              >
+                Далее <ArrowRight size={15} />
+              </button>
+            )}
+            {isWizard && step === 2 && (
+              <button
+                type="button"
+                onClick={() => { setStep(1); setStepError(''); }}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold text-sm rounded-xl py-2 px-4 transition-colors duration-150 flex items-center justify-center gap-2"
+              >
+                <ArrowLeft size={15} /> Назад
+              </button>
+            )}
+            {(!isWizard || step === 2) && (
+
 
             {submitError && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{submitError}</p>}
 
@@ -267,6 +321,7 @@ export default function PublicFormPage() {
                 <><Send size={15} /> Отправить</>
               )}
             </button>
+            )}
           </form>
         )}
       </div>

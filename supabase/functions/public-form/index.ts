@@ -479,7 +479,6 @@ async function handleSubmit(req: Request): Promise<Response> {
       product_groups: Array.isArray(clean.productGroups) ? clean.productGroups : [],
       own_brands: typeof clean.ownBrands === 'string' ? clean.ownBrands.split(',').map(s => s.trim()).filter(Boolean) : [],
       services: Array.isArray(clean.services) ? clean.services : [],
-      service_search: [{ city: clean.city || '', status: 'Новое' }], // ТЗ v1.22.27: сервис продаж DBS по умолчанию
       comment: clean.comment ?? null,
       additional_contacts: clean.additionalContacts ?? null,
       from_api: true,
@@ -560,33 +559,45 @@ async function handleSubmit(req: Request): Promise<Response> {
   // ТЗ v1.22.18: если БД старее schema.sql (нет новых колонок), полный INSERT падает с 500 —
   // повторяем вставку ядром гарантированных колонок, заявка не теряется.
   const CORE_KEYS: Record<string, string[]> = {
-    suppliers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'contact_role', 'contact_prefs', 'product_groups', 'own_brands', 'service_search', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.27: поля анкеты переживают fallback
-    buyers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'contact_role', 'contact_prefs', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.27: поля анкеты переживают fallback
+    suppliers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'website', 'contact_role', 'contact_prefs', 'product_groups', 'own_brands', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.33: +website (переживает fallback)
+    buyers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'website', 'contact_role', 'contact_prefs', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.33: +website (переживает fallback)
     tickets: ['type', 'status', 'text', 'contact_name', 'contact_phone', 'contact_email', 'from_api', 'history'],
   };
-  const { error } = await client.from(table).insert([row]);
-  if (error) {
+  let savedId: string | null = null;
+  const ins1 = await client.from(table).insert([row]).select('id');
+  savedId = ins1.data?.[0]?.id ?? null;
+  if (ins1.error) {
     // Уровень 1: ядро гарантированных колонок
     const coreRow = Object.fromEntries(Object.entries(row).filter(([k]) => (CORE_KEYS[table] || []).includes(k)));
-    const retry = await client.from(table).insert([coreRow]);
-    if (!retry.error) {
-      console.error('[public-form] full insert failed, saved core-only. Missing columns? Full error:', error.message);
+    const ins2 = await client.from(table).insert([coreRow]).select('id');
+    savedId = ins2.data?.[0]?.id ?? null;
+    if (!ins2.error) {
+      console.error('[public-form] full insert failed, saved core-only. Missing columns? Full error:', ins1.error.message);
     } else {
-      // Уровень 2 (ТЗ v1.22.19): минимум без которого заявка бессмысленна — часть БД
-      // старше schema.sql и не имеет даже contact_*/from_api/history.
+      // Уровень 2 (ТЗ v1.22.19): минимум без которого заявка бессмысленна
       const MIN_KEYS: Record<string, string[]> = {
         suppliers: ['type', 'trade_name', 'city', 'status', 'source'],
         buyers: ['type', 'trade_name', 'city', 'status', 'source'],
         tickets: ['type', 'status', 'text'],
       };
       const minRow = Object.fromEntries(Object.entries(row).filter(([k]) => (MIN_KEYS[table] || []).includes(k)));
-      const retry2 = await client.from(table).insert([minRow]);
-      if (retry2.error) {
-        console.error('[public-form] insert failed (all 3 levels):', retry2.error, '| core error:', retry.error.message, '| full error:', error.message);
+      const ins3 = await client.from(table).insert([minRow]).select('id');
+      savedId = ins3.data?.[0]?.id ?? null;
+      if (ins3.error) {
+        console.error('[public-form] insert failed (all 3 levels):', ins3.error, '| core error:', ins2.error.message, '| full error:', ins1.error.message);
         return json({ error: 'Не удалось сохранить заявку' }, 500);
       }
-      console.error('[public-form] core insert failed, saved minimal-only. Missing columns? Core error:', retry.error.message);
+      console.error('[public-form] core insert failed, saved minimal-only. Missing columns? Core error:', ins2.error.message);
     }
+  }
+  // ТЗ v1.22.33: сервис продаж DBS по умолчанию — ОТДЕЛЬНЫМ best-effort UPDATE:
+  // колонки service_search может не быть в старых БД, и она не должна ломать основную запись.
+  // Условие создаём ТОЛЬКО при известном городе — иначе в карточке появлялось пустое условие.
+  if (table === 'suppliers' && savedId && clean.city) {
+    const { error: dbsErr } = await client.from('suppliers')
+      .update({ service_search: [{ city: String(clean.city), status: 'Новое' }] })
+      .eq('id', savedId);
+    if (dbsErr) console.error('[public-form] DBS default skipped:', dbsErr.message);
   }
 
   // Уведомления (ТЗ): Telegram + MAX + Email + личные чаты ответственных.
