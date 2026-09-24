@@ -502,16 +502,16 @@ async function handleSubmit(req: Request): Promise<Response> {
     };
   }
 
-  // ТЗ v1.22.21: дедупликация заявок с формы. Поставщик — совпадение ИНН,
-  // покупатель — совпадение телефона или email → новая запись сразу «Архив дублей».
-  // (Формы редкие — rate limit 5/10мин — поэтому выборка до 1000 последних строк допустима.)
+  // ТЗ v1.22.22: дедупликация — если запись уже есть, НЕ сохраняем ничего и
+  // честно говорим посетителю (подсказка в форме). Поставщик — по ИНН,
+  // покупатель — по телефону или email. Сравнение последних 10 цифр телефона
+  // работает независимо от форматирования. Формы редкие (5/10мин), выборка ок.
   if (table === 'suppliers' && clean.inn) {
     const innDigits = String(clean.inn).replace(/\D/g, '');
     if (innDigits.length >= 10) {
       const { data: cands } = await client.from('suppliers').select('id, inn').not('inn', 'is', null).is('deleted_at', null).limit(1000);
       if ((cands || []).some(c => String(c.inn || '').replace(/\D/g, '') === innDigits)) {
-        row.status = 'Архив дублей';
-        clean.__dup = 'ИНН совпал с существующим поставщиком';
+        return json({ error: 'Невозможно пройти регистрацию: такой поставщик уже есть на платформе' }, 409);
       }
     }
   }
@@ -519,7 +519,7 @@ async function handleSubmit(req: Request): Promise<Response> {
     const phKey = clean.phone ? String(clean.phone).replace(/\D/g, '').slice(-10) : '';
     const em = clean.email ? String(clean.email).trim().toLowerCase() : '';
     const { data: cands } = await client.from('buyers').select('id, phone, email')
-      .or(phKey ? 'phone.not.is.null,email.not.is.null' : 'email.not.is.null')
+      .or('phone.not.is.null,email.not.is.null')
       .is('deleted_at', null).limit(1000);
     const dup = (cands || []).some(c => {
       const cph = String(c.phone || '').replace(/\D/g, '').slice(-10);
@@ -527,8 +527,7 @@ async function handleSubmit(req: Request): Promise<Response> {
       return (phKey.length >= 6 && cph === phKey) || (em && cem === em);
     });
     if (dup) {
-      row.status = 'Архив дублей';
-      clean.__dup = 'Телефон/email совпал с существующим покупателем';
+      return json({ error: 'Невозможно пройти регистрацию: такой покупатель уже есть на платформе' }, 409);
     }
   }
 
