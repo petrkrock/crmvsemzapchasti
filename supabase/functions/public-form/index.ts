@@ -81,7 +81,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'website', label: 'Сайт', inputType: 'text' },
     { key: 'inn', label: 'ИНН', inputType: 'text', core: true }, // ТЗ v1.22.20: подпись без '*'; обязательность — через core
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
-    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect' // ТЗ v1.22.27: как «Товарные группы» в карточках, optionsSource: 'contactPrefs' },
+    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' }, // ТЗ v1.22.27: как «Товарные группы» в карточках
     { key: 'warehouseCount', label: 'Количество складов', inputType: 'number' },
     { key: 'skuCount', label: 'Количество SKU', inputType: 'number' },
     { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
@@ -102,7 +102,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'website', label: 'Сайт', inputType: 'text' },
     { key: 'inn', label: 'ИНН/ОГРНИП', inputType: 'text' }, // ТЗ v1.22.20: ИНН/ОГРНИП, необязателен (как в карточке покупателя)
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
-    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect' // ТЗ v1.22.27: как «Товарные группы» в карточках, optionsSource: 'contactPrefs' },
+    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' }, // ТЗ v1.22.27: как «Товарные группы» в карточках
     { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
     { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: источник из справочника «Источники привлечения»
     { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' }, // ТЗ v1.22.25: только комментарии категорий
