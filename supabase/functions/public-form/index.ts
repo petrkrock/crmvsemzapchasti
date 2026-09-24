@@ -99,7 +99,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'email', label: 'Email', inputType: 'email', core: true },
     { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН *', inputType: 'text', core: true }, // ТЗ v1.22.12: обязательное ИНН
+    { key: 'inn', label: 'ИНН', inputType: 'text' }, // ТЗ v1.22.18: у ПОКУПАТЕЛЯ ИНН необязателен (как в карточке покупателя)
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
     { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
@@ -158,7 +158,17 @@ async function loadFormConfig(client: ReturnType<typeof createClient>, type: Ent
         consent?: { label: string; documentUrl: string; documentLabel: string };
       }
     | undefined;
-  return { config: config ?? null, settings };
+  // ТЗ v1.22.18: Маркетинг-кит работает «из коробки» — если админ не настраивал форму,
+  // используем дефолтный конфиг вместо 404 «Форма недоступна» (иначе проверка ИНН не доходит).
+  const DEFAULT_MK_CONFIG = {
+    enabled: true,
+    title: 'Маркетинг-кит',
+    description: '',
+    fields: [{ key: 'inn', required: true }],
+    successMessage: 'Заявка на Маркетинг-кит отправлена!',
+    errorMessage: 'Не удалось отправить заявку. Попробуйте позже.',
+  };
+  return { config: config ?? (type === 'marketingKit' ? DEFAULT_MK_CONFIG : null), settings };
 }
 
 function resolveOptions(source: string | undefined, settings: Record<string, unknown>): string[] | undefined {
@@ -491,10 +501,22 @@ async function handleSubmit(req: Request): Promise<Response> {
     };
   }
 
+  // ТЗ v1.22.18: если БД старее schema.sql (нет новых колонок), полный INSERT падает с 500 —
+  // повторяем вставку ядром гарантированных колонок, заявка не теряется.
+  const CORE_KEYS: Record<string, string[]> = {
+    suppliers: ['type', 'trade_name', 'city', 'contact_name', 'phone', 'email', 'status', 'source', 'from_api', 'history'],
+    buyers: ['type', 'trade_name', 'city', 'contact_name', 'phone', 'email', 'status', 'source', 'from_api', 'history'],
+    tickets: ['type', 'status', 'text', 'contact_name', 'contact_phone', 'contact_email', 'from_api', 'history'],
+  };
   const { error } = await client.from(table).insert([row]);
   if (error) {
-    console.error('[public-form] insert failed:', error);
-    return json({ error: 'Не удалось сохранить заявку' }, 500);
+    const coreRow = Object.fromEntries(Object.entries(row).filter(([k]) => (CORE_KEYS[table] || []).includes(k)));
+    const retry = await client.from(table).insert([coreRow]);
+    if (retry.error) {
+      console.error('[public-form] insert failed (core retry too):', retry.error, '| full error:', error.message);
+      return json({ error: 'Не удалось сохранить заявку' }, 500);
+    }
+    console.error('[public-form] full insert failed, saved core-only. Missing columns? Full error:', error.message);
   }
 
   // Уведомления (ТЗ): Telegram + MAX + Email + личные чаты ответственных.

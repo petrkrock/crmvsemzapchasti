@@ -123,12 +123,12 @@ export default function PublicFormPage() {
 
   return (
     <div
-      className="min-h-screen bg-[#f5f5f5] flex items-start justify-center p-3 sm:p-4 md:p-10"
+      className="min-h-screen bg-[#f5f5f5] flex items-start justify-center p-2 sm:p-3"
       style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}
     >
       <div ref={wrapperRef} className="w-full max-w-lg">
         {loading && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 py-10 px-4">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 py-8 px-4">
             {/* Красный круговой индикатор загрузки */}
             <div className="w-11 h-11 rounded-full border-4 border-red-100 border-t-red-600 animate-spin" aria-hidden="true" />
             <p className="text-sm text-gray-500 text-center">Подождите пожалуйста, форма загружается…</p>
@@ -136,21 +136,21 @@ export default function PublicFormPage() {
         )}
 
         {!loading && (loadError || !isValidType) && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-12 gap-2">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-8 gap-2">
             <AlertCircle className="text-gray-300" size={34} />
             <p className="text-sm text-gray-400">Форма недоступна</p>
           </div>
         )}
 
         {!loading && !loadError && config && !config.enabled && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-12 gap-2">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-8 gap-2">
             <AlertCircle className="text-gray-300" size={34} />
             <p className="text-sm text-gray-400">Эта форма сейчас отключена</p>
           </div>
         )}
 
         {!loading && !loadError && config && config.enabled && submitted && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-14 px-6 gap-2 animate-fade-in">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center text-center py-10 px-4 gap-2 animate-fade-in">
             <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
               <CheckCircle2 className="text-green-500" size={30} />
             </div>
@@ -159,23 +159,23 @@ export default function PublicFormPage() {
         )}
 
         {!loading && !loadError && config && config.enabled && !submitted && (
-          <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 space-y-2.5">
+          <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 space-y-2">
             {/* Заголовок с красным акцентом */}
-            <div className="pb-4 border-b border-gray-100">
-              <div className="w-9 h-1 rounded-full bg-red-600 mb-3" />
+            <div className="pb-2.5 border-b border-gray-100">
+              <div className="w-8 h-1 rounded-full bg-red-600 mb-2" />
               <h1 className="text-lg font-bold text-gray-900">{config.title}</h1>
-              {config.description && <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{config.description}</p>}
+              {config.description && <p className="text-sm text-gray-500 mt-1 leading-snug">{config.description}</p>}
             </div>
 
             {config.fields.map(field => (
               <div key={field.key}>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
                   {field.label}{field.required && <span className="text-red-500 normal-case"> *</span>}
                 </label>
                 {field.inputType === 'textarea' ? (
                   <textarea
                     required={field.required}
-                    rows={3}
+                    rows={2}
                     className={fieldClass}
                     value={(values[field.key] as string) || ''}
                     onChange={e => setValue(field.key, e.target.value)}

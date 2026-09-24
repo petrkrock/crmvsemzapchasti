@@ -43,11 +43,14 @@ export async function fetchCheckoCompany(key: string, inn: string): Promise<Scor
   // ТЗ v1.22.13: API отдаёт суммы в тысячах — дописываем три нуля (только API-путь;
   // ручной ввод в форме скоринга не масштабируется).
   const scale = (v?: number) => (v == null ? undefined : Math.round(v * 1000));
-  const revenue = scale(num(latest['2110']));       // Выручка
-  const inventory = scale(num(latest['1210']));     // Запасы
-  const grossProfit = scale(num(latest['2100']));   // Валовая прибыль
+  // ТЗ v1.22.15: коды строк из справочника Checko + русские подписи как fallback
+  const revenue = scale(num(latest['2110']) ?? num(latest['Выручка']));       // Выручка
+  const inventory = scale(num(latest['1210']) ?? num(latest['Запасы']));      // Запасы
+  const grossProfit = scale(num(latest['2100']) ?? num(latest['Валовая прибыль'])); // Валовая прибыль
   if (revenue == null && grossProfit == null) {
-    throw new Error('Финансовые данные не найдены в ответе Checko (нет строк 2110/2100)');
+    const note = (data as Record<string, unknown>)['finances_error'];
+    throw new Error('Финансовые данные не найдены в ответе Checko (нет строк 2110/2100)'
+      + (note ? `. Причина: ${note}` : '. Возможно, у компании нет отчётности или тариф не включает finances'));
   }
   const name = data['Наименование'] as { Полнное?: string; Сокращенное?: string } | undefined;
   return {

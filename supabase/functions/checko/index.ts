@@ -40,8 +40,10 @@ serve(async (req) => {
       return json(company || { error: `Checko HTTP ${companyRes.status}` }, companyRes.ok ? 502 : companyRes.status);
     }
     const fin = await finRes.json().catch(() => null);
-    // Мерджим Финансы в данные компании — фронт (services/checko.ts) читает их отсюда
-    const merged = { ...company, data: { ...(company.data || {}), ...(fin && fin.data ? fin.data : {}) } };
+    // Мерджим Финансы в данные компании — фронт (services/checko.ts) читает их отсюда.
+    // Ошибку finances (тариф/лимит/отсутствие отчётности) пробрасываем фронту для диагностики.
+    const merged: Record<string, unknown> = { ...company, data: { ...(company.data || {}), ...(fin && fin.data ? fin.data : {}) } };
+    if (fin && fin.status === 'error') (merged.data as Record<string, unknown>)['finances_error'] = fin.error || 'checko finances error';
     return json(merged);
   } catch (e) {
     return json({ error: String(e) }, 500);
