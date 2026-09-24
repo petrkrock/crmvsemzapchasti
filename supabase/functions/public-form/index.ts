@@ -261,6 +261,7 @@ function buildNotifyText(type: EntityType, clean: Record<string, unknown>): stri
   add('Город', clean.city);
   add('Текст', clean.text);
   add('Комментарий', clean.comment);
+  if (clean.__dup) lines.push(`⚠️ Дубликат: ${clean.__dup}`);
   return lines.join('\n');
 }
 
@@ -499,6 +500,36 @@ async function handleSubmit(req: Request): Promise<Response> {
       from_api: true,
       history: [],
     };
+  }
+
+  // ТЗ v1.22.21: дедупликация заявок с формы. Поставщик — совпадение ИНН,
+  // покупатель — совпадение телефона или email → новая запись сразу «Архив дублей».
+  // (Формы редкие — rate limit 5/10мин — поэтому выборка до 1000 последних строк допустима.)
+  if (table === 'suppliers' && clean.inn) {
+    const innDigits = String(clean.inn).replace(/\D/g, '');
+    if (innDigits.length >= 10) {
+      const { data: cands } = await client.from('suppliers').select('id, inn').not('inn', 'is', null).is('deleted_at', null).limit(1000);
+      if ((cands || []).some(c => String(c.inn || '').replace(/\D/g, '') === innDigits)) {
+        row.status = 'Архив дублей';
+        clean.__dup = 'ИНН совпал с существующим поставщиком';
+      }
+    }
+  }
+  if (table === 'buyers' && (clean.phone || clean.email)) {
+    const phKey = clean.phone ? String(clean.phone).replace(/\D/g, '').slice(-10) : '';
+    const em = clean.email ? String(clean.email).trim().toLowerCase() : '';
+    const { data: cands } = await client.from('buyers').select('id, phone, email')
+      .or(phKey ? 'phone.not.is.null,email.not.is.null' : 'email.not.is.null')
+      .is('deleted_at', null).limit(1000);
+    const dup = (cands || []).some(c => {
+      const cph = String(c.phone || '').replace(/\D/g, '').slice(-10);
+      const cem = String(c.email || '').trim().toLowerCase();
+      return (phKey.length >= 6 && cph === phKey) || (em && cem === em);
+    });
+    if (dup) {
+      row.status = 'Архив дублей';
+      clean.__dup = 'Телефон/email совпал с существующим покупателем';
+    }
   }
 
   // ТЗ v1.22.18: если БД старее schema.sql (нет новых колонок), полный INSERT падает с 500 —
