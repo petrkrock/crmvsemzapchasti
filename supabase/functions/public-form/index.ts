@@ -510,13 +510,27 @@ async function handleSubmit(req: Request): Promise<Response> {
   };
   const { error } = await client.from(table).insert([row]);
   if (error) {
+    // Уровень 1: ядро гарантированных колонок
     const coreRow = Object.fromEntries(Object.entries(row).filter(([k]) => (CORE_KEYS[table] || []).includes(k)));
     const retry = await client.from(table).insert([coreRow]);
-    if (retry.error) {
-      console.error('[public-form] insert failed (core retry too):', retry.error, '| full error:', error.message);
-      return json({ error: 'Не удалось сохранить заявку' }, 500);
+    if (!retry.error) {
+      console.error('[public-form] full insert failed, saved core-only. Missing columns? Full error:', error.message);
+    } else {
+      // Уровень 2 (ТЗ v1.22.19): минимум без которого заявка бессмысленна — часть БД
+      // старше schema.sql и не имеет даже contact_*/from_api/history.
+      const MIN_KEYS: Record<string, string[]> = {
+        suppliers: ['type', 'trade_name', 'city', 'status', 'source'],
+        buyers: ['type', 'trade_name', 'city', 'status', 'source'],
+        tickets: ['type', 'status', 'text'],
+      };
+      const minRow = Object.fromEntries(Object.entries(row).filter(([k]) => (MIN_KEYS[table] || []).includes(k)));
+      const retry2 = await client.from(table).insert([minRow]);
+      if (retry2.error) {
+        console.error('[public-form] insert failed (all 3 levels):', retry2.error, '| core error:', retry.error.message, '| full error:', error.message);
+        return json({ error: 'Не удалось сохранить заявку' }, 500);
+      }
+      console.error('[public-form] core insert failed, saved minimal-only. Missing columns? Core error:', retry.error.message);
     }
-    console.error('[public-form] full insert failed, saved core-only. Missing columns? Full error:', error.message);
   }
 
   // Уведомления (ТЗ): Telegram + MAX + Email + личные чаты ответственных.
