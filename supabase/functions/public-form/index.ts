@@ -87,6 +87,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
     { key: 'ownBrands', label: 'Собственные бренды (через запятую)', inputType: 'text' },
     { key: 'services', label: 'Услуги', inputType: 'multiselect', optionsSource: 'supplierServices' },
+    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: источник из справочника «Источники привлечения»
     { key: 'comment', label: 'Комментарий', inputType: 'textarea' },
     { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
   ],
@@ -103,6 +104,8 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'select', optionsSource: 'contactPrefs' },
     { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
+    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: источник из справочника «Источники привлечения»
+    { key: 'category', label: 'Категория (A/B/C)', inputType: 'select', optionsSource: 'abcCategories' }, // ТЗ v1.22.23
     { key: 'comment', label: 'Комментарий', inputType: 'textarea' },
     { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
   ],
@@ -124,6 +127,7 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
 };
 
 const STATIC_OPTIONS: Record<string, string[]> = {
+  abcCategories: ['A', 'B', 'C'], // ТЗ v1.22.23: категория покупателя (A/B/C)
   roleTypes: ['директор', 'менеджер', 'собственник', 'РОП', 'ТП'],
   contactPrefs: ['почта', 'телефон', 'WhatsApp', 'Telegram'],
 };
@@ -174,6 +178,10 @@ async function loadFormConfig(client: ReturnType<typeof createClient>, type: Ent
 function resolveOptions(source: string | undefined, settings: Record<string, unknown>): string[] | undefined {
   if (!source) return undefined;
   if (source in STATIC_OPTIONS) return STATIC_OPTIONS[source];
+  if (source === 'sources') { // ТЗ v1.22.24
+    const srcs = (settings.sources as Array<{ name: string; deletedAt?: string }>) || [];
+    return srcs.filter(x => !x.deletedAt).map(x => x.name);
+  }
   if (source === 'supplierTypes') return (settings.supplierTypes as string[]) || [];
   if (source === 'buyerTypes') return (settings.buyerTypes as string[]) || [];
   if (source === 'ticketTypes') return (settings.ticketTypes as string[]) || [];
@@ -453,7 +461,7 @@ async function handleSubmit(req: Request): Promise<Response> {
       phone: clean.phone,
       email: clean.email,
       status: 'Новый с сайта',
-      source: 'Форма с сайта',
+      source: (typeof clean.source === 'string' && clean.source) ? clean.source : 'Форма с сайта', // ТЗ v1.22.24: источник из формы, иначе канал «Форма с сайта»
       contact_prefs: clean.contactPref ? [clean.contactPref] : [],
       warehouse_count: clean.warehouseCount ? Number(clean.warehouseCount) : null,
       sku_count: clean.skuCount ? Number(clean.skuCount) : null,
@@ -479,10 +487,11 @@ async function handleSubmit(req: Request): Promise<Response> {
       phone: clean.phone,
       email: clean.email,
       status: 'Новый с сайта',
-      source: 'Форма с сайта',
+      source: (typeof clean.source === 'string' && clean.source) ? clean.source : 'Форма с сайта', // ТЗ v1.22.24: источник из формы, иначе канал «Форма с сайта»
       contact_prefs: Array.isArray(clean.contactPref) ? clean.contactPref : (clean.contactPref ? [clean.contactPref] : []),
       locations_count: clean.locationCount ? Number(clean.locationCount) : null,
       comment: clean.comment ?? null,
+      category: ['A', 'B', 'C'].includes(String(clean.category)) ? String(clean.category) : undefined, // ТЗ v1.22.23
       additional_contacts: clean.additionalContacts ?? null,
       from_api: true,
       history: [{ id: crypto.randomUUID(), date: nowIso, field: 'создание', oldValue: undefined, newValue: 'Заявка с сайта', comment: undefined, userId: 'public-form', userName: 'Форма с сайта' }],
