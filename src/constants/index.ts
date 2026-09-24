@@ -127,7 +127,8 @@ export interface FormFieldDefinition {
   key: string;
   label: string;
   inputType: FormFieldInputType;
-  core?: boolean; // always included + always required — DB NOT NULL column
+  core?: boolean;
+  defaultValue?: string | number; // ТЗ v1.22.31 // always included + always required — DB NOT NULL column
   optionsSource?: 'supplierTypes' | 'buyerTypes' | 'productGroups' | 'supplierServices' | 'roleTypes' | 'contactPrefs' | 'ticketTypes' | 'abcCategories' | 'sources' | 'buyerCategoryComments';
 }
 
@@ -148,22 +149,19 @@ export const FORM_FIELD_DEFINITIONS: Record<'supplier' | 'buyer' | 'ticket', For
     { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
   ],
   buyer: [
-    { key: 'tradeName', label: 'Название компании', inputType: 'text', core: true },
+    { key: 'tradeName', label: 'Торговое название или ИП', inputType: 'text', core: true }, // ТЗ v1.22.31
+    { key: 'inn', label: 'ИНН/ОГРНИП', inputType: 'text' },
     { key: 'type', label: 'Тип', inputType: 'select', core: true, optionsSource: 'buyerTypes' },
-    { key: 'city', label: 'Город', inputType: 'text', core: true },
+    { key: 'city', label: 'Город нахождения', inputType: 'text', core: true }, // ТЗ v1.22.31
     { key: 'contactName', label: 'Контактное лицо', inputType: 'text', core: true },
+    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'phone', label: 'Телефон', inputType: 'tel', core: true },
     { key: 'email', label: 'Email', inputType: 'email', core: true },
-    { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН', inputType: 'text' },
-    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
+    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' },
     { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
-    { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
-    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: реальный источник из справочника
-    { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' }, // ТЗ v1.22.25: только комментарии категорий
-    { key: 'comment', label: 'Комментарий', inputType: 'textarea' },
-    { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
+    { key: 'locationCount', label: 'Количество торговых точек', inputType: 'number', defaultValue: 1 }, // ТЗ v1.22.31: по умолчанию 1
+    { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' },
   ],
   // Форма сайта (новая): без ответственного и выбора из списка — только контакт, тип, текст, способ связи
   ticket: [

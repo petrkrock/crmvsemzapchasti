@@ -10,6 +10,7 @@ interface PublicField {
   label: string;
   inputType: 'text' | 'textarea' | 'tel' | 'email' | 'number' | 'select' | 'multiselect';
   required: boolean;
+  defaultValue?: string | number; // ТЗ v1.22.31: предзаполнение (торговые точки = 1)
   options?: string[];
 }
 
@@ -177,14 +178,14 @@ export default function PublicFormPage() {
                     required={field.required}
                     rows={2}
                     className={fieldClass}
-                    value={(values[field.key] as string) || ''}
+                    value={(values[field.key] !== undefined ? (values[field.key] as string) : String(field.defaultValue ?? ''))}
                     onChange={e => setValue(field.key, e.target.value)}
                   />
                 ) : field.inputType === 'select' ? (
                   <select
                     required={field.required}
                     className={fieldClass}
-                    value={(values[field.key] as string) || ''}
+                    value={(values[field.key] !== undefined ? (values[field.key] as string) : String(field.defaultValue ?? ''))}
                     onChange={e => setValue(field.key, e.target.value)}
                   >
                     <option value="">Выберите...</option>
@@ -218,7 +219,7 @@ export default function PublicFormPage() {
                     type={field.inputType === 'number' ? 'number' : field.inputType}
                     required={field.required}
                     className={fieldClass}
-                    value={(values[field.key] as string) || ''}
+                    value={(values[field.key] !== undefined ? (values[field.key] as string) : String(field.defaultValue ?? ''))}
                     onChange={e => setValue(field.key, e.target.value)}
                   />
                 )}

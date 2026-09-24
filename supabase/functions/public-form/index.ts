@@ -65,6 +65,7 @@ interface FieldDef {
   label: string;
   inputType: 'text' | 'textarea' | 'tel' | 'email' | 'number' | 'select' | 'multiselect';
   core?: boolean;
+  defaultValue?: string | number; // ТЗ v1.22.31: предзаполнение поля (например, торговые точки = 1)
   optionsSource?: 'supplierTypes' | 'buyerTypes' | 'productGroups' | 'supplierServices' | 'roleTypes' | 'contactPrefs' | 'ticketTypes';
 }
 
@@ -86,22 +87,19 @@ const FIELD_DEFS: Record<EntityType, FieldDef[]> = {
     { key: 'productGroups', label: 'Товарные группы', inputType: 'multiselect', optionsSource: 'productGroups' },
   ],
   buyer: [
-    { key: 'tradeName', label: 'Название компании', inputType: 'text', core: true },
+    { key: 'tradeName', label: 'Торговое название или ИП', inputType: 'text', core: true }, // ТЗ v1.22.31
+    { key: 'inn', label: 'ИНН/ОГРНИП', inputType: 'text' },
     { key: 'type', label: 'Тип', inputType: 'select', core: true, optionsSource: 'buyerTypes' },
-    { key: 'city', label: 'Город', inputType: 'text', core: true },
+    { key: 'city', label: 'Город нахождения', inputType: 'text', core: true }, // ТЗ v1.22.31
     { key: 'contactName', label: 'Контактное лицо', inputType: 'text', core: true },
+    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
     { key: 'phone', label: 'Телефон', inputType: 'tel', core: true },
     { key: 'email', label: 'Email', inputType: 'email', core: true },
-    { key: 'address', label: 'Адрес', inputType: 'text' },
     { key: 'website', label: 'Сайт', inputType: 'text' },
-    { key: 'inn', label: 'ИНН/ОГРНИП', inputType: 'text' }, // ТЗ v1.22.20: ИНН/ОГРНИП, необязателен (как в карточке покупателя)
-    { key: 'contactRole', label: 'Должность контакта', inputType: 'select', optionsSource: 'roleTypes' },
-    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' }, // ТЗ v1.22.27: как «Товарные группы» в карточках
-    { key: 'locationCount', label: 'Количество точек', inputType: 'number' },
-    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' }, // ТЗ v1.22.24: источник из справочника «Источники привлечения»
-    { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' }, // ТЗ v1.22.25: только комментарии категорий
-    { key: 'comment', label: 'Комментарий', inputType: 'textarea' },
-    { key: 'additionalContacts', label: 'Дополнительные контакты', inputType: 'textarea' },
+    { key: 'source', label: 'Откуда про нас узнали?', inputType: 'select', optionsSource: 'sources' },
+    { key: 'contactPref', label: 'Предпочтительный способ связи', inputType: 'multiselect', optionsSource: 'contactPrefs' },
+    { key: 'locationCount', label: 'Количество торговых точек', inputType: 'number', defaultValue: 1 }, // ТЗ v1.22.31: по умолчанию 1
+    { key: 'category', label: 'Примерный оборот в мес.', inputType: 'select', optionsSource: 'buyerCategoryComments' },
   ],
   // Форма сайта (новая, ТЗ): контакт, тип, текст*, способ связи.
   // Ответственного и выбора из списка на сайте НЕТ. Синхронизировать с
@@ -227,6 +225,7 @@ async function handleGetConfig(req: Request): Promise<Response> {
       label: def.label,
       inputType: def.inputType,
       required: Boolean(def.core || requiredKeys.has(def.key)),
+      defaultValue: def.defaultValue, // ТЗ v1.22.31
       options: resolveOptions(def.optionsSource, settings),
     }));
 
@@ -622,7 +621,7 @@ Deno.serve(async (req: Request) => {
   try {
     if (req.method === 'POST') {
       const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-      if (!rateLimitOk(ip)) return json({ ok: true });
+      if (!rateLimitOk(ip)) return json({ error: 'Форма не доступна из-за частых запросов, попробуйте зайти позднее или обратиться в поддержку' }, 429); // ТЗ v1.22.31
     }
     if (req.method === 'GET') return await handleGetConfig(req);
     if (req.method === 'POST') return await handleSubmit(req);
