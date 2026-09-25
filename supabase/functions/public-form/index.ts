@@ -478,7 +478,8 @@ async function handleSubmit(req: Request): Promise<Response> {
       sku_count: clean.skuCount ? Number(clean.skuCount) : null,
       product_groups: Array.isArray(clean.productGroups) ? clean.productGroups : [],
       own_brands: typeof clean.ownBrands === 'string' ? clean.ownBrands.split(',').map(s => s.trim()).filter(Boolean) : [],
-      services: Array.isArray(clean.services) ? clean.services : [],
+      // ТЗ v1.22.41: «Анкета → Сервисы продаж» — по умолчанию DBS для поставщиков с формы
+      services: (() => { const list = Array.isArray(clean.services) ? [...clean.services] : []; if (!list.includes('DBS')) list.push('DBS'); return list; })(),
       comment: clean.comment ?? null,
       additional_contacts: clean.additionalContacts ?? null,
       from_api: true,
@@ -560,7 +561,7 @@ async function handleSubmit(req: Request): Promise<Response> {
   // ТЗ v1.22.18: если БД старее schema.sql (нет новых колонок), полный INSERT падает с 500 —
   // повторяем вставку ядром гарантированных колонок, заявка не теряется.
   const CORE_KEYS: Record<string, string[]> = {
-    suppliers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'website', 'contact_role', 'contact_prefs', 'product_groups', 'own_brands', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.33: +website (переживает fallback)
+    suppliers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'website', 'contact_role', 'contact_prefs', 'product_groups', 'own_brands', 'services', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.41: +services (DBS переживает fallback)
     buyers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'website', 'contact_role', 'contact_prefs', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.33: +website (переживает fallback)
     tickets: ['type', 'status', 'subject', 'text', 'contact_name', 'contact_phone', 'contact_email', 'from_api', 'history'], // ТЗ v1.22.39: subject NOT NULL
   };
