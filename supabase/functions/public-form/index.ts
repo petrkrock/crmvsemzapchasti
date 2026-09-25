@@ -417,7 +417,7 @@ async function handleSubmit(req: Request): Promise<Response> {
   // the insert payload below — anything else the client sent is dropped.
   const clean: Record<string, unknown> = {};
   for (const def of allowedDefs) {
-    const raw = values[def.key];
+    const raw = values[def.key] ?? def.defaultValue; // ТЗ v1.22.39: дефолт поля (точки = 1) попадает в заявку
     const isRequired = def.core || requiredKeys.has(def.key);
     const empty = raw === undefined || raw === null || raw === '' || (Array.isArray(raw) && raw.length === 0);
     if (isRequired && empty) {
@@ -517,6 +517,7 @@ async function handleSubmit(req: Request): Promise<Response> {
     row = {
       type: clean.type || 'Вопрос',
       status: 'Новый запрос с формы',
+      subject: clean.text ? String(clean.text).slice(0, 120) : 'Обращение с формы', // ТЗ v1.22.39: subject NOT NULL
       text: clean.text,
       contact_name: clean.contactName ?? null,
       contact_phone: clean.contactPhone ?? null,
@@ -561,7 +562,7 @@ async function handleSubmit(req: Request): Promise<Response> {
   const CORE_KEYS: Record<string, string[]> = {
     suppliers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'website', 'contact_role', 'contact_prefs', 'product_groups', 'own_brands', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.33: +website (переживает fallback)
     buyers: ['type', 'trade_name', 'inn', 'city', 'contact_name', 'phone', 'email', 'website', 'contact_role', 'contact_prefs', 'status', 'source', 'from_api', 'history'], // ТЗ v1.22.33: +website (переживает fallback)
-    tickets: ['type', 'status', 'text', 'contact_name', 'contact_phone', 'contact_email', 'from_api', 'history'],
+    tickets: ['type', 'status', 'subject', 'text', 'contact_name', 'contact_phone', 'contact_email', 'from_api', 'history'], // ТЗ v1.22.39: subject NOT NULL
   };
   let savedId: string | null = null;
   const ins1 = await client.from(table).insert([row]).select('id');
@@ -578,7 +579,7 @@ async function handleSubmit(req: Request): Promise<Response> {
       const MIN_KEYS: Record<string, string[]> = {
         suppliers: ['type', 'trade_name', 'city', 'status', 'source'],
         buyers: ['type', 'trade_name', 'city', 'status', 'source'],
-        tickets: ['type', 'status', 'text'],
+        tickets: ['type', 'status', 'subject', 'text'], // ТЗ v1.22.39
       };
       const minRow = Object.fromEntries(Object.entries(row).filter(([k]) => (MIN_KEYS[table] || []).includes(k)));
       const ins3 = await client.from(table).insert([minRow]).select('id');
@@ -598,8 +599,17 @@ async function handleSubmit(req: Request): Promise<Response> {
   // колонки service_search может не быть в старых БД, и она не должна ломать основную запись.
   // Условие создаём ТОЛЬКО при известном городе — иначе в карточке появлялось пустое условие.
   if (table === 'suppliers' && savedId && clean.city) {
+    // ТЗ v1.22.39: у условия обязателен id (карточка рендерит/редактирует по cond.id) —
+    // без id появлялось «пустое условие». Плюс сервис DBS по умолчанию в списке услуг.
+    const { data: supRow } = await client.from('suppliers').select('service_search, services').eq('id', savedId).single();
+    const existingSs = Array.isArray(supRow?.service_search) ? supRow.service_search : [];
+    const existingServices = Array.isArray(supRow?.services) ? supRow.services : [];
+    const dbsService = existingServices.includes('DBS') ? existingServices : [...existingServices, 'DBS'];
     const { error: dbsErr } = await client.from('suppliers')
-      .update({ service_search: [{ city: String(clean.city), status: 'Новое' }] })
+      .update({
+        service_search: [...existingSs, { id: crypto.randomUUID(), city: String(clean.city), status: 'Новое', updatedAt: nowIso }],
+        services: dbsService,
+      })
       .eq('id', savedId);
     if (dbsErr) console.error('[public-form] DBS default skipped:', dbsErr.message);
   }
