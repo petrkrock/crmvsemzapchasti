@@ -163,15 +163,15 @@ export default function SupplierServicePage() {
         )}
 
         {pinScreen && (
-          <div className="flex flex-col items-center mb-6">
-            <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[180px] h-auto mb-3" />
-            <p className="text-base font-bold text-gray-900 tracking-wide text-center">НАСТРОЙКА СЕРВИСА ПОИСКА (DBS)</p>
+          <div className="flex flex-col items-center" style={{ marginBottom: '4.5rem' }}>
+            <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[333px] h-auto mb-3" />
+            <p className="text-sm font-normal text-gray-900 tracking-wide text-center">НАСТРОЙКА СЕРВИСА ПОИСКА (DBS)</p>
           </div>
         )}
 
         {!loading && !fatal && data && !pinPassed && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 sm:p-8">
-            <p className="text-sm text-gray-500 mt-1.5">{data.companyName}{data.inn ? ` (${data.inn})` : ''}</p>
+            <p className="text-sm text-gray-500 mt-1.5">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</p>
             <hr className="border-gray-100 my-5" />
             <div className="text-center">
               <p className="text-sm text-gray-700 mb-4">Введите PIN-код из сообщения от менеджера</p>
