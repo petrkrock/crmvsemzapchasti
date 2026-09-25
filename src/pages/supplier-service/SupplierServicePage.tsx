@@ -148,7 +148,7 @@ export default function SupplierServicePage() {
 
   return (
     <div className={`min-h-screen bg-[#f5f5f5] flex ${pinScreen ? 'items-center' : 'items-start'} justify-center p-3 sm:p-6 md:p-10`}>
-      <div ref={wrapperRef} className="w-full max-w-xl py-2">
+      <div ref={wrapperRef} className={`w-full ${pinPassed ? 'max-w-[1160px]' : 'max-w-xl'} py-2`}>
         {loading && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-4 py-16 px-6">
             <div className="w-11 h-11 rounded-full border-4 border-red-100 border-t-red-600 animate-spin" aria-hidden="true" />
