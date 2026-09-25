@@ -191,11 +191,11 @@ export default function SupplierServicePage() {
         )}
 
         {!loading && !fatal && data && pinPassed && (
-          <div className="space-y-4">
+          <div className="space-y-4 w-full max-w-[1160px]">
 
             {/* ШАПКА ЛК: логотип + Продвижение/Выход */}
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-5 py-3 flex items-center justify-between">
-              <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="h-8 w-auto" />
+              <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[180px] h-auto" />
               <div className="flex gap-2">
                 <a href="/forms/marketing-kit" target="_blank" rel="noreferrer"
                   className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
