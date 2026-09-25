@@ -13,7 +13,7 @@ const COND_FIELDS: Array<{ key: keyof Cond; label: string }> = [
   { key: 'contacts', label: 'Контакты' },
   { key: 'email', label: 'Email' },
   { key: 'deliverySchedule', label: 'График доставки' },
-  { key: 'orderUnloadSchedule', label: 'График выгрузки заказов' },
+  { key: 'orderUnloadSchedule', label: 'Условия доставки' }, // ТЗ v1.23.6: переименовано
   { key: 'returnConditions', label: 'Условия возврата товара' },
   { key: 'officialWarehouse', label: 'Официальный склад' },
   { key: 'deliveryTime', label: 'Срок поставки до выбранного города' }, // v_1.9
@@ -40,6 +40,9 @@ export default function SupplierServicePage() {
   const [whSku, setWhSku] = useState('');
   const [condForm, setCondForm] = useState<Cond>(EMPTY_COND);
   const [tkCarrier, setTkCarrier] = useState(''); // ТЗ v1.23.2: перевозчик для «Срок поставки»
+  const [selectedWh, setSelectedWh] = useState(''); // ТЗ v1.23.6: склад, выбранный кнопкой в «Мои склады»
+  const [editorOpen, setEditorOpen] = useState(false); // окно условий открывается после выбора города
+  const [tkOn, setTkOn] = useState(false); // ТЗ v1.23.6: кнопка ТК
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -254,22 +257,28 @@ export default function SupplierServicePage() {
               )}
               <div className="flex flex-wrap gap-2">
                 {(data.warehouses || []).map(w => (
-                  <div key={w.id} className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm ${w.verified ? 'border-green-300 bg-green-50' : 'border-green-200 bg-white'}`}>
+                  <button key={w.id} type="button" onClick={() => setSelectedWh(w.city)}
+                    className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${selectedWh === w.city ? 'border-red-500 bg-red-50 ring-1 ring-red-200' : w.verified ? 'border-green-300 bg-green-50 hover:border-red-300' : 'border-green-200 bg-white hover:border-red-300'}`}>
                     <span className="font-semibold text-gray-900">{w.city}</span>
                     <span className="text-gray-400 text-xs">{Number(w.skuCount).toLocaleString('ru-RU')} SKU</span>
                     <span className={`text-xs ${w.verified ? 'text-green-600 font-medium' : 'text-gray-400'}`}>{w.verified ? 'Проверен' : 'Не проверен'}</span>
-                    <button onClick={() => removeWarehouse(w.id)} className="text-gray-300 hover:text-red-600" title="Удалить"><Trash2 size={14} /></button>
-                  </div>
+                    <span onClick={e => { e.stopPropagation(); removeWarehouse(w.id); }} className="text-gray-300 hover:text-red-600 cursor-pointer" title="Удалить"><Trash2 size={14} /></span>
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* ШАГ 2: ВЫБОР ГОРОДА ПОКАЗОВ */}
+            {/* ШАГ 2: ВЫБОР ГОРОДА ПОКАЗОВ — доступен только после создания и выбора склада */}
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-3">Выберите Город показов *</h2>
-              {(() => {
+              {(data.warehouses || []).length === 0 && (
+                <p className="text-xs text-gray-400">Сначала создайте склад в системе (шаг 1) — без склада условия недоступны.</p>
+              )}
+              {(data.warehouses || []).length > 0 && !selectedWh && (
+                <p className="text-xs text-gray-400">Выберите склад в разделе «Мои склады» выше (кнопкой).</p>
+              )}
+              {(data.warehouses || []).length > 0 && !!selectedWh && (() => {
                 const list = data.serviceSearch || [];
-                const covered = new Set(list.map(c => (c.city || '').toLowerCase()));
                 const cities = data.availableCities || [];
                 if (!cities.length) return <p className="text-xs text-gray-400">Список доступных городов не настроен — уточните у вашего менеджера.</p>;
                 return (
@@ -280,8 +289,10 @@ export default function SupplierServicePage() {
                       return (
                         <button key={c} type="button"
                           onClick={() => {
-                            if (active) { setEditingIdx(idx); setCondForm(list[idx]); setTkCarrier(''); }
-                            else { setEditingIdx(null); setCondForm(f => ({ ...EMPTY_COND, city: c })); setTkCarrier(''); }
+                            setTkOn(false);
+                            if (active) { setEditingIdx(idx); setCondForm(list[idx]); setSelectedWh(list[idx].warehouseName || selectedWh); }
+                            else { setEditingIdx(null); setCondForm({ ...EMPTY_COND, city: c, warehouseName: selectedWh }); }
+                            setEditorOpen(true);
                           }}
                           className={`text-sm px-4 py-2 rounded-xl border transition-colors ${active ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-red-300'}`}>
                           {c}
@@ -293,67 +304,49 @@ export default function SupplierServicePage() {
               })()}
             </div>
 
-            {/* ШАГ 3: УСЛОВИЯ СЕРВИСА ПОИСКА */}
-            {(data.warehouses || []).length > 0 && (
+            {/* ШАГ 3: ОКНО «УСЛОВИЯ СЕРВИСА ПОИСКА» — открывается после выбора города */}
+            {editorOpen && (data.warehouses || []).length > 0 && (
               <div className="bg-gray-50 border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-bold text-gray-900">{editingIdx !== null ? 'Редактирование условия' : 'Условия сервиса поиска'}</h2>
-                  {editingIdx !== null && (
-                    <button onClick={() => { setEditingIdx(null); setCondForm(EMPTY_COND); setTkCarrier(''); }} className="text-gray-400 hover:text-gray-700" title="Закрыть"><X size={18} /></button>
-                  )}
+                  <h2 className="text-base font-bold text-gray-900">{editingIdx !== null ? 'Условия сервиса поиска (редактирование)' : 'Условия сервиса поиска'}</h2>
+                  <button onClick={() => { setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} className="text-gray-400 hover:text-gray-700" title="Закрыть"><X size={18} /></button>
                 </div>
 
-                {/* Добавленные условия — чипы */}
-                <div className="flex flex-wrap gap-2 mb-5">
-                  {(data.serviceSearch || []).map((c, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-sm">
-                      <span className="font-medium text-gray-800">{c.city}{c.warehouseName ? ` (${c.warehouseName})` : ''}</span>
-                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
-                      <button onClick={() => { setEditingIdx(idx); setCondForm(c); setTkCarrier(''); }} className="text-gray-300 hover:text-blue-600" title="Редактировать"><Pencil size={13} /></button>
-                      <button onClick={() => removeCondition(idx)} className="text-gray-300 hover:text-red-600" title="Удалить"><Trash2 size={13} /></button>
-                    </span>
-                  ))}
+                {/* Предзаполненные этапами поля: город показов + склад отгрузки */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                  <select className={fld} value={condForm.city} onChange={e => setCondForm(f => ({ ...f, city: e.target.value }))}>
+                    <option value="">Город показов *</option>
+                    {(data?.availableCities || []).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select className={fld} value={condForm.warehouseName} onChange={e => setCondForm(f => ({ ...f, warehouseName: e.target.value }))}>
+                    <option value="">Склад отгрузки *</option>
+                    {data.warehouses.map(w => <option key={w.id} value={w.city}>{w.city}{w.verified ? ' ✓' : ''}</option>)}
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                  {/* Колонка 1: город/склад/срок поставки */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* КОЛОНКА 1: условия сервиса поиска (чипы) */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600">Условия сервиса поиска</label>
+                    <div className="flex flex-col gap-2 mt-2 max-w-[260px]">
+                      {(data.serviceSearch || []).map((c, idx) => (
+                        <button key={idx} type="button"
+                          onClick={() => { setEditingIdx(idx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Доставка по согласованию с поставщиком!')); }}
+                          className={`text-sm rounded-xl border px-3.5 py-2 text-left transition-colors ${editingIdx === idx ? 'border-red-400 bg-white ring-1 ring-red-200' : 'border-gray-200 bg-white hover:border-red-300'}`}>
+                          {c.city}{c.warehouseName ? ` (${c.warehouseName})` : ''}
+                        </button>
+                      ))}
+                      {(data.serviceSearch || []).length === 0 && (
+                        <p className="text-xs text-gray-400">Условий пока нет — заполните форму и нажмите «Добавить условие».</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* КОЛОНКА 2: график/условия доставки, возврат */}
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">Условия сервиса поиска</label>
-                      <select className={fld + ' mt-1.5'} value={condForm.city} onChange={e => setCondForm(f => ({ ...f, city: e.target.value }))}>
-                        <option value="">Город показов *</option>
-                        {(data?.availableCities || []).map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      <select className={fld + ' mt-2'} value={condForm.warehouseName} onChange={e => setCondForm(f => ({ ...f, warehouseName: e.target.value }))}>
-                        <option value="">Склад отгрузки *</option>
-                        {data.warehouses.map(w => <option key={w.id} value={w.city}>{w.city}{w.verified ? ' ✓' : ''}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-600">Срок поставки до города</label>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {['Сегодня', 'Завтра', '2-3 дня'].map(v => (
-                          <button key={v} type="button"
-                            onClick={() => setCondForm(f => ({ ...f, deliveryTime: f.deliveryTime === v ? '' : v }))}
-                            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${condForm.deliveryTime === v ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
-                            {v}
-                          </button>
-                        ))}
-                        <input className={fld + ' !w-28 !py-1.5 text-xs'} placeholder="ТК" value={tkCarrier} onChange={e => setTkCarrier(e.target.value)} />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
-                      <input className={fld + ' mt-1.5'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-600">График выгрузки заказов</label>
-                      <input className={fld + ' mt-1.5'} placeholder="Например при заказе до 16:00 на следующий день"
-                        value={condForm.orderUnloadSchedule} onChange={e => setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value }))} />
-                    </div>
-                    <div>
                       <label className="text-xs font-semibold text-gray-600">График доставки</label>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      <div className="flex flex-wrap gap-1.5 mt-2">
                         {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => {
                           const days = (condForm.deliverySchedule || '').split(',').map(x => x.trim()).filter(Boolean);
                           const on = days.includes(d);
@@ -367,10 +360,40 @@ export default function SupplierServicePage() {
                         })}
                       </div>
                     </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Условия доставки</label>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        <button type="button" onClick={() => {
+                          const TK_TEXT = 'Доставка по согласованию с поставщиком!';
+                          const cur = condForm.orderUnloadSchedule || '';
+                          const has = cur.includes(TK_TEXT);
+                          const next = has ? cur.replace(TK_TEXT, '').replace(/\s{2,}/g, ' ').trim() : (cur ? `${cur.trim()} ${TK_TEXT}` : TK_TEXT);
+                          setCondForm(f => ({ ...f, orderUnloadSchedule: next }));
+                          setTkOn(!has);
+                        }}
+                          className={`w-9 h-9 text-xs font-bold rounded-lg border transition-colors ${tkOn || String(condForm.orderUnloadSchedule || '').includes('Доставка по согласованию с поставщиком!') ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-400'}`}>
+                          ТК
+                        </button>
+                        {['Сегодня', 'Завтра'].map(v => (
+                          <button key={v} type="button" onClick={() => setCondForm(f => ({ ...f, deliveryTime: v.toLowerCase() }))}
+                            className={`text-xs px-3 py-2 rounded-lg border transition-colors ${condForm.deliveryTime === v.toLowerCase() ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                            {v}
+                          </button>
+                        ))}
+                        <input className={fld + ' flex-1 min-w-[140px] !py-2 text-xs'} placeholder="Например: 2-3 дня"
+                          value={condForm.deliveryTime} onChange={e => setCondForm(f => ({ ...f, deliveryTime: e.target.value }))} />
+                      </div>
+                      <textarea className={fld + ' mt-2 h-24 resize-none text-xs'} placeholder="Например: при заказе до 16:00 на следующий день"
+                        value={condForm.orderUnloadSchedule} onChange={e => setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
+                      <input className={fld + ' mt-2'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))} />
+                    </div>
                   </div>
 
-                  {/* Колонка 2-3: представитель/контакты + кнопка */}
-                  <div className="lg:col-span-2 space-y-4">
+                  {/* КОЛОНКА 3: представитель/контакты/email + кнопка */}
+                  <div className="space-y-4">
                     <div>
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-semibold text-gray-600">Представитель</label>
@@ -386,31 +409,20 @@ export default function SupplierServicePage() {
                           </button>
                         )}
                       </div>
-                      <input className={fld + ' mt-1.5'} placeholder="ФИО" value={condForm.representative} onChange={e => setCondForm(f => ({ ...f, representative: e.target.value }))} />
+                      <input className={fld + ' mt-2'} placeholder="ФИО" value={condForm.representative} onChange={e => setCondForm(f => ({ ...f, representative: e.target.value }))} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-600">Контакты</label>
-                      <input className={fld + ' mt-1.5'} placeholder="Телефон" value={condForm.contacts} onChange={e => setCondForm(f => ({ ...f, contacts: e.target.value }))} />
+                      <input className={fld + ' mt-2'} placeholder="Телефон" value={condForm.contacts} onChange={e => setCondForm(f => ({ ...f, contacts: e.target.value }))} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-600">Email</label>
-                      <input className={fld + ' mt-1.5'} value={condForm.email} onChange={e => setCondForm(f => ({ ...f, email: e.target.value }))} />
+                      <input className={fld + ' mt-2'} value={condForm.email} onChange={e => setCondForm(f => ({ ...f, email: e.target.value }))} />
                     </div>
-                    <button onClick={() => {
-                      const merged = { ...condForm, deliveryTime: [condForm.deliveryTime, tkCarrier.trim() ? `ТК: ${tkCarrier.trim()}` : ''].filter(Boolean).join('; ') };
-                      setCondForm(merged);
-                      saveCondition();
-                    }} disabled={saving}
-                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5 flex items-center justify-center gap-1 disabled:opacity-60">
+                    <button onClick={() => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад отгрузки'); return; } setNotice(''); saveCondition(); setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-3 flex items-center justify-center gap-1 disabled:opacity-60">
                       <Plus size={15} /> {editingIdx !== null ? 'Сохранить условие' : 'Добавить условие'}
                     </button>
-                    {(data.serviceSearch || []).length > 0 && (
-                      <button onClick={applyToAllCities} disabled={saving}
-                        className="w-full sm:w-auto sm:ml-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-600 text-xs font-semibold rounded-xl px-4 py-2.5 disabled:opacity-60"
-                        title="Создать по условию на каждый доступный город, которого ещё нет">
-                        Во все доступные города
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
