@@ -191,7 +191,7 @@ export default function SupplierServicePage() {
         )}
 
         {!loading && !fatal && data && pinPassed && (
-          <div className="space-y-4 w-full max-w-[1160px]">
+          <div className="space-y-4 w-full max-w-[1160px]" style={{ maxWidth: 1160 }}>
 
             {/* ШАПКА ЛК: логотип + Продвижение/Выход */}
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-5 py-3 flex items-center justify-between">
