@@ -212,12 +212,12 @@ export default function SupplierServicePage() {
             </div>
 
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 lg:col-span-2">
                 <h2 className="text-lg font-bold text-gray-900">Создать склад в системе</h2>
                 <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад - он понадобится в условиях поиска</p>
-                <div className="flex flex-wrap gap-2">
-                  <input className={fld + ' flex-1 min-w-[200px]'} placeholder="Город, название Вашего склада *"
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input className={fld + ' flex-1 min-w-0'} placeholder="Город, название Вашего склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
                   <input className={fld + ' w-40'} placeholder="Примерное кол-во SKU" inputMode="numeric"
                     value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
@@ -257,8 +257,8 @@ export default function SupplierServicePage() {
               )}
               <div className="flex flex-wrap gap-2">
                 {(data.warehouses || []).map(w => (
-                  <button key={w.id} type="button" onClick={() => setSelectedWh(w.city)}
-                    className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${selectedWh === w.city ? 'border-red-500 bg-red-50 ring-1 ring-red-200' : w.verified ? 'border-green-300 bg-green-50 hover:border-red-300' : 'border-green-200 bg-white hover:border-red-300'}`}>
+                  <button key={w.id} type="button" onClick={() => setSelectedWh(prev => prev === w.city ? '' : w.city)}
+                    className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${selectedWh === w.city ? 'border-green-500 bg-green-50 ring-1 ring-green-200' : w.verified ? 'border-green-300 bg-green-50 hover:border-green-500' : 'border-green-200 bg-white hover:border-green-500'}`}>
                     <span className="font-semibold text-gray-900">{w.city}</span>
                     <span className="text-gray-400 text-xs">{Number(w.skuCount).toLocaleString('ru-RU')} SKU</span>
                     <span className={`text-xs ${w.verified ? 'text-green-600 font-medium' : 'text-gray-400'}`}>{w.verified ? 'Проверен' : 'Не проверен'}</span>
@@ -289,6 +289,10 @@ export default function SupplierServicePage() {
                       return (
                         <button key={c} type="button"
                           onClick={() => {
+                            if (editorOpen && ((active && editingIdx === idx) || (!active && editingIdx === null && condForm.city === c))) {
+                              setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false);
+                              return;
+                            }
                             setTkOn(false);
                             if (active) { setEditingIdx(idx); setCondForm(list[idx]); setSelectedWh(list[idx].warehouseName || selectedWh); }
                             else { setEditingIdx(null); setCondForm({ ...EMPTY_COND, city: c, warehouseName: selectedWh }); }
@@ -312,34 +316,11 @@ export default function SupplierServicePage() {
                   <button onClick={() => { setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} className="text-gray-400 hover:text-gray-700" title="Закрыть"><X size={18} /></button>
                 </div>
 
-                {/* Предзаполненные этапами поля: город показов + склад отгрузки */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                  <select className={fld} value={condForm.city} onChange={e => setCondForm(f => ({ ...f, city: e.target.value }))}>
-                    <option value="">Город показов *</option>
-                    {(data?.availableCities || []).map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <select className={fld} value={condForm.warehouseName} onChange={e => setCondForm(f => ({ ...f, warehouseName: e.target.value }))}>
-                    <option value="">Склад отгрузки *</option>
-                    {data.warehouses.map(w => <option key={w.id} value={w.city}>{w.city}{w.verified ? ' ✓' : ''}</option>)}
-                  </select>
-                </div>
-
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* КОЛОНКА 1: условия сервиса поиска (чипы) */}
-                  <div>
-                    <label className="text-xs font-semibold text-gray-600">Условия сервиса поиска</label>
-                    <div className="flex flex-col gap-2 mt-2 max-w-[260px]">
-                      {(data.serviceSearch || []).map((c, idx) => (
-                        <button key={idx} type="button"
-                          onClick={() => { setEditingIdx(idx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Доставка по согласованию с поставщиком!')); }}
-                          className={`text-sm rounded-xl border px-3.5 py-2 text-left transition-colors ${editingIdx === idx ? 'border-red-400 bg-white ring-1 ring-red-200' : 'border-gray-200 bg-white hover:border-red-300'}`}>
-                          {c.city}{c.warehouseName ? ` (${c.warehouseName})` : ''}
-                        </button>
-                      ))}
-                      {(data.serviceSearch || []).length === 0 && (
-                        <p className="text-xs text-gray-400">Условий пока нет — заполните форму и нажмите «Добавить условие».</p>
-                      )}
-                    </div>
+                  <div className="flex flex-col gap-2 max-w-[260px]">
+                    <div className="text-sm rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-gray-800">{condForm.warehouseName || 'Склад не выбран'}</div>
+                    <div className="text-sm rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-gray-800">{condForm.city || 'Город не выбран'}</div>
                   </div>
 
                   {/* КОЛОНКА 2: график/условия доставки, возврат */}
@@ -387,8 +368,16 @@ export default function SupplierServicePage() {
                         value={condForm.orderUnloadSchedule} onChange={e => setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
-                      <input className={fld + ' mt-2'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))} />
+                      <div className="flex items-end gap-3">
+                        <div className="flex-1">
+                          <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
+                          <input className={fld + ' mt-2'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))} />
+                        </div>
+                        <button onClick={() => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад'); return; } setNotice(''); saveCondition(); setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
+                          className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5 flex items-center gap-1 disabled:opacity-60 whitespace-nowrap">
+                          <Plus size={15} /> {editingIdx !== null ? 'Сохранить условие' : 'Добавить условие'}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -419,11 +408,27 @@ export default function SupplierServicePage() {
                       <label className="text-xs font-semibold text-gray-600">Email</label>
                       <input className={fld + ' mt-2'} value={condForm.email} onChange={e => setCondForm(f => ({ ...f, email: e.target.value }))} />
                     </div>
-                    <button onClick={() => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад отгрузки'); return; } setNotice(''); saveCondition(); setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-3 flex items-center justify-center gap-1 disabled:opacity-60">
-                      <Plus size={15} /> {editingIdx !== null ? 'Сохранить условие' : 'Добавить условие'}
-                    </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ТАБЛИЦА УСЛОВИЙ: склад, график доставки, условия доставки, представитель, статус, редактировать */}
+            {(data.serviceSearch || []).length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-gray-900 mb-3">Мои условия ({(data.serviceSearch || []).length})</h2>
+                <div className="space-y-2">
+                  {(data.serviceSearch || []).map((c, idx) => (
+                    <div key={idx} className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-gray-50 rounded-xl px-4 py-3 text-sm">
+                      <span className="font-medium text-gray-900 min-w-[170px]">{c.warehouseName || '—'} · {c.city}</span>
+                      <span className="text-xs text-gray-500" title="График доставки">{c.deliverySchedule || '—'}</span>
+                      <span className="text-xs text-gray-500" title="Условия доставки">{[c.deliveryTime, c.orderUnloadSchedule].filter(Boolean).join(' · ') || '—'}</span>
+                      <span className="text-xs text-gray-700 min-w-[150px]" title="Представитель">{c.representative || '—'}</span>
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
+                      <button onClick={() => { setEditingIdx(idx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Доставка по согласованию с поставщиком!')); setEditorOpen(true); }}
+                        className="ml-auto text-gray-300 hover:text-red-600" title="Редактировать"><Pencil size={15} /></button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
