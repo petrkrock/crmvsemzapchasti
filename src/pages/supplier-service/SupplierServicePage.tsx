@@ -39,6 +39,7 @@ export default function SupplierServicePage() {
   const [whCity, setWhCity] = useState('');
   const [whSku, setWhSku] = useState('');
   const [condForm, setCondForm] = useState<Cond>(EMPTY_COND);
+  const [tkCarrier, setTkCarrier] = useState(''); // ТЗ v1.23.2: перевозчик для «Срок поставки»
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -191,160 +192,231 @@ export default function SupplierServicePage() {
 
         {!loading && !fatal && data && pinPassed && (
           <div className="space-y-4">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-7">
-              <h2 className="text-xl font-bold text-gray-900">Сервис поиска</h2>
-              <p className="text-sm text-gray-500 mt-1.5">{data.companyName}</p>
-            </div>
 
-            {/* ШАГ 1: СКЛАДЫ */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-7">
-              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-1">
-                <Warehouse size={17} className="text-red-600" /> Мои склады
-              </h2>
-              <p className="text-xs text-gray-400 mb-4">Шаг 1. Сначала добавьте склады — они понадобятся в условиях поиска.</p>
-              {(data.warehouses || []).map(w => (
-                <div key={w.id} className="flex items-center gap-3 border border-gray-100 rounded-xl px-3.5 py-2.5 mb-2 text-sm">
-                  <MapPin size={15} className="text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-800 font-medium">{w.city}</span>
-                  <span className="text-gray-400 text-xs">SKU: {w.skuCount}</span>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${w.verified ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-400 border border-gray-200'}`}>
-                    {w.verified ? 'Проверен ✓' : 'Не проверен'}
-                  </span>
-                  <button onClick={() => removeWarehouse(w.id)} className="ml-auto text-gray-300 hover:text-red-600" title="Удалить"><Trash2 size={14} /></button>
-                </div>
-              ))}
-              <div className="grid grid-cols-1 min-[480px]:grid-cols-[1fr_110px_auto] gap-2 mt-3">
-                <input className={fld} placeholder="Город склада *" value={whCity} onChange={e => setWhCity(e.target.value)} />
-                <input className={fld} placeholder="SKU" inputMode="numeric" value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
-                <button onClick={addWarehouse} disabled={saving}
-                  className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-4 flex items-center gap-1 disabled:opacity-60"><Plus size={15} />Добавить</button>
+            {/* ШАПКА ЛК: логотип + Продвижение/Выход */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-5 py-3 flex items-center justify-between">
+              <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="h-8 w-auto" />
+              <div className="flex gap-2">
+                <a href="/forms/marketing-kit" target="_blank" rel="noreferrer"
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
+                  Продвижение
+                </a>
+                <button onClick={() => { setPinPassed(false); setPin(''); }}
+                  className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
+                  Выход
+                </button>
               </div>
             </div>
 
-            {/* ШАГ 2: УСЛОВИЯ */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-7">
-              <h2 className="text-base font-bold text-gray-900 mb-1">Условия сервиса поиска</h2>
-              <p className="text-xs text-gray-400 mb-3">Шаг 2. Условия для каждого города/склада. Склад выбирается из добавленных выше.</p>
-              {(() => {
-                const covered = new Set((data?.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
-                const cities = data?.availableCities || [];
-                return (
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5 mb-4">
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-2 text-sm">
-                      <span className="text-gray-500">Доступно городов: <b className="text-gray-900">{cities.length}</b></span>
-                      <span className="text-gray-500">Условий: <b className="text-gray-900">{(data?.serviceSearch || []).length}</b></span>
-                      <span className="text-gray-500">Охвачено: <b className="text-gray-900">{covered.size}</b></span>
-                      <button onClick={applyToAllCities} disabled={saving}
-                        className="ml-auto text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-100 transition-colors disabled:opacity-60"
-                        title="Создать по условию на каждый доступный город, которого ещё нет">
-                        Во все доступные города
-                      </button>
-                    </div>
-                    {cities.length ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {cities.map(c => (
-                          <span key={c} className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border ${covered.has(c.toLowerCase()) ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-white border-gray-200 text-gray-500'}`}>
-                            {c}{covered.has(c.toLowerCase()) && '✓'}
-                          </span>
-                        ))}
+            {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-gray-900">Создать склад в системе</h2>
+                <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад - он понадобится в условиях поиска</p>
+                <div className="flex flex-wrap gap-2">
+                  <input className={fld + ' flex-1 min-w-[200px]'} placeholder="Город, название Вашего склада *"
+                    value={whCity} onChange={e => setWhCity(e.target.value)} />
+                  <input className={fld + ' w-40'} placeholder="Примерное кол-во SKU" inputMode="numeric"
+                    value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
+                  <button onClick={addWarehouse} disabled={saving}
+                    className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5 flex items-center gap-1 disabled:opacity-60">
+                    <Plus size={15} /> Добавить
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
+                <div className="mt-3 space-y-2 text-sm">
+                  {(() => {
+                    const covered = new Set((data.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
+                    const stats = [
+                      { label: 'Доступно городов:', value: (data.availableCities || []).length, cls: 'bg-blue-50 text-blue-700' },
+                      { label: 'Условий работает:', value: (data.serviceSearch || []).filter(c => (c.status || 'Новое') !== 'Загружено').length, cls: 'bg-green-50 text-green-700' },
+                      { label: 'Охвачено:', value: covered.size, cls: 'bg-green-50 text-green-700' },
+                    ];
+                    return stats.map(s => (
+                      <div key={s.label} className="flex items-center justify-between max-w-[240px]">
+                        <span className="text-gray-500">{s.label}</span>
+                        <span className={`min-w-[28px] text-center text-xs font-bold rounded-md px-2 py-0.5 ${s.cls}`}>{s.value}</span>
                       </div>
-                    ) : (
-                      <p className="text-xs text-gray-400">Список доступных городов не настроен — уточните у вашего менеджера.</p>
-                    )}
+                    ));
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            {/* МОИ СКЛАДЫ */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
+              {(data.warehouses || []).length === 0 && (
+                <p className="text-sm text-gray-400">Склады не добавлены — начните с шага 1.</p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {(data.warehouses || []).map(w => (
+                  <div key={w.id} className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm ${w.verified ? 'border-green-300 bg-green-50' : 'border-green-200 bg-white'}`}>
+                    <span className="font-semibold text-gray-900">{w.city}</span>
+                    <span className="text-gray-400 text-xs">{Number(w.skuCount).toLocaleString('ru-RU')} SKU</span>
+                    <span className={`text-xs ${w.verified ? 'text-green-600 font-medium' : 'text-gray-400'}`}>{w.verified ? 'Проверен' : 'Не проверен'}</span>
+                    <button onClick={() => removeWarehouse(w.id)} className="text-gray-300 hover:text-red-600" title="Удалить"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ШАГ 2: ВЫБОР ГОРОДА ПОКАЗОВ */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-3">Выберите Город показов *</h2>
+              {(() => {
+                const list = data.serviceSearch || [];
+                const covered = new Set(list.map(c => (c.city || '').toLowerCase()));
+                const cities = data.availableCities || [];
+                if (!cities.length) return <p className="text-xs text-gray-400">Список доступных городов не настроен — уточните у вашего менеджера.</p>;
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    {cities.map(c => {
+                      const idx = list.findIndex(x => (x.city || '').toLowerCase() === c.toLowerCase());
+                      const active = idx >= 0;
+                      return (
+                        <button key={c} type="button"
+                          onClick={() => {
+                            if (active) { setEditingIdx(idx); setCondForm(list[idx]); setTkCarrier(''); }
+                            else { setEditingIdx(null); setCondForm(f => ({ ...EMPTY_COND, city: c })); setTkCarrier(''); }
+                          }}
+                          className={`text-sm px-4 py-2 rounded-xl border transition-colors ${active ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-red-300'}`}>
+                          {c}
+                        </button>
+                      );
+                    })}
                   </div>
                 );
               })()}
+            </div>
 
-              {(data.serviceSearch || []).map((c, idx) => (
-                <div key={idx} className="border border-gray-100 rounded-xl p-3.5 mb-2.5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-semibold text-gray-800">{c.city}{c.warehouseName ? ` · ${c.warehouseName}` : ''}</span>
-                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
-                    <span className="flex gap-2">
-                      <button onClick={() => { setEditingIdx(idx); setCondForm(c); }} className="text-gray-300 hover:text-blue-600" title="Редактировать"><Pencil size={14} /></button>
-                      <button onClick={() => removeCondition(idx)} className="text-gray-300 hover:text-red-600" title="Удалить"><Trash2 size={14} /></button>
-                    </span>
-                  </div>
-                  {(() => { const wh = (data?.warehouses || []).find(w => w.city.toLowerCase() === (c.warehouseName || '').toLowerCase()); return (
-                    <p className={`text-xs mt-1 ${wh?.verified ? 'text-green-700 font-medium' : 'text-gray-400'}`}>
-                      Склад проверен: {wh?.verified ? 'Да ✓' : 'Нет'}
-                    </p>
-                  ); })()}
-                  {c.deliverySchedule && <p className="text-xs text-gray-400">Доставка: {c.deliverySchedule}</p>}
-                  {c.returnConditions && <p className="text-xs text-gray-400">Возвраты: {c.returnConditions}</p>}
+            {/* ШАГ 3: УСЛОВИЯ СЕРВИСА ПОИСКА */}
+            {(data.warehouses || []).length > 0 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-bold text-gray-900">{editingIdx !== null ? 'Редактирование условия' : 'Условия сервиса поиска'}</h2>
+                  {editingIdx !== null && (
+                    <button onClick={() => { setEditingIdx(null); setCondForm(EMPTY_COND); setTkCarrier(''); }} className="text-gray-400 hover:text-gray-700" title="Закрыть"><X size={18} /></button>
+                  )}
                 </div>
-              ))}
 
-              {(data.warehouses || []).length === 0 ? (
-                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-xl p-3">Сначала добавьте хотя бы один склад в блоке выше.</p>
-              ) : (
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mt-2">
-                  <p className="text-xs font-semibold text-gray-600 mb-3">{editingIdx !== null ? 'Редактирование условия' : 'Новое условие'}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div><label className="text-[11px] font-semibold uppercase text-gray-400">Город показов *</label>
-                      <select className={fld} value={condForm.city} onChange={e => setCondForm(f => ({ ...f, city: e.target.value }))}>
-                        <option value="">Выберите город...</option>
+                {/* Добавленные условия — чипы */}
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {(data.serviceSearch || []).map((c, idx) => (
+                    <span key={idx} className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-sm">
+                      <span className="font-medium text-gray-800">{c.city}{c.warehouseName ? ` (${c.warehouseName})` : ''}</span>
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
+                      <button onClick={() => { setEditingIdx(idx); setCondForm(c); setTkCarrier(''); }} className="text-gray-300 hover:text-blue-600" title="Редактировать"><Pencil size={13} /></button>
+                      <button onClick={() => removeCondition(idx)} className="text-gray-300 hover:text-red-600" title="Удалить"><Trash2 size={13} /></button>
+                    </span>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                  {/* Колонка 1: город/склад/срок поставки */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Условия сервиса поиска</label>
+                      <select className={fld + ' mt-1.5'} value={condForm.city} onChange={e => setCondForm(f => ({ ...f, city: e.target.value }))}>
+                        <option value="">Город показов *</option>
                         {(data?.availableCities || []).map(c => <option key={c} value={c}>{c}</option>)}
-                      </select></div>
-                    <div><label className="text-[11px] font-semibold uppercase text-gray-400">Склад</label>
-                      <select className={fld} value={condForm.warehouseName} onChange={e => setCondForm(f => ({ ...f, warehouseName: e.target.value }))}>
-                        <option value="">Выберите склад...</option>
+                      </select>
+                      <select className={fld + ' mt-2'} value={condForm.warehouseName} onChange={e => setCondForm(f => ({ ...f, warehouseName: e.target.value }))}>
+                        <option value="">Склад отгрузки *</option>
                         {data.warehouses.map(w => <option key={w.id} value={w.city}>{w.city}{w.verified ? ' ✓' : ''}</option>)}
-                      </select></div>
-                    {COND_FIELDS.map(f => (
-                      <div key={f.key} className={f.key === 'returnConditions' ? 'sm:col-span-2' : ''}>
-                        <label className="text-[11px] font-semibold uppercase text-gray-400">{f.label}</label>
-                        {f.key === 'officialWarehouse' ? (
-                          <select className={fld} value={condForm.officialWarehouse} onChange={e => setCondForm(prev => ({ ...prev, officialWarehouse: e.target.value }))}>
-                            <option value="">Выберите склад...</option>
-                            {(data?.warehouses || []).map(w => <option key={w.id} value={w.city}>{w.city}{w.verified ? ' ✓' : ''}</option>)}
-                          </select>
-                        ) : f.key === 'returnConditions' ? (
-                          <>
-                            <input className={fld} list="vz-return-opts" placeholder="Выберите или введите свой вариант" value={condForm.returnConditions} onChange={e => setCondForm(prev => ({ ...prev, returnConditions: e.target.value }))} />
-                            <datalist id="vz-return-opts"><option value="Возврат без комиссии" /><option value="Возврат с комиссией" /><option value="Нет возврата" /></datalist>
-                          </>
-                        ) : f.key === 'deliveryTime' ? (
-                          // v_1.9: быстрые кнопки Сегодня/Завтра (можно только одно) или свой ввод
-                          <div>
-                            <div className="flex gap-1.5 mb-1.5">
-                              {['Сегодня', 'Завтра'].map(q => (
-                                <button key={q} type="button"
-                                  onClick={() => setCondForm(prev => ({ ...prev, deliveryTime: prev.deliveryTime === q ? '' : q }))}
-                                  className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${condForm.deliveryTime === q ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>{q}</button>
-                              ))}
-                            </div>
-                            <input className={fld} value={condForm.deliveryTime} onChange={e => setCondForm(prev => ({ ...prev, deliveryTime: e.target.value }))} placeholder="например: 2 дня" />
-                          </div>
-                        ) : f.key === 'deliverySchedule' ? (
-                          <div className="flex flex-wrap gap-1 pt-1">{['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'].map(d => {
-                            const days = (condForm.deliverySchedule || '').split(',').filter(Boolean);
-                            const on = days.includes(d);
-                            return <button key={d} type="button"
-                              onClick={() => setCondForm(prev => ({ ...prev, deliverySchedule: on ? days.filter(x => x !== d).join(',') : [...days, d].join(',') }))}
-                              className={`w-8 h-7 text-[10px] rounded-md border ${on ? 'bg-red-50 border-red-300 text-red-700 font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</button>;
-                          })}</div>
-                        ) : (
-                          <input className={fld} value={condForm[f.key]} onChange={e => setCondForm(prev => ({ ...prev, [f.key]: e.target.value }))} />
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Срок поставки до города</label>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {['Сегодня', 'Завтра', '2-3 дня'].map(v => (
+                          <button key={v} type="button"
+                            onClick={() => setCondForm(f => ({ ...f, deliveryTime: f.deliveryTime === v ? '' : v }))}
+                            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${condForm.deliveryTime === v ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                            {v}
+                          </button>
+                        ))}
+                        <input className={fld + ' !w-28 !py-1.5 text-xs'} placeholder="ТК" value={tkCarrier} onChange={e => setTkCarrier(e.target.value)} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
+                      <input className={fld + ' mt-1.5'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">График выгрузки заказов</label>
+                      <input className={fld + ' mt-1.5'} placeholder="Например при заказе до 16:00 на следующий день"
+                        value={condForm.orderUnloadSchedule} onChange={e => setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">График доставки</label>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => {
+                          const days = (condForm.deliverySchedule || '').split(',').map(x => x.trim()).filter(Boolean);
+                          const on = days.includes(d);
+                          return (
+                            <button key={d} type="button"
+                              onClick={() => setCondForm(f => ({ ...f, deliverySchedule: on ? days.filter(x => x !== d).join(', ') : [...days, d].join(', ') }))}
+                              className={`w-9 h-9 text-xs rounded-lg border transition-colors ${on ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                              {d}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Колонка 2-3: представитель/контакты + кнопка */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-gray-600">Представитель</label>
+                        {(data as { contactName?: string }).contactName && (
+                          <button type="button" className="text-xs text-red-700 hover:underline"
+                            onClick={() => setCondForm(f => ({
+                              ...f,
+                              representative: (data as { contactName?: string }).contactName || f.representative,
+                              contacts: (data as { contactPhone?: string }).contactPhone || f.contacts,
+                              email: (data as { contactEmail?: string }).contactEmail || f.email,
+                            }))}>
+                            Заполнить из карточки
+                          </button>
                         )}
                       </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={saveCondition} disabled={saving}
-                      className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5 disabled:opacity-60">
-                      {editingIdx !== null ? 'Сохранить изменения' : 'Добавить условие'}</button>
-                    {editingIdx !== null && (
-                      <button onClick={() => { setEditingIdx(null); setCondForm(EMPTY_COND); }}
-                        className="text-sm text-gray-500 flex items-center gap-1"><X size={14} />Отмена</button>
+                      <input className={fld + ' mt-1.5'} placeholder="ФИО" value={condForm.representative} onChange={e => setCondForm(f => ({ ...f, representative: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Контакты</label>
+                      <input className={fld + ' mt-1.5'} placeholder="Телефон" value={condForm.contacts} onChange={e => setCondForm(f => ({ ...f, contacts: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Email</label>
+                      <input className={fld + ' mt-1.5'} value={condForm.email} onChange={e => setCondForm(f => ({ ...f, email: e.target.value }))} />
+                    </div>
+                    <button onClick={() => {
+                      const merged = { ...condForm, deliveryTime: [condForm.deliveryTime, tkCarrier.trim() ? `ТК: ${tkCarrier.trim()}` : ''].filter(Boolean).join('; ') };
+                      setCondForm(merged);
+                      saveCondition();
+                    }} disabled={saving}
+                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5 flex items-center justify-center gap-1 disabled:opacity-60">
+                      <Plus size={15} /> {editingIdx !== null ? 'Сохранить условие' : 'Добавить условие'}
+                    </button>
+                    {(data.serviceSearch || []).length > 0 && (
+                      <button onClick={applyToAllCities} disabled={saving}
+                        className="w-full sm:w-auto sm:ml-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-600 text-xs font-semibold rounded-xl px-4 py-2.5 disabled:opacity-60"
+                        title="Создать по условию на каждый доступный город, которого ещё нет">
+                        Во все доступные города
+                      </button>
                     )}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {notice && <p className="text-center text-sm text-gray-600 bg-white border border-gray-200 rounded-2xl py-3 px-4">{notice}</p>}
-            <p className="text-center text-xs text-gray-400 pb-2">Изменения сразу попадают в CRM</p>
+            {notice && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{notice}</p>}
           </div>
         )}
       </div>

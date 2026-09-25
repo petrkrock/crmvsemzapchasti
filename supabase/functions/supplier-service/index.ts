@@ -156,6 +156,7 @@ async function handleGet(req: Request) {
   return json({
     companyName: supplier.trade_name || 'Поставщик',
       inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
+      contactName: supplier.contact_name || '', contactPhone: supplier.phone || '', contactEmail: supplier.email || '', // ТЗ v1.23.2: «Заполнить из карточки»
         multiWarehouse: Boolean((supplier as SupplierRow & { multi_warehouse?: boolean }).multi_warehouse),
     hasPin: Boolean(supplier.service_access?.pin),
     warehouses: supplier.warehouse_locations || [],
@@ -210,6 +211,7 @@ async function handlePost(req: Request) {
       pinVerified: true,
       companyName: supplier.trade_name || 'Поставщик',
       inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
+      contactName: supplier.contact_name || '', contactPhone: supplier.phone || '', contactEmail: supplier.email || '', // ТЗ v1.23.2: «Заполнить из карточки»
       multiWarehouse: Boolean((supplier as SupplierRow & { multi_warehouse?: boolean }).multi_warehouse),
       warehouses: supplier.warehouse_locations || [],
       serviceSearch: supplier.service_search || [],
