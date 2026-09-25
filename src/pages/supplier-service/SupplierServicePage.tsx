@@ -30,7 +30,7 @@ const EMPTY_COND: Cond = { city: '', warehouseName: '', representative: '', cont
 export default function SupplierServicePage() {
   const { token = '' } = useParams<{ token: string }>();
 
-  const [data, setData] = useState<{ companyName: string; hasPin: boolean; warehouses: Wh[]; serviceSearch: Cond[]; availableCities: string[]; multiWarehouse: boolean } | null>(null);
+  const [data, setData] = useState<{ companyName: string; inn?: string; hasPin: boolean; warehouses: Wh[]; serviceSearch: Cond[]; availableCities: string[]; multiWarehouse: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [fatal, setFatal] = useState('');
   const [pinPassed, setPinPassed] = useState(false);
@@ -142,8 +142,11 @@ export default function SupplierServicePage() {
 
   const fld = 'w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-400';
 
+  // ТЗ v1.23.0: экран ввода PIN — по центру, как страница входа в приложение
+  const pinScreen = !loading && !fatal && data && !pinPassed;
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex items-start justify-center p-3 sm:p-6 md:p-10">
+    <div className={`min-h-screen bg-[#f5f5f5] flex ${pinScreen ? 'items-center' : 'items-start'} justify-center p-3 sm:p-6 md:p-10`}>
       <div ref={wrapperRef} className="w-full max-w-xl py-2">
         {loading && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-4 py-16 px-6">
@@ -159,10 +162,16 @@ export default function SupplierServicePage() {
           </div>
         )}
 
+        {pinScreen && (
+          <div className="flex flex-col items-center mb-6">
+            <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[180px] h-auto mb-3" />
+            <p className="text-base font-bold text-gray-900 tracking-wide text-center">НАСТРОЙКА СЕРВИСА ПОИСКА (DBS)</p>
+          </div>
+        )}
+
         {!loading && !fatal && data && !pinPassed && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 sm:p-8">
-            <h1 className="text-xl font-bold text-gray-900">Сервис поиска</h1>
-            <p className="text-sm text-gray-500 mt-1.5">{data.companyName}</p>
+            <p className="text-sm text-gray-500 mt-1.5">{data.companyName}{data.inn ? ` (${data.inn})` : ''}</p>
             <hr className="border-gray-100 my-5" />
             <div className="text-center">
               <p className="text-sm text-gray-700 mb-4">Введите PIN-код из сообщения от менеджера</p>

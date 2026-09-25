@@ -155,6 +155,7 @@ async function handleGet(req: Request) {
   const availableCities = ((settingsRow?.settings as Record<string, unknown> | undefined)?.cities as string[]) || [];
   return json({
     companyName: supplier.trade_name || 'Поставщик',
+      inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
         multiWarehouse: Boolean((supplier as SupplierRow & { multi_warehouse?: boolean }).multi_warehouse),
     hasPin: Boolean(supplier.service_access?.pin),
     warehouses: supplier.warehouse_locations || [],
@@ -208,6 +209,7 @@ async function handlePost(req: Request) {
       ok: true,
       pinVerified: true,
       companyName: supplier.trade_name || 'Поставщик',
+      inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
       multiWarehouse: Boolean((supplier as SupplierRow & { multi_warehouse?: boolean }).multi_warehouse),
       warehouses: supplier.warehouse_locations || [],
       serviceSearch: supplier.service_search || [],
