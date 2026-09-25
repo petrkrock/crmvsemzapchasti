@@ -172,7 +172,7 @@ export default function ManagerDashboardPage({ previewType }: { previewType?: 'm
           </div>
           {newTickets.length === 0 ? <p className="text-sm text-gray-400 text-center py-4">Новых обращений нет</p> : (
             <div className="space-y-2">
-              {newTickets.slice(0, 5).map(t => (
+              {[...newTickets].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 5).map(t => ( // ТЗ v1.22.40: новые сверху
                 <button key={t.id} onClick={() => canSupport && navigate(`/support/${t.id}`)} disabled={!canSupport}
                   className="w-full flex items-center gap-2 text-left border border-brand-gray-mid rounded-lg px-3 py-2 hover:shadow-md transition-shadow disabled:hover:shadow-none">
                   <div className="flex-1 min-w-0">

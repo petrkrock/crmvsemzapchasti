@@ -275,7 +275,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-400 text-center py-4">Новых обращений нет</p>
           ) : (
             <div className="space-y-2">
-              {newTickets.slice(0, 5).map(t => (
+              {[...newTickets].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 5).map(t => ( // ТЗ v1.22.40: новые сверху
                 <div key={t.id} onClick={() => navigate(`/support/${t.id}`)} className="p-2 bg-brand-gray rounded-md cursor-pointer hover:bg-brand-gray-mid transition-colors">
                   {/* v_1.9: слева тема+мета, статус — в правый угол */}
                   <div className="flex items-center justify-between gap-2">

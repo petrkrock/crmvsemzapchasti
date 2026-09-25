@@ -595,24 +595,8 @@ async function handleSubmit(req: Request): Promise<Response> {
       console.error('[public-form] core insert failed, saved minimal-only. Missing columns? Core error:', ins2.error.message);
     }
   }
-  // ТЗ v1.22.33: сервис продаж DBS по умолчанию — ОТДЕЛЬНЫМ best-effort UPDATE:
-  // колонки service_search может не быть в старых БД, и она не должна ломать основную запись.
-  // Условие создаём ТОЛЬКО при известном городе — иначе в карточке появлялось пустое условие.
-  if (table === 'suppliers' && savedId && clean.city) {
-    // ТЗ v1.22.39: у условия обязателен id (карточка рендерит/редактирует по cond.id) —
-    // без id появлялось «пустое условие». Плюс сервис DBS по умолчанию в списке услуг.
-    const { data: supRow } = await client.from('suppliers').select('service_search, services').eq('id', savedId).single();
-    const existingSs = Array.isArray(supRow?.service_search) ? supRow.service_search : [];
-    const existingServices = Array.isArray(supRow?.services) ? supRow.services : [];
-    const dbsService = existingServices.includes('DBS') ? existingServices : [...existingServices, 'DBS'];
-    const { error: dbsErr } = await client.from('suppliers')
-      .update({
-        service_search: [...existingSs, { id: crypto.randomUUID(), city: String(clean.city), status: 'Новое', updatedAt: nowIso }],
-        services: dbsService,
-      })
-      .eq('id', savedId);
-    if (dbsErr) console.error('[public-form] DBS default skipped:', dbsErr.message);
-  }
+  // ТЗ v1.22.40: условие сервиса поиска НЕ создаётся автоматически при регистрации с формы.
+
 
   // Уведомления (ТЗ): Telegram + MAX + Email + личные чаты ответственных.
   // Ошибка любого канала не влияет на ответ посетителю формы.
