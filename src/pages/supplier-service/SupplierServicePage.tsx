@@ -153,7 +153,8 @@ export default function SupplierServicePage() {
     const template = { ...condForm, city: '' };
     const additions = cities.filter(c => !existing.has(c.toLowerCase())).map(c => ({ ...template, id: crypto.randomUUID(), city: c })); // ТЗ v1.23.19
     if (!additions.length) { setNotice('Все доступные города уже добавлены'); return; }
-    const err = await post({ serviceSearch: [...(data?.serviceSearch || [])].map(c => c.id ? c : { ...c, id: crypto.randomUUID() }), ...additions] });
+    const normalized = [...(data?.serviceSearch || [])].map(c => c.id ? c : { ...c, id: crypto.randomUUID() });
+    const err = await post({ serviceSearch: [...normalized, ...additions] });
     if (!err) setCondForm(EMPTY_COND); else setNotice(err);
   }
 
