@@ -48,6 +48,7 @@ export default function SupplierServicePage() {
   const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
   const [statusFilter, setStatusFilter] = useState<'all' | 'Новое' | 'Загружено' | 'Есть изменения'>('all'); // ТЗ v1.23.10: фильтр условий по статусу
   const [statusHint, setStatusHint] = useState(false);
+  const [pendingCity, setPendingCity] = useState<string | null>(null); // ТЗ v1.23.11: город, ждущий кнопку «Создать условия»
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -232,13 +233,13 @@ export default function SupplierServicePage() {
                   </div>
                 )}
                 <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад - он понадобится в условиях поиска</p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input className={fld + ' flex-1 min-w-0'} placeholder="Город, название Вашего склада *"
+                <div className="grid grid-cols-[1fr_160px_44px] gap-2">
+                  <input className={fld} placeholder="Город, название Вашего склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
-                  <input className={fld + ' w-40'} placeholder="Примерное кол-во SKU" inputMode="numeric" maxLength={6}
+                  <input className={fld} placeholder="Примерное кол-во SKU" inputMode="numeric" maxLength={6}
                     value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, '').slice(0, 6))} />
                   <button onClick={addWarehouse} disabled={saving} title="Добавить склад"
-                    className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-3.5 py-2.5 flex items-center justify-center disabled:opacity-60">
+                    className="bg-red-600 hover:bg-red-700 text-white rounded-xl w-11 h-11 flex items-center justify-center disabled:opacity-60">
                     <Plus size={17} />
                   </button>
                 </div>
@@ -322,18 +323,12 @@ export default function SupplierServicePage() {
                         <button key={c} type="button"
                           onClick={() => {
                             if ((data.warehouses || []).length === 0 || !selectedWh) {
-                              setNotice('Сначала создайте склад в системе (шаг 1) — без склада условия недоступны.');
+                              setNotice('Выберите или создайте новый склад в разделе «Мои склады» для добавления условий в сервис поиска.');
                               return;
                             }
                             setNotice('');
-                            if (editorOpen && ((active && editingIdx === idx) || (!active && editingIdx === null && condForm.city === c))) {
-                              setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false);
-                              return;
-                            }
-                            setTkOn(false);
-                            if (active) { setEditingIdx(idx); setCondForm(list[idx]); setSelectedWh(list[idx].warehouseName || selectedWh); }
-                            else { setEditingIdx(null); setCondForm({ ...EMPTY_COND, city: c, warehouseName: selectedWh }); }
-                            setEditorOpen(true);
+                            if (active) { setPendingCity(null); return; } // условие уже есть — оно в таблице
+                            setPendingCity(prev => prev === c ? null : c);
                           }}
                           className={`text-sm px-4 py-2 rounded-xl border transition-colors ${active ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-red-300'}`}>
                           {c}
@@ -343,6 +338,16 @@ export default function SupplierServicePage() {
                   </div>
                 );
               })()}
+              {pendingCity && !!selectedWh && (
+                <button type="button"
+                  onClick={() => {
+                    setCondForm({ ...EMPTY_COND, city: pendingCity, warehouseName: selectedWh });
+                    setEditingIdx(null); setTkOn(false); setEditorOpen(true); setPendingCity(null);
+                  }}
+                  className="w-full mt-3 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-4 py-3 flex items-center justify-center gap-1.5 transition-colors">
+                  <Plus size={15} /> Создать условия для выбранного склада и города
+                </button>
+              )}
             </div>
 
             {/* ШАГ 3: ОКНО «УСЛОВИЯ СЕРВИСА ПОИСКА» — открывается после выбора города */}
@@ -452,7 +457,7 @@ export default function SupplierServicePage() {
 
             {/* УСЛОВИЯ СЕРВИСА ПОИСКА (DBS) — таблица условий */}
             {(data.serviceSearch || []).length > 0 && (
-              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 overflow-x-auto">
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
                   <h2 className="text-lg font-bold text-gray-900">Условия сервиса поиска (DBS)</h2>
                   <div className="flex items-center gap-2">
@@ -492,14 +497,14 @@ export default function SupplierServicePage() {
                     const delivText = [c.deliveryTime, String(c.orderUnloadSchedule || '').replace(TK, '').trim()].filter(Boolean).join(' · ');
                     const days = (c.deliverySchedule || '').split(',').map(x => x.trim()).filter(Boolean);
                     return (
-                      <div key={realIdx} className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-gray-50 rounded-xl px-4 py-3 text-sm mb-2">
+                      <div key={realIdx} className="grid grid-cols-[150px_130px_210px_minmax(220px,1fr)_170px_110px_44px] items-center gap-x-4 gap-y-1 bg-gray-50 rounded-xl px-4 py-3 text-sm mb-2 min-w-[940px]">
                         {cell('Склад', c.warehouseName)}
                         {cell('Город', c.city)}
                         <div>
                           <p className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</p>
                           <div className="flex gap-1">
                             {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                              <span key={d} className={`w-6 h-6 text-[10px] flex items-center justify-center rounded-md border ${days.includes(d) ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
+                              <span key={d} className={`w-6 h-6 text-[10px] flex items-center justify-center rounded-md border ${days.includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
                             ))}
                           </div>
                         </div>
