@@ -350,6 +350,9 @@ export default function SupplierServicePage() {
               )}
             </div>
 
+            {/* ТЗ v1.23.12: уведомления — всегда под блоком «Доступные города» */}
+            {notice && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{notice}</p>}
+
             {/* ШАГ 3: ОКНО «УСЛОВИЯ СЕРВИСА ПОИСКА» — открывается после выбора города */}
             {editorOpen && (data.warehouses || []).length > 0 && (
               <div className="bg-gray-50 border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
@@ -376,7 +379,7 @@ export default function SupplierServicePage() {
                           return (
                             <button key={d} type="button"
                               onClick={() => setCondForm(f => ({ ...f, deliverySchedule: on ? days.filter(x => x !== d).join(', ') : [...days, d].join(', ') }))}
-                              className={`w-9 h-9 text-xs rounded-lg border transition-colors ${on ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                              className={`w-9 h-9 text-xs rounded-lg border transition-colors ${on ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500'}`}>
                               {d}
                             </button>
                           );
@@ -410,15 +413,15 @@ export default function SupplierServicePage() {
                         value={condForm.orderUnloadSchedule} onChange={e => setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value }))} />
                     </div>
                     <div>
-                      <div className="flex items-end gap-3">
-                        <div className="flex-1">
+                      <div>
                           <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
-                          <input className={fld + ' mt-2'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))} />
+                          <select className={fld + ' mt-2'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))}>
+                            {!['Возврат без комиссии', 'Возврат с комиссией', 'Нет возврата', ''].includes(condForm.returnConditions) && <option value={condForm.returnConditions}>{condForm.returnConditions}</option>}
+                            <option value="Возврат без комиссии">Возврат без комиссии</option>
+                            <option value="Возврат с комиссией">Возврат с комиссией</option>
+                            <option value="Нет возврата">Нет возврата</option>
+                          </select>
                         </div>
-                        <button onClick={() => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад'); return; } setNotice(''); saveCondition(); setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
-                          className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-2.5 flex items-center gap-1 disabled:opacity-60 whitespace-nowrap">
-                          <Plus size={15} /> {editingIdx !== null ? 'Сохранить условие' : 'Добавить условие'}
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -450,6 +453,10 @@ export default function SupplierServicePage() {
                       <label className="text-xs font-semibold text-gray-600">Email</label>
                       <input className={fld + ' mt-2'} value={condForm.email} onChange={e => setCondForm(f => ({ ...f, email: e.target.value }))} />
                     </div>
+                    <button onClick={() => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад'); return; } setNotice(''); saveCondition(); setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-3 flex items-center justify-center gap-1 disabled:opacity-60">
+                      <Plus size={15} /> {editingIdx !== null ? 'Сохранить условие' : 'Добавить условие'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -457,7 +464,7 @@ export default function SupplierServicePage() {
 
             {/* УСЛОВИЯ СЕРВИСА ПОИСКА (DBS) — таблица условий */}
             {(data.serviceSearch || []).length > 0 && (
-              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 overflow-x-auto">
+              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
                   <h2 className="text-lg font-bold text-gray-900">Условия сервиса поиска (DBS)</h2>
                   <div className="flex items-center gap-2">
@@ -497,9 +504,8 @@ export default function SupplierServicePage() {
                     const delivText = [c.deliveryTime, String(c.orderUnloadSchedule || '').replace(TK, '').trim()].filter(Boolean).join(' · ');
                     const days = (c.deliverySchedule || '').split(',').map(x => x.trim()).filter(Boolean);
                     return (
-                      <div key={realIdx} className="grid grid-cols-[150px_130px_210px_minmax(220px,1fr)_170px_110px_44px] items-center gap-x-4 gap-y-1 bg-gray-50 rounded-xl px-4 py-3 text-sm mb-2 min-w-[940px]">
-                        {cell('Склад', c.warehouseName)}
-                        {cell('Город', c.city)}
+                      <div key={realIdx} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] items-center gap-x-4 gap-y-2 bg-gray-50 hover:bg-gray-100 rounded-xl px-4 py-3 text-sm mb-2 cursor-pointer transition-colors" onClick={() => { setEditingIdx(realIdx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Доставка по согласованию с поставщиком!')); setEditorOpen(true); }}>
+                        {cell('Склад', <div className="flex flex-col"><span>{c.warehouseName}</span><span className="text-[11px] text-gray-400 font-normal">Город: {c.city}</span></div>)}
                         <div>
                           <p className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</p>
                           <div className="flex gap-1">
@@ -526,7 +532,6 @@ export default function SupplierServicePage() {
               </div>
             )}
 
-            {notice && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{notice}</p>}
           </div>
         )}
       </div>
