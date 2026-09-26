@@ -33,7 +33,7 @@ export default function SupplierServicePage() {
   const [data, setData] = useState<{ companyName: string; inn?: string; hasPin: boolean; warehouses: Wh[]; serviceSearch: Cond[]; availableCities: string[]; multiWarehouse: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [fatal, setFatal] = useState('');
-  const [pinPassed, setPinPassed] = useState(false);
+  const [pinPassed, setPinPassed] = useState(() => sessionStorage.getItem('dbs_pin_ok') === '1'); // ТЗ v1.23.19: переживает F5
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
   const [whCity, setWhCity] = useState('');
@@ -70,7 +70,7 @@ export default function SupplierServicePage() {
     // returns public metadata.
     post({}).then(err => {
       if (err) setFatal(err);
-      else setPinPassed(true);
+      else sessionStorage.setItem('dbs_pin_ok','1'); setPinPassed(true);
     });
   }, [data, pinPassed]);
 
@@ -105,16 +105,17 @@ export default function SupplierServicePage() {
     setPinError('');
     const err = await post({}); // пустой PATCH — сервер проверит PIN (403 при неверном)
     if (err) { setPinError(err); setPin(''); }
-    else setPinPassed(true);
+    else sessionStorage.setItem('dbs_pin_ok','1'); setPinPassed(true);
   }
 
   async function addWarehouse() {
     if (!whCity.trim()) { setNotice('Укажите город склада'); return; }
+    if (!whSku.trim()) { setNotice('Укажите примерное кол-во SKU'); return; } // ТЗ v1.23.19: обе ячейки обязательны
     if ((data?.warehouses || []).length >= 1 && !data?.multiWarehouse) {
       setNotice('Для включения функции мультисклад обратитесь в поддержку');
       return;
     }
-    const err = await post({ warehouses: [...(data?.warehouses || []), { id: '', city: whCity.trim(), skuCount: Number(whSku) || 0 }] });
+    const err = await post({ warehouses: [...(data?.warehouses || []), { id: crypto.randomUUID(), city: whCity.trim(), skuCount: Number(whSku) || 0 }] }) // ТЗ v1.23.19: id обязателен;
     if (!err) { setWhCity(''); setWhSku(''); }
     else setNotice(err);
   }
@@ -126,8 +127,19 @@ export default function SupplierServicePage() {
 
   async function saveCondition() {
     if (!condForm.city.trim()) { setNotice('Город показов обязателен'); return; }
-    const list = [...(data?.serviceSearch || [])];
-    if (editingIdx !== null) list[editingIdx] = condForm; else list.push(condForm);
+    // ТЗ v1.23.19: обязательные поля условия
+    const missing: string[] = [];
+    if (!condForm.deliverySchedule?.trim()) missing.push('График доставки');
+    if (!condForm.orderUnloadSchedule?.trim()) missing.push('Условия доставки');
+    if (!condForm.returnConditions?.trim()) missing.push('Условия возврата товара');
+    if (!condForm.representative?.trim()) missing.push('Представитель');
+    if (!condForm.contacts?.trim()) missing.push('Контакты');
+    if (!condForm.email?.trim()) missing.push('Email');
+    if (missing.length) { setNotice('Заполните обязательные поля: ' + missing.join(', ')); return; }
+    // ТЗ v1.23.19: id обязателен у каждого условия — иначе в карточке CRM правка одного меняла все
+    const cond = { ...condForm, id: condForm.id || crypto.randomUUID() };
+    const list = [...(data?.serviceSearch || [])].map(c => c.id ? c : { ...c, id: crypto.randomUUID() });
+    if (editingIdx !== null) list[editingIdx] = cond; else list.push(cond);
     const err = await post({ serviceSearch: list });
     if (!err) { setCondForm(EMPTY_COND); setEditingIdx(null); }
     else setNotice(err);
@@ -139,9 +151,9 @@ export default function SupplierServicePage() {
     if ((data?.warehouses || []).length === 0) { setNotice('Сначала добавьте хотя бы один склад'); return; }
     const existing = new Set((data?.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
     const template = { ...condForm, city: '' };
-    const additions = cities.filter(c => !existing.has(c.toLowerCase())).map(c => ({ ...template, city: c }));
+    const additions = cities.filter(c => !existing.has(c.toLowerCase())).map(c => ({ ...template, id: crypto.randomUUID(), city: c })); // ТЗ v1.23.19
     if (!additions.length) { setNotice('Все доступные города уже добавлены'); return; }
-    const err = await post({ serviceSearch: [...(data?.serviceSearch || []), ...additions] });
+    const err = await post({ serviceSearch: [...(data?.serviceSearch || [])].map(c => c.id ? c : { ...c, id: crypto.randomUUID() }), ...additions] });
     if (!err) setCondForm(EMPTY_COND); else setNotice(err);
   }
 
@@ -161,7 +173,7 @@ export default function SupplierServicePage() {
         {loading && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-4 py-16 px-6">
             <div className="w-11 h-11 rounded-full border-4 border-red-100 border-t-red-600 animate-spin" aria-hidden="true" />
-            <p className="text-sm text-gray-500 text-center">Подождите пожалуйста, форма загружается…</p>
+            <p className="text-sm text-gray-500 text-center">Личный кабинет для настройки сервиса поиска (DBS) загружается, пожалуйста подождите</p>
           </div>
         )}
 
@@ -210,7 +222,7 @@ export default function SupplierServicePage() {
                   className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
                   Продвижение
                 </a>
-                <button onClick={() => { setPinPassed(false); setPin(''); }}
+                <button onClick={() => { sessionStorage.removeItem('dbs_pin_ok'); setPinPassed(false); setPin(''); }}
                   className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
                   Выход
                 </button>
@@ -477,7 +489,7 @@ export default function SupplierServicePage() {
                         applyToAllCities();
                         setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false);
                       }}
-                      className="w-full text-xs text-red-700 hover:underline">
+                      className="w-full text-xs text-red-700 hover:underline mt-6">
                       Сохранить условие для всех доступных городов
                     </button>
                     <button onClick={() => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад'); return; } setNotice(''); saveCondition(); setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}

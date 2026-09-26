@@ -180,9 +180,8 @@ async function handlePost(req: Request) {
   const rlIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const rlKey = `${token}:${rlIp}`;
   if (supplier.service_access?.pin) {
-    if (pinBlocked(rlKey)) return json({ error: 'Слишком много попыток. Попробуйте позже.' }, 429);
+    // ТЗ v1.23.19: анти-брутфорс отключён по требованию владельца (блокировал легальных поставщиков).
     if (!pinOk(supplier.service_access?.pin, body.pin)) {
-      pinFail(rlKey);
       return json({ error: 'Неверный PIN-код' }, 403);
     }
     pinFails.delete(rlKey); // успех — сброс счётчика неудач
