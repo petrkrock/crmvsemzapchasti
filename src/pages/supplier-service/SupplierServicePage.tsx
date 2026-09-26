@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, HelpCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; } // verified выставляет менеджер в CRM
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -223,8 +223,11 @@ export default function SupplierServicePage() {
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-lg font-bold text-gray-900">Добавить склад</h2>
                   <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
-                    className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors">
-                    <HelpCircle size={17} />
+                    className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white shadow-md shadow-red-200 hover:shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center transition-all">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M8.6 9.2a3.4 3.4 0 1 1 5 2.9c-1 .7-1.6 1.2-1.6 2.4" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
+                      <circle cx="12" cy="18" r="1.4" fill="currentColor" />
+                    </svg>
                   </button>
                 </div>
                 {priceHint && (
@@ -439,17 +442,23 @@ export default function SupplierServicePage() {
                     <div>
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-semibold text-gray-600">Представитель</label>
-                        {(data as { contactName?: string }).contactName && (
-                          <button type="button" className="text-xs text-red-700 hover:underline"
-                            onClick={() => setCondForm(f => ({
+                        <button type="button" className="text-xs text-red-700 hover:underline"
+                          onClick={() => {
+                            const d = data as { contactName?: string; contactPhone?: string; contactEmail?: string };
+                            if (!d.contactName && !d.contactPhone && !d.contactEmail) {
+                              setNotice('В карточке поставщика нет данных представителя — заполните поля вручную.');
+                              return;
+                            }
+                            setNotice('');
+                            setCondForm(f => ({
                               ...f,
-                              representative: (data as { contactName?: string }).contactName || f.representative,
-                              contacts: (data as { contactPhone?: string }).contactPhone || f.contacts,
-                              email: (data as { contactEmail?: string }).contactEmail || f.email,
-                            }))}>
-                            Добавить данные из анкеты
-                          </button>
-                        )}
+                              representative: d.contactName || f.representative,
+                              contacts: d.contactPhone || f.contacts,
+                              email: d.contactEmail || f.email,
+                            }));
+                          }}>
+                          Добавить данные из анкеты
+                        </button>
                       </div>
                       <input className={fld + ' mt-2'} placeholder="ФИО" value={condForm.representative} onChange={e => setCondForm(f => ({ ...f, representative: e.target.value }))} />
                     </div>
