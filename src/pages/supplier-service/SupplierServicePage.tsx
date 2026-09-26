@@ -413,16 +413,13 @@ export default function SupplierServicePage() {
                         value={condForm.orderUnloadSchedule} onChange={e => setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value }))} />
                     </div>
                     <div>
-                      <div>
-                          <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
-                          <select className={fld + ' mt-2'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))}>
-                            {!['Возврат без комиссии', 'Возврат с комиссией', 'Нет возврата', ''].includes(condForm.returnConditions) && <option value={condForm.returnConditions}>{condForm.returnConditions}</option>}
-                            <option value="Возврат без комиссии">Возврат без комиссии</option>
-                            <option value="Возврат с комиссией">Возврат с комиссией</option>
-                            <option value="Нет возврата">Нет возврата</option>
-                          </select>
-                        </div>
-                      </div>
+                      <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
+                      <select className={fld + ' mt-2'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))}>
+                        {!['Возврат без комиссии', 'Возврат с комиссией', 'Нет возврата', ''].includes(condForm.returnConditions) && <option value={condForm.returnConditions}>{condForm.returnConditions}</option>}
+                        <option value="Возврат без комиссии">Возврат без комиссии</option>
+                        <option value="Возврат с комиссией">Возврат с комиссией</option>
+                        <option value="Нет возврата">Нет возврата</option>
+                      </select>
                     </div>
                   </div>
 
