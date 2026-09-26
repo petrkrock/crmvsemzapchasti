@@ -317,7 +317,7 @@ export default function Dashboard() {
 
             <div className="card-base p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-brand-black">Сервис поиска: требует внимания</h3>
+          <h3 className="font-semibold text-brand-black">Сервис проценки: требует внимания</h3>
           <span className="text-xs text-gray-400">Новое: <b className="text-brand-black">{ssNew}</b> · Изменения: <b className="text-brand-black">{ssChanged}</b></span>
         </div>
         {ssItems.length === 0 ? (

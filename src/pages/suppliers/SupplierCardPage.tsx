@@ -24,7 +24,7 @@ import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import { toast } from 'sonner';
 import ContactPrefIcon from '@/components/features/ContactPrefIcons';
 
-const TABS = ['Анкета', 'Склад', 'Сервис поиска (DBS)', 'Скоринг', 'Дополнительно', 'История'];
+const TABS = ['Анкета', 'Склад', 'Сервис проценки (DBS)', 'Скоринг', 'Дополнительно', 'История'];
 const SS_FIELDS: { key: keyof ServiceSearchCondition; label: string }[] = [
   { key: 'city', label: 'Город показов' }, { key: 'warehouseName', label: 'Склад поставщика' },
   { key: 'representative', label: 'Представитель' }, { key: 'contacts', label: 'Контакты' },
@@ -566,7 +566,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                     <Link2 size={17} className="text-brand-red" />
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="section-title block">ЛК - Сервис поиска</span>
+                    <span className="section-title block">ЛК - Сервис проценки</span>
                     <span className="text-[11px] text-gray-400 block truncate">
                       {sa?.enabled ? `Самообслуживание активно${sa?.pin ? ' · PIN-код установлен' : ''}` : 'Доступ не выдан — поставщик не может заполнять данные самостоятельно'}
                     </span>
@@ -706,7 +706,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
 
           {tab === 'Скоринг' && <ScoringTab scoring={freshSupplier.scoring || {}} inn={freshSupplier.inn} onSave={saveScoring} onRescore={() => runScoring(true)} />}
 
-          {tab === 'Сервис поиска (DBS)' && (
+          {tab === 'Сервис проценки (DBS)' && (
             <div className="space-y-4">
             {(() => {
               const covered = new Set((freshSupplier.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
@@ -733,7 +733,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
               );
             })()}
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="section-title mr-auto">Условия сервиса поиска</h3>
+                <h3 className="section-title mr-auto">Условия сервиса проценки</h3>
                 <select className="form-input text-xs w-auto py-1.5" value={ssFilterStatus} onChange={e => setSsFilterStatus(e.target.value)}>
                   <option value="">Статус: все</option>
                   <option>Новое</option>

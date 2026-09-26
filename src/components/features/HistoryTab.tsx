@@ -22,7 +22,7 @@ const FIELD_LABELS: Record<string, string> = {
   source: 'Источник',
   created: 'Создание записи',
   scoring: 'Скоринг',
-  service_search: 'Сервис поиска',
+  service_search: 'Сервис проценки',
   requisites: 'Реквизиты',
 };
 

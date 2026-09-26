@@ -174,7 +174,7 @@ export default function SupplierServicePage() {
         {loading && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-4 py-16 px-6">
             <div className="w-11 h-11 rounded-full border-4 border-red-100 border-t-red-600 animate-spin" aria-hidden="true" />
-            <p className="text-sm text-gray-500 text-center">Личный кабинет для настройки сервиса поиска (DBS) загружается, пожалуйста подождите</p>
+            <p className="text-sm text-gray-500 text-center">Сервис проценки (DBS) загружается, пожалуйста подождите.</p>
           </div>
         )}
 
@@ -188,7 +188,7 @@ export default function SupplierServicePage() {
         {pinScreen && (
           <div className="flex flex-col items-center" style={{ marginBottom: '4.5rem' }}>
             <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[333px] h-auto mb-3" />
-            <p className="text-sm font-normal text-gray-900 tracking-wide text-center">НАСТРОЙКА СЕРВИСА ПОИСКА (DBS)</p>
+            <p className="text-sm font-normal text-gray-900 tracking-wide text-center">НАСТРОЙКА СЕРВИСА ПРОЦЕНКИ (DBS)</p>
           </div>
         )}
 
@@ -377,7 +377,7 @@ export default function SupplierServicePage() {
             {editorOpen && (data.warehouses || []).length > 0 && (
               <div className="bg-gray-50 border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-bold text-gray-900">{editingIdx !== null ? 'Условия сервиса поиска (редактирование)' : 'Условия сервиса поиска'}</h2>
+                  <h2 className="text-base font-bold text-gray-900">{editingIdx !== null ? 'Условия сервиса проценки (редактирование)' : 'Условия сервиса проценки'}</h2>
                   <button onClick={() => { setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} className="text-gray-400 hover:text-gray-700" title="Закрыть"><X size={18} /></button>
                 </div>
 
@@ -506,7 +506,7 @@ export default function SupplierServicePage() {
             {(data.serviceSearch || []).length > 0 && (
               <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-                  <h2 className="text-lg font-bold text-gray-900">Условия сервиса поиска (DBS)</h2>
+                  <h2 className="text-lg font-bold text-gray-900">Условия сервиса проценки (DBS)</h2>
                   <div className="flex items-center gap-2">
                     {(['Новое', 'Загружено', 'Есть изменения'] as const).map(st => (
                       <button key={st} type="button" onClick={() => setStatusFilter(p => p === st ? 'all' : st)}

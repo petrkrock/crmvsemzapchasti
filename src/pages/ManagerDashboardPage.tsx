@@ -53,7 +53,7 @@ export default function ManagerDashboardPage({ previewType }: { previewType?: 'm
   const newTickets = ticketsAll.filter(t => t.status === 'Новый запрос' || t.status === 'Новый запрос с формы');
   const noRespTickets = ticketsAll.filter(t => !t.responsibleId).length;
 
-  // Сервис поиска (МОЗ): условия, ожидающие обработки менеджером
+  // Сервис проценки (МОЗ): условия, ожидающие обработки менеджером
   const ssItems = isBuyers ? [] : entities.flatMap(sup => (sup.serviceSearch || [])
     .filter(c => (c.status || 'Новое') !== 'Загружено')
     .map(c => ({ id: `${sup.id}:${c.city}`, city: c.city, status: c.status || 'Новое' })));
@@ -187,10 +187,10 @@ export default function ManagerDashboardPage({ previewType }: { previewType?: 'm
         </div>
       </div>
 
-      {/* Сервис поиска (МОЗ) */}
+      {/* Сервис проценки (МОЗ) */}
       {!isBuyers && (
         <div className="card-base p-4">
-          <h2 className="section-title">Сервис поиска: требует внимания</h2>
+          <h2 className="section-title">Сервис проценки: требует внимания</h2>
           {ssItems.length === 0 ? (
             <p className="text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2 mt-2">Все условия загружены на платформу</p>
           ) : (

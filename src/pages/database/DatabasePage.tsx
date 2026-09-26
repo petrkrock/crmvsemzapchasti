@@ -9,7 +9,7 @@ import { Download, Trash2, Search, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DbLog, HistoryEntry } from '@/types';
 
-const DB_TABS = ['Поставщики', 'Покупатели', 'Задачи', 'Поддержка', 'Сервис поиска', 'База лидов', 'Логи дублей', 'План/факт', 'Медиа сервис', 'Пользователи', 'Логи'];
+const DB_TABS = ['Поставщики', 'Покупатели', 'Задачи', 'Поддержка', 'Сервис проценки', 'База лидов', 'Логи дублей', 'План/факт', 'Медиа сервис', 'Пользователи', 'Логи'];
 
 function addDbLog(action: DbLog['action'], entityType: string, entityIds: string[], details: string) {
   const u = getCurrentUser();
@@ -51,7 +51,7 @@ export default function DatabasePage() {
       case 'Покупатели': return store.buyers.filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
       case 'Задачи': return store.tasks.filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
       case 'Поддержка': return store.tickets.filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
-      case 'Сервис поиска': return store.suppliers.flatMap(sup => (sup.history || [])
+      case 'Сервис проценки': return store.suppliers.flatMap(sup => (sup.history || [])
         .filter((h: HistoryEntry & { timestamp?: string }) => ['service_search', 'serviceSearch', 'serviceAccess', 'warehouseLocations'].includes(String(h.field || '')))
         .map((h: HistoryEntry & { timestamp?: string }) => ({ id: h.id, timestamp: h.timestamp, userName: h.userName, supplierName: sup.tradeName, details: String(h.newValue || h.comment || '') }))
       ).filter(r => !logSearch || JSON.stringify(r).toLowerCase().includes(logSearch.toLowerCase())).sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
@@ -146,7 +146,7 @@ export default function DatabasePage() {
       case 'Поставщики': case 'Покупатели': return ['tradeName', 'type', 'city', 'status', 'phone', 'email', 'inn', 'companyScore', 'createdAt', 'deletedAt'];
       case 'Задачи': return ['title', 'entityType', 'entityName', 'dueDate', 'taskStatus', 'createdAt'];
       case 'Поддержка': return ['subject', 'type', 'status', 'priority', 'contactName', 'contactEmail', 'createdAt'];
-      case 'Сервис поиска': return ['timestamp', 'userName', 'supplierName', 'details'];
+      case 'Сервис проценки': return ['timestamp', 'userName', 'supplierName', 'details'];
       // ТЗ v1.22.11: без этого кейса таблица «Пользователи» рендерилась без колонок и строки не были видны
       case 'Пользователи': return ['id', 'дата создания', 'имя', 'роль', 'дата блокировки или увольнения'];
       case 'База лидов': return ['type', 'subType', 'inn', 'tradeName', 'city', 'contactName', 'status', 'phone', 'email', 'deletedAt'];
@@ -173,7 +173,7 @@ export default function DatabasePage() {
   };
 
   const columns = getColumns();
-  const isLogTab = tab === 'Логи' || tab === 'Сервис поиска';
+  const isLogTab = tab === 'Логи' || tab === 'Сервис проценки';
 
   if (!admin) return null;
 
