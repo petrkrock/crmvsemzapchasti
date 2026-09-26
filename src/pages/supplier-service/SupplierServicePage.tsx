@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, HelpCircle } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; } // verified выставляет менеджер в CRM
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -222,18 +222,22 @@ export default function SupplierServicePage() {
               <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 lg:col-span-2">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-lg font-bold text-gray-900">Добавить склад</h2>
-                  <button type="button" onClick={() => setPriceHint(v => !v)} title="Прайс-лист"
-                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${priceHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
-                    <FileText size={16} />
+                  <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
+                    className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors">
+                    <HelpCircle size={17} />
                   </button>
                 </div>
                 {priceHint && (
-                  <div className="absolute right-4 top-16 z-10 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-3.5 text-xs text-gray-600 leading-relaxed">
-                    Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>. Первую настройку сделает поддержка.
+                  <div className="absolute right-4 top-16 z-10 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2">
+                    <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - он понадобится в условиях поиска, укажите примерно сколько на данном складе SKU.</p>
+                    <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
+                    <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условия в сервис поиска (DBS).</p>
+                    <p>Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>.</p>
+                    <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
                   </div>
                 )}
                 <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад - он понадобится в условиях поиска</p>
-                <div className="grid grid-cols-[1fr_160px_44px] gap-2">
+                <div className="grid grid-cols-[1fr_195px_44px] gap-2">
                   <input className={fld} placeholder="Город, название Вашего склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
                   <input className={fld} placeholder="Примерное кол-во SKU" inputMode="numeric" maxLength={6}
@@ -366,6 +370,13 @@ export default function SupplierServicePage() {
                   <div className="flex flex-col gap-2 max-w-[260px]">
                     <div className="text-sm rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-gray-800">{condForm.warehouseName || 'Склад не выбран'}</div>
                     <div className="text-sm rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-gray-800">{condForm.city || 'Город не выбран'}</div>
+                    {/* ТЗ v1.23.14: подсказка под ячейками склада/города */}
+                    <div className="mt-2 rounded-xl border border-yellow-200 bg-yellow-50 p-3.5 text-xs text-gray-600 leading-relaxed">
+                      <p className="font-semibold text-gray-800">Нет своей доставки в этот город?</p>
+                      <p className="mt-1">Нажмите кнопку «ТК».</p>
+                      <p className="mt-2">Не забудьте указать время приёма заказов.</p>
+                      <p className="mt-1">Если оставить поле пустым, по умолчанию установится 23:59.</p>
+                    </div>
                   </div>
 
                   {/* КОЛОНКА 2: график/условия доставки, возврат */}
@@ -436,7 +447,7 @@ export default function SupplierServicePage() {
                               contacts: (data as { contactPhone?: string }).contactPhone || f.contacts,
                               email: (data as { contactEmail?: string }).contactEmail || f.email,
                             }))}>
-                            Заполнить из карточки
+                            Добавить данные из анкеты
                           </button>
                         )}
                       </div>
@@ -450,6 +461,16 @@ export default function SupplierServicePage() {
                       <label className="text-xs font-semibold text-gray-600">Email</label>
                       <input className={fld + ' mt-2'} value={condForm.email} onChange={e => setCondForm(f => ({ ...f, email: e.target.value }))} />
                     </div>
+                    <button type="button"
+                      onClick={() => {
+                        if (!window.confirm('Вы точно согласны добавить данное условие для всех доступных городов?')) return;
+                        if (!window.confirm('Далее Вы сможете редактировать каждое условие отдельно. Вы даете согласие?')) return;
+                        applyToAllCities();
+                        setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false);
+                      }}
+                      className="w-full text-xs text-red-700 hover:underline">
+                      Сохранить условие для всех доступных городов
+                    </button>
                     <button onClick={() => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад'); return; } setNotice(''); saveCondition(); setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
                       className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-3 flex items-center justify-center gap-1 disabled:opacity-60">
                       <Plus size={15} /> {editingIdx !== null ? 'Сохранить условие' : 'Добавить условие'}
