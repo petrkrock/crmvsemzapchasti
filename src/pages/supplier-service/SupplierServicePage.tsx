@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; } // verified выставляет менеджер в CRM
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -43,6 +43,7 @@ export default function SupplierServicePage() {
   const [selectedWh, setSelectedWh] = useState(''); // ТЗ v1.23.6: склад, выбранный кнопкой в «Мои склады»
   const [editorOpen, setEditorOpen] = useState(false); // окно условий открывается после выбора города
   const [tkOn, setTkOn] = useState(false); // ТЗ v1.23.6: кнопка ТК
+  const [priceHint, setPriceHint] = useState(false); // ТЗ v1.23.8: подсказка прайс-листа
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -213,17 +214,28 @@ export default function SupplierServicePage() {
 
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 lg:col-span-2">
-                <h2 className="text-lg font-bold text-gray-900">Создать склад в системе</h2>
+              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 lg:col-span-2">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-lg font-bold text-gray-900">Добавить склад</h2>
+                  <button type="button" onClick={() => setPriceHint(v => !v)} title="Прайс-лист"
+                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${priceHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                    <FileText size={16} />
+                  </button>
+                </div>
+                {priceHint && (
+                  <div className="absolute right-4 top-16 z-10 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-3.5 text-xs text-gray-600 leading-relaxed">
+                    Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>. Первую настройку сделает поддержка.
+                  </div>
+                )}
                 <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад - он понадобится в условиях поиска</p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input className={fld + ' flex-1 min-w-0'} placeholder="Город, название Вашего склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
-                  <input className={fld + ' w-40'} placeholder="Примерное кол-во SKU" inputMode="numeric"
+                  <input className={fld + ' w-28'} placeholder="Примерное кол-во SKU" inputMode="numeric"
                     value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
-                  <button onClick={addWarehouse} disabled={saving}
-                    className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl px-5 py-2.5 flex items-center gap-1 disabled:opacity-60">
-                    <Plus size={15} /> Добавить
+                  <button onClick={addWarehouse} disabled={saving} title="Добавить склад"
+                    className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-3.5 py-2.5 flex items-center justify-center disabled:opacity-60">
+                    <Plus size={17} />
                   </button>
                 </div>
               </div>
