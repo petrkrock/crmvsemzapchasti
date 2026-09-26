@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; } // verified выставляет менеджер в CRM
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -44,6 +44,8 @@ export default function SupplierServicePage() {
   const [editorOpen, setEditorOpen] = useState(false); // окно условий открывается после выбора города
   const [tkOn, setTkOn] = useState(false); // ТЗ v1.23.6: кнопка ТК
   const [priceHint, setPriceHint] = useState(false); // ТЗ v1.23.8: подсказка прайс-листа
+  const [cityHint, setCityHint] = useState(false); // ТЗ v1.23.9: совет по городам
+  const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -231,8 +233,8 @@ export default function SupplierServicePage() {
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input className={fld + ' flex-1 min-w-0'} placeholder="Город, название Вашего склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
-                  <input className={fld + ' w-28'} placeholder="Примерное кол-во SKU" inputMode="numeric"
-                    value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
+                  <input className={fld + ' w-40'} placeholder="Примерное кол-во SKU" inputMode="numeric" maxLength={6}
+                    value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, '').slice(0, 6))} />
                   <button onClick={addWarehouse} disabled={saving} title="Добавить склад"
                     className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-3.5 py-2.5 flex items-center justify-center disabled:opacity-60">
                     <Plus size={17} />
@@ -280,27 +282,48 @@ export default function SupplierServicePage() {
               </div>
             </div>
 
-            {/* ШАГ 2: ВЫБОР ГОРОДА ПОКАЗОВ — доступен только после создания и выбора склада */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">Выберите Город показов *</h2>
-              {(data.warehouses || []).length === 0 && (
-                <p className="text-xs text-gray-400">Сначала создайте склад в системе (шаг 1) — без склада условия недоступны.</p>
+            {/* ДОСТУПНЫЕ ГОРОДА — список показываем всегда; условия требуют склад */}
+            <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <h2 className="text-lg font-bold text-gray-900">Доступные города</h2>
+                <div className="flex items-center gap-2">
+                  {(['covered', 'empty'] as const).map(f => (
+                    <button key={f} type="button" onClick={() => setCityFilter(prev => prev === f ? 'all' : f)}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${cityFilter === f ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
+                      {f === 'covered' ? 'Есть условия' : 'Нет условий'}
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => setCityHint(v => !v)} title="Совет по городам"
+                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${cityHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                    <Truck size={16} />
+                  </button>
+                </div>
+              </div>
+              {cityHint && (
+                <div className="absolute right-4 top-16 z-10 w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-3.5 text-xs text-gray-600 leading-relaxed">
+                  Настраивайте склад во всех городах, даже если у вас туда пока нет доставки. При заполнении условий поиска (проценки) обязательно выбирайте пункт «Условия доставки ТК». Клиенты увидят, что постоянной доставки нет, но привыкнут к вашему складу и запомнят Вашу компанию.
+                </div>
               )}
-              {(data.warehouses || []).length > 0 && !selectedWh && (
-                <p className="text-xs text-gray-400">Выберите склад в разделе «Мои склады» выше (кнопкой).</p>
-              )}
-              {(data.warehouses || []).length > 0 && !!selectedWh && (() => {
+              {(() => {
                 const list = data.serviceSearch || [];
                 const cities = data.availableCities || [];
-                if (!cities.length) return <p className="text-xs text-gray-400">Список доступных городов не настроен — уточните у вашего менеджера.</p>;
+                if (!cities.length) return <p className="text-xs text-gray-400 mt-3">Список доступных городов не настроен — уточните у вашего менеджера.</p>;
+                const isCov = (c: string) => list.some(x => (x.city || '').toLowerCase() === c.toLowerCase());
+                const filtered = cities.filter(c => cityFilter === 'all' ? true : cityFilter === 'covered' ? isCov(c) : !isCov(c));
+                if (!filtered.length) return <p className="text-xs text-gray-400 mt-3">Городов по выбранному фильтру нет.</p>;
                 return (
-                  <div className="flex flex-wrap gap-2">
-                    {cities.map(c => {
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {filtered.map(c => {
                       const idx = list.findIndex(x => (x.city || '').toLowerCase() === c.toLowerCase());
                       const active = idx >= 0;
                       return (
                         <button key={c} type="button"
                           onClick={() => {
+                            if ((data.warehouses || []).length === 0 || !selectedWh) {
+                              setNotice('Сначала создайте склад в системе (шаг 1) — без склада условия недоступны.');
+                              return;
+                            }
+                            setNotice('');
                             if (editorOpen && ((active && editingIdx === idx) || (!active && editingIdx === null && condForm.city === c))) {
                               setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false);
                               return;
