@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; } // verified выставляет менеджер в CRM
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -46,6 +46,8 @@ export default function SupplierServicePage() {
   const [priceHint, setPriceHint] = useState(false); // ТЗ v1.23.8: подсказка прайс-листа
   const [cityHint, setCityHint] = useState(false); // ТЗ v1.23.9: совет по городам
   const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Новое' | 'Загружено' | 'Есть изменения'>('all'); // ТЗ v1.23.10: фильтр условий по статусу
+  const [statusHint, setStatusHint] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -448,23 +450,74 @@ export default function SupplierServicePage() {
               </div>
             )}
 
-            {/* ТАБЛИЦА УСЛОВИЙ: склад, график доставки, условия доставки, представитель, статус, редактировать */}
+            {/* УСЛОВИЯ СЕРВИСА ПОИСКА (DBS) — таблица условий */}
             {(data.serviceSearch || []).length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Мои условия ({(data.serviceSearch || []).length})</h2>
-                <div className="space-y-2">
-                  {(data.serviceSearch || []).map((c, idx) => (
-                    <div key={idx} className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-gray-50 rounded-xl px-4 py-3 text-sm">
-                      <span className="font-medium text-gray-900 min-w-[170px]">{c.warehouseName || '—'} · {c.city}</span>
-                      <span className="text-xs text-gray-500" title="График доставки">{c.deliverySchedule || '—'}</span>
-                      <span className="text-xs text-gray-500" title="Условия доставки">{[c.deliveryTime, c.orderUnloadSchedule].filter(Boolean).join(' · ') || '—'}</span>
-                      <span className="text-xs text-gray-700 min-w-[150px]" title="Представитель">{c.representative || '—'}</span>
-                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
-                      <button onClick={() => { setEditingIdx(idx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Доставка по согласованию с поставщиком!')); setEditorOpen(true); }}
-                        className="ml-auto text-gray-300 hover:text-red-600" title="Редактировать"><Pencil size={15} /></button>
-                    </div>
-                  ))}
+              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+                  <h2 className="text-lg font-bold text-gray-900">Условия сервиса поиска (DBS)</h2>
+                  <div className="flex items-center gap-2">
+                    {(['Новое', 'Загружено', 'Есть изменения'] as const).map(st => (
+                      <button key={st} type="button" onClick={() => setStatusFilter(p => p === st ? 'all' : st)}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${statusFilter === st ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
+                        {st}
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => setStatusHint(v => !v)} title="Статусы условий"
+                      className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${statusHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                      <Info size={16} />
+                    </button>
+                  </div>
                 </div>
+                {statusHint && (
+                  <div className="absolute right-4 top-16 z-10 w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-3.5 text-xs text-gray-600 leading-relaxed space-y-1.5">
+                    <p><b className="text-red-700">Новое</b> — Условие создано, но ещё не опубликовано на платформе.</p>
+                    <p><b className="text-green-700">Загружено</b> — Склад и его условия поставки доступны в проценке на платформе.</p>
+                    <p><b className="text-amber-700">Есть изменения</b> — Вы редактировали одно из условий, оно ждёт очереди на загрузку в платформу.</p>
+                  </div>
+                )}
+                {(() => {
+                  const list = data.serviceSearch || [];
+                  const filtered = list.filter(c => statusFilter === 'all' ? true : (c.status || 'Новое') === statusFilter);
+                  if (!filtered.length) return <p className="text-xs text-gray-400">Условий с выбранным статусом нет.</p>;
+                  const cell = (label: string, value: React.ReactNode) => (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400">{label}</p>
+                      <div className="text-sm font-medium text-gray-800">{value || '—'}</div>
+                    </div>
+                  );
+                  const TK = 'Доставка по согласованию с поставщиком!';
+                  return filtered.map(c => {
+                    const realIdx = list.indexOf(c);
+                    const tkOn = String(c.orderUnloadSchedule || '').includes(TK);
+                    const delivText = [c.deliveryTime, String(c.orderUnloadSchedule || '').replace(TK, '').trim()].filter(Boolean).join(' · ');
+                    const days = (c.deliverySchedule || '').split(',').map(x => x.trim()).filter(Boolean);
+                    return (
+                      <div key={realIdx} className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-gray-50 rounded-xl px-4 py-3 text-sm mb-2">
+                        {cell('Склад', c.warehouseName)}
+                        {cell('Город', c.city)}
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</p>
+                          <div className="flex gap-1">
+                            {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                              <span key={d} className={`w-6 h-6 text-[10px] flex items-center justify-center rounded-md border ${days.includes(d) ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-gray-400">Условия доставки</p>
+                          <div className="flex items-center gap-1.5 max-w-[300px]">
+                            {tkOn && <span className="w-7 h-7 text-[10px] font-bold flex items-center justify-center rounded-lg bg-yellow-300 border border-yellow-400 text-gray-900">ТК</span>}
+                            <span className="text-xs text-gray-600 truncate" title={delivText}>{delivText || '—'}</span>
+                          </div>
+                        </div>
+                        {cell('Представитель', c.representative)}
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
+                        <button onClick={() => { setEditingIdx(realIdx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(tkOn); setEditorOpen(true); }}
+                          className="ml-auto text-gray-300 hover:text-red-600" title="Редактировать"><Pencil size={15} /></button>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             )}
 
