@@ -137,10 +137,17 @@ function withStatuses(
              String(e.warehouseName || '').toLowerCase() === (c.warehouseName || '').toLowerCase(),
     );
     if (!match) return { ...c, status: 'Новое' };
-    const changed = SS_KEYS.some((k) => String(match[k] ?? '').trim() !== c[k]);
-    if (!changed) return { ...c, status: (match.status as string) || 'Загружено' };
     const prev = (match.status as string) || 'Новое';
-    return { ...c, status: prev === 'Загружено' ? 'Есть изменения' : prev };
+    const inc = c.status || prev;
+    // ТЗ v1.23.30: клиенту разрешено ставить только «Новое»/«Есть изменения»/«Удаление»;
+    // «Загружено» — только менеджер. Запрос на удаление проходит ВСЕГДА (раньше затирался,
+    // т.к. при смене одного статуса changed=false и возвращался старый статус).
+    if (inc === 'Удаление') return { ...c, status: 'Удаление' };
+    const CLIENT_OK = (st: string) => st === 'Новое' || st === 'Есть изменения' || st === 'Удаление';
+    const changed = SS_KEYS.some((k) => String(match[k] ?? '').trim() !== c[k]);
+    if (changed && prev === 'Загружено') return { ...c, status: 'Есть изменения' };
+    if (!changed) return { ...c, status: CLIENT_OK(inc) ? inc : (CLIENT_OK(prev) ? prev : 'Новое') };
+    return { ...c, status: CLIENT_OK(prev) ? prev : 'Новое' };
   });
 }
 
