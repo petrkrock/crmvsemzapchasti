@@ -777,12 +777,13 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                           </span>
                         ); })()}
                           <span className="flex flex-wrap gap-1">
-                            {(['Новое', 'Загружено', 'Есть изменения'] as const).map(st => (
+                            {(['Новое', 'Загружено', 'Есть изменения', 'Удаление'] as const).map(st => ( // ТЗ v1.23.29
                               <button key={st} onClick={() => setConditionStatus(cond.id, st)}
                                 className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${(cond.status || 'Новое') === st
                                   ? st === 'Новое' ? 'bg-blue-50 border-blue-300 text-blue-700 font-semibold'
                                   : st === 'Загружено' ? 'bg-green-50 border-green-300 text-green-700 font-semibold'
-                                  : 'bg-red-50 border-red-300 text-red-700 font-semibold'
+                                  : st === 'Есть изменения' ? 'bg-amber-50 border-amber-300 text-amber-700 font-semibold'
+                                  : 'bg-gray-200 border-gray-300 text-gray-600 font-semibold'
                                   : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'}`}>{st}</button>
                             ))}
                           </span>

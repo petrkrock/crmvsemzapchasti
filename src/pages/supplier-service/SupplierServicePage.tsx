@@ -567,6 +567,7 @@ export default function SupplierServicePage() {
                     <p><b className="text-red-700">Новое</b> — Условие создано, но ещё не опубликовано на платформе.</p>
                     <p><b className="text-green-700">Загружено</b> — Склад и его условия поставки доступны в проценке на платформе.</p>
                     <p><b className="text-amber-700">Есть изменения</b> — Вы редактировали одно из условий, оно ждёт очереди на загрузку в платформу.</p>
+                    <p><b className="text-gray-600">Удаление</b> — Вы отправили запрос на удаление Вашего склада из проценки выбранного города, в течение 48 часов проценка будет удалена навсегда.</p>
                   </div>
                 )}
                 {(() => {
@@ -586,7 +587,7 @@ export default function SupplierServicePage() {
                     const delivText = [c.deliveryTime, String(c.orderUnloadSchedule || '').replace(TK, '').trim()].filter(Boolean).join(' · ');
                     const days = (c.deliverySchedule || '').split(',').map(x => x.trim()).filter(Boolean);
                     return (
-                      <div key={realIdx} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] items-center gap-x-4 gap-y-2 bg-gray-50 hover:bg-gray-100 rounded-xl px-4 py-3 text-sm mb-2 cursor-pointer transition-colors" onClick={() => { setEditingIdx(realIdx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Условия доставки по согласованию!')); setEditorOpen(true); }}>
+                      <div key={realIdx} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] items-center gap-x-4 gap-y-2 bg-gray-50 rounded-xl px-4 py-3 text-sm mb-2 transition-colors ${(c.status || 'Новое') === 'Удаление' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'}`} onClick={() => { if ((c.status || 'Новое') === 'Удаление') return; setEditingIdx(realIdx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Условия доставки по согласованию!')); setEditorOpen(true); }}>
                         {cell('Склад', <div className="flex flex-col"><span>{c.warehouseName}</span><span className="text-[11px] text-gray-400 font-normal">Город: {c.city}</span></div>)}
                         <div>
                           <p className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</p>
