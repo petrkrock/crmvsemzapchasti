@@ -44,7 +44,6 @@ type SupplierRow = {
   history: unknown[] | null;
 };
 
-async 
 /** ТЗ v1.23.36: доп. поля (ИНН/контакты/мультисклад) качаем ОТДЕЛЬНЫМ запросом:
  *  если какой-то колонки нет в старой БД — PostgREST роняет весь SELECT (поэтому
  *  их нельзя мешать в основной запрос — иначе ЛК падал с 404). При ошибке — урезанный набор. */
@@ -56,7 +55,7 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
   return {};
 }
 
-function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
+async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
     .select('id, trade_name, service_access, warehouse_locations, service_search, history')
