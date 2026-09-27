@@ -44,16 +44,29 @@ type SupplierRow = {
   history: unknown[] | null;
 };
 
-async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
+async 
+/** ТЗ v1.23.36: доп. поля (ИНН/контакты/мультисклад) качаем ОТДЕЛЬНЫМ запросом:
+ *  если какой-то колонки нет в старой БД — PostgREST роняет весь SELECT (поэтому
+ *  их нельзя мешать в основной запрос — иначе ЛК падал с 404). При ошибке — урезанный набор. */
+async function extraFields(client: ReturnType<typeof createClient>, id: string): Promise<Record<string, unknown>> {
+  const r1 = await client.from('suppliers').select('inn, contact_name, phone, email, contacts, multiWarehouse').eq('id', id).maybeSingle();
+  if (!r1.error && r1.data) return r1.data as Record<string, unknown>;
+  const r2 = await client.from('suppliers').select('inn, contact_name, phone, email').eq('id', id).maybeSingle();
+  if (!r2.error && r2.data) return r2.data as Record<string, unknown>;
+  return {};
+}
+
+function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, inn, contact_name, phone, email, contacts, multiWarehouse, service_access, warehouse_locations, service_search, history') // ТЗ v1.23.35: контакты/ИНН/флаг мультисклада для ЛК
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
     .limit(1);
   if (error || !data?.length) return null;
-  return data[0] as SupplierRow;
+  const extra = await extraFields(client, (data[0] as SupplierRow).id);
+  return { ...(data[0] as SupplierRow), ...(extra as object) } as SupplierRow;
 }
 
 function pinOk(expected: string | undefined, provided: unknown): boolean {
