@@ -62,7 +62,7 @@ export default function SupplierServicePage() {
     if (!isSupabaseConfigured() || !/^[a-f0-9]{32}$/.test(token)) { setLoading(false); setFatal('Недействительная ссылка'); return; }
     fetch(`${getFunctionsUrl('supplier-service')}?token=${token}`, { headers: getAnonKeyHeaders() })
       .then(r => r.json())
-      .then(d => { if (d.error) setFatal(d.error); else { setData(d); setPinPassed(false); } })
+      .then(d => { if (d.error) setFatal(d.error); else { setData(d); if (sessionStorage.getItem('dbs_pin_ok') !== '1') setPinPassed(false); } }) // ТЗ v1.23.40: уважаем сессию — иначе F5 выбрасывал на ПИН
       .catch(() => setFatal('Не удалось загрузить данные'))
       .finally(() => setLoading(false));
   }, [token]);
@@ -152,8 +152,9 @@ export default function SupplierServicePage() {
     if (!condForm.city.trim()) { setNotice('Город показов обязателен'); return false; }
     // ТЗ v1.23.19: обязательные поля условия
     // ТЗ v1.23.23: форма НЕ закрывается и данные не стираются — пустые поля подсвечиваются
-    const NAMES: Record<string, string> = { deliverySchedule: 'График доставки', orderUnloadSchedule: 'Условия доставки', returnConditions: 'Условия возврата товара', representative: 'Представитель', contacts: 'Контакты', email: 'Email' };
+    const NAMES: Record<string, string> = { deliveryTime: 'Срок поставки', deliverySchedule: 'График доставки', orderUnloadSchedule: 'Условия доставки', returnConditions: 'Условия возврата товара', representative: 'Представитель', contacts: 'Контакты', email: 'Email' };
     const missingKeys: string[] = [];
+    if (!condForm.deliveryTime?.trim()) missingKeys.push('deliveryTime');
     if (!condForm.deliverySchedule?.trim()) missingKeys.push('deliverySchedule');
     if (!condForm.orderUnloadSchedule?.trim()) missingKeys.push('orderUnloadSchedule');
     if (!condForm.returnConditions?.trim()) missingKeys.push('returnConditions');
@@ -258,7 +259,7 @@ export default function SupplierServicePage() {
               <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[180px] h-auto" />
               <div className="flex items-center gap-4">
                 <a href="https://vsemzapchasti.ru" target="_blank" rel="noreferrer"
-                  className="group inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-red-700 shadow-sm transition-all hover:border-red-600 hover:bg-red-600 hover:text-white hover:shadow-md">
+                  className="group inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-red-700 shadow-sm transition-all hover:border-red-600 hover:bg-red-600 hover:text-white hover:shadow-md">
                   Сервисы для доставки и продаж
                   <ArrowUpRight size={14} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
@@ -277,7 +278,7 @@ export default function SupplierServicePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 lg:col-span-2">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-lg font-bold text-gray-900">Добавить склад</h2>
+                  <h2 className="text-base font-semibold text-gray-900">Добавить склад</h2>
                   <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
                     className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white shadow-md shadow-red-200 hover:shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center transition-all">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -309,7 +310,7 @@ export default function SupplierServicePage() {
               </div>
 
               <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
-                <h2 className="text-lg font-bold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
+                <h2 className="text-base font-semibold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
                 <div className="mt-3 space-y-2 text-sm">
                   {(() => {
                     const covered = new Set((data.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
@@ -332,7 +333,7 @@ export default function SupplierServicePage() {
             {/* МОИ СКЛАДЫ */}
             <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
+                <h2 className="text-base font-semibold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
                 <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
                   className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
                   <Warehouse size={16} />
@@ -363,7 +364,7 @@ export default function SupplierServicePage() {
             {/* ДОСТУПНЫЕ ГОРОДА — список показываем всегда; условия требуют склад */}
             <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3 flex-wrap">
-                <h2 className="text-lg font-bold text-gray-900">Доступные города</h2>
+                <h2 className="text-base font-semibold text-gray-900">Доступные города</h2>
                 <div className="flex items-center gap-2">
                   {(['covered', 'empty'] as const).map(f => (
                     <button key={f} type="button" onClick={() => setCityFilter(prev => prev === f ? 'all' : f)}
@@ -468,7 +469,8 @@ export default function SupplierServicePage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">Условия доставки <span className="text-red-600">*</span></label>
+                      <label className="text-xs font-semibold text-gray-600">Срок поставки до города <span className="text-red-600">*</span></label>
+                      <label className="text-xs font-semibold text-gray-600 mt-3">Условия доставки <span className="text-red-600">*</span></label>
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         <button type="button" onClick={() => {
                           const TK_TEXT = 'Условия доставки по согласованию!';
@@ -482,12 +484,12 @@ export default function SupplierServicePage() {
                           ТК
                         </button>
                         {['Сегодня', 'Завтра'].map(v => (
-                          <button key={v} type="button" onClick={() => setCondForm(f => ({ ...f, deliveryTime: v }))} // ТЗ v1.23.33: канонический вид «Сегодня»/«Завтра» — как в CRM
+                          <button key={v} type="button" onClick={() => { setCondForm(f => ({ ...f, deliveryTime: v })); setMissing(m => m.filter(k => k !== 'deliveryTime')); }} // ТЗ v1.23.33: канонический вид «Сегодня»/«Завтра» — как в CRM
                             className={`text-xs px-3 py-2 rounded-lg border transition-colors ${(condForm.deliveryTime || '').toLowerCase() === v.toLowerCase() ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
                             {v}
                           </button>
                         ))}
-                        <input className={fld + ' flex-1 min-w-[140px] !py-2 text-xs'} placeholder="Например: 2-3 дня"
+                        <input className={fldM('deliveryTime') + ' flex-1 min-w-[140px] !py-2 text-xs'} placeholder="Например: 2-3 дня"
                           value={condForm.deliveryTime} onChange={e => setCondForm(f => ({ ...f, deliveryTime: e.target.value }))} />
                       </div>
                       {/* ТЗ v1.23.27: ячейка 3 строки; «хвостик» шаблонов в правом углу ячейки; при ТК текст — фиксированный хвост */}
@@ -571,7 +573,7 @@ export default function SupplierServicePage() {
                         setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false);
                       }}
                       className="w-full text-xs text-red-700 hover:underline mt-6">
-                      Сохранить условие для всех доступных городов
+                      Добавить условие для всех доступных городов
                     </button>
                     <button onClick={async () => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад'); return; } setNotice(''); const ok = await saveCondition(); if (!ok) return; setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
                       className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-3 flex items-center justify-center gap-1 disabled:opacity-60">
@@ -586,7 +588,7 @@ export default function SupplierServicePage() {
             {(data.serviceSearch || []).length > 0 && (
               <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-                  <h2 className="text-lg font-bold text-gray-900">Условия сервиса проценки (DBS)</h2>
+                  <h2 className="text-base font-semibold text-gray-900">Условия сервиса проценки (DBS)</h2>
                   <div className="flex items-center gap-2">
                     {(['Новое', 'Загружено', 'Есть изменения'] as const).map(st => (
                       <button key={st} type="button" onClick={() => setStatusFilter(p => p === st ? 'all' : st)}
@@ -654,8 +656,9 @@ export default function SupplierServicePage() {
                         <span className={`self-center justify-self-center text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : (c.status || 'Новое') === 'Удаление' ? 'bg-gray-200 text-gray-600 border border-gray-300' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
                         <button
                           onClick={e => { e.stopPropagation(); markDeleted(realIdx); }}
-                          className="ml-auto w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
-                          title="Удалить проценку">
+                          disabled={(c.status || 'Новое') === 'Удаление'}
+                          className={`ml-auto w-8 h-8 rounded-full flex items-center justify-center transition-colors ${(c.status || 'Новое') === 'Удаление' ? 'bg-gray-100 text-gray-200 cursor-not-allowed' : 'bg-gray-100 text-gray-400 hover:bg-red-600 hover:text-white'}`}
+                          title={(c.status || 'Новое') === 'Удаление' ? 'Удаление уже запрошено' : 'Удалить проценку'}>
                           <Trash2 size={14} />
                         </button>
                       </div>
