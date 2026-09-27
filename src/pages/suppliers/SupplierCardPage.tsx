@@ -31,7 +31,6 @@ const SS_FIELDS: { key: keyof ServiceSearchCondition; label: string }[] = [
   { key: 'email', label: 'Email' }, { key: 'deliverySchedule', label: 'График доставки' },
   { key: 'orderUnloadSchedule', label: 'График выгрузки заказов' },
   { key: 'returnConditions', label: 'Условия возврата товара' },
-  { key: 'officialWarehouse', label: 'Официальный склад' },
   { key: 'deliveryTime', label: 'Срок поставки до выбранного города' }, // v_1.9
 ];
 

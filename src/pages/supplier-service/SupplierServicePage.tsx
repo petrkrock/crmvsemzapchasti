@@ -49,6 +49,8 @@ export default function SupplierServicePage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Новое' | 'Загружено' | 'Есть изменения'>('all'); // ТЗ v1.23.10: фильтр условий по статусу
   const [statusHint, setStatusHint] = useState(false);
   const [pendingCity, setPendingCity] = useState<string | null>(null); // ТЗ v1.23.11: город, ждущий кнопку «Создать условия»
+  const [editingWhId, setEditingWhId] = useState<string | null>(null); // ТЗ v1.23.32: редактирование склада (карандаш)
+  const [whHint, setWhHint] = useState(false);
   const [missing, setMissing] = useState<string[]>([]); // ТЗ v1.23.23: незаполненные обязательные поля (подсветка)
   const fldM = (k: string) => fld + (missing.includes(k) ? ' !border-red-400 !ring-2 !ring-red-200' : '');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -113,12 +115,15 @@ export default function SupplierServicePage() {
   async function addWarehouse() {
     if (!whCity.trim()) { setNotice('Укажите город склада'); return; }
     if (!whSku.trim()) { setNotice('Укажите примерное кол-во SKU'); return; } // ТЗ v1.23.19: обе ячейки обязательны
-    if ((data?.warehouses || []).length >= 1 && !data?.multiWarehouse) {
+    if (!editingWhId && (data?.warehouses || []).length >= 1 && !data?.multiWarehouse) { // ТЗ v1.23.32: при редактировании лимит не применяем
       setNotice('Для включения функции мультисклад обратитесь в поддержку');
       return;
     }
-    const err = await post({ warehouses: [...(data?.warehouses || []), { id: crypto.randomUUID(), city: whCity.trim(), skuCount: Number(whSku) || 0 }] }) // ТЗ v1.23.19: id обязателен;
-    if (!err) { setWhCity(''); setWhSku(''); }
+    // ТЗ v1.23.32: карандаш — обновление существующего склада, иначе добавление
+    const err = editingWhId
+      ? await post({ warehouses: (data?.warehouses || []).map(w => w.id === editingWhId ? { ...w, city: whCity.trim(), skuCount: Number(whSku) || 0 } : w) })
+      : await post({ warehouses: [...(data?.warehouses || []), { id: crypto.randomUUID(), city: whCity.trim(), skuCount: Number(whSku) || 0 }] }); // ТЗ v1.23.19: id обязателен
+    if (!err) { setWhCity(''); setWhSku(''); setEditingWhId(null); }
     else setNotice(err);
   }
 
@@ -304,19 +309,31 @@ export default function SupplierServicePage() {
             </div>
 
             {/* МОИ СКЛАДЫ */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
+            <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-lg font-bold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
+                <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
+                  className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white shadow-md shadow-red-200 hover:shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center transition-all">
+                  <Warehouse size={16} />
+                </button>
+              </div>
+              {whHint && (
+                <div className="absolute right-4 top-16 z-10 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2">
+                  <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
+                  <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
+                </div>
+              )}
               {(data.warehouses || []).length === 0 && (
                 <p className="text-sm text-gray-400">Склады не добавлены — начните с шага 1.</p>
               )}
               <div className="flex flex-wrap gap-2">
                 {(data.warehouses || []).map(w => (
                   <button key={w.id} type="button" onClick={() => setSelectedWh(prev => prev === w.city ? '' : w.city)}
-                    className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${selectedWh === w.city ? 'border-green-500 bg-green-50 ring-1 ring-green-200' : w.verified ? 'border-green-300 bg-green-50 hover:border-green-500' : 'border-green-200 bg-white hover:border-green-500'}`}>
+                    className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${editingWhId === w.id ? 'border-red-400 ring-2 ring-red-200' : selectedWh === w.city ? 'border-green-500 bg-green-50 ring-1 ring-green-200' : w.verified ? 'border-green-300 bg-green-50 hover:border-green-500' : 'border-green-200 bg-white hover:border-green-500'}`}>
                     <span className="font-semibold text-gray-900">{w.city}</span>
                     <span className="text-gray-400 text-xs">{Number(w.skuCount).toLocaleString('ru-RU')} SKU</span>
                     <span className={`text-xs ${w.verified ? 'text-green-600 font-medium' : 'text-gray-400'}`}>{w.verified ? 'Проверен' : 'Не проверен'}</span>
-                    <span onClick={e => { e.stopPropagation(); removeWarehouse(w.id); }} className="text-gray-300 hover:text-red-600 cursor-pointer" title="Удалить"><Trash2 size={14} /></span>
+                    <span onClick={e => { e.stopPropagation(); setEditingWhId(w.id); setWhCity(w.city); setWhSku(String(w.skuCount || '')); }} className="text-gray-300 hover:text-red-600 cursor-pointer" title="Редактировать склад"><Pencil size={14} /></span>
                   </button>
                 ))}
               </div>

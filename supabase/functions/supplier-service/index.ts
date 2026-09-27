@@ -118,6 +118,10 @@ function validateConditions(input: unknown, warehouses: Array<{ city: string }>)
   return (input as Array<Record<string, unknown>>).map((c) => {
     const out: Record<string, string> = {};
     for (const k of SS_KEYS) out[k] = String(c[k] ?? '').trim();
+    // ТЗ v1.23.31: id и status ОБЯЗАНЫ сохраняться — иначе условия теряли id
+    // (CRM-анкета не могла их редактировать) и статус «Удаление» затирался.
+    if (c.id) out.id = String(c.id);
+    if (c.status) out.status = String(c.status);
     return out;
   });
 }
