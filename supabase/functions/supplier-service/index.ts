@@ -251,6 +251,10 @@ async function handlePost(req: Request) {
     ok: true,
     warehouses: patch.warehouse_locations ?? supplier.warehouse_locations ?? [],
     serviceSearch: patch.service_search ?? supplier.service_search ?? [],
+    // ТЗ v1.23.34: флаг мультисклада ОБЯЗАН возвращаться — иначе после первого сохранения
+    // ЛК терял его, и добавление второго склада блокировалось («обратитесь в поддержку»).
+    multiWarehouse: Boolean((supplier as { multi_warehouse?: boolean; multiWarehouse?: boolean }).multi_warehouse ?? (supplier as { multiWarehouse?: boolean }).multiWarehouse),
+    availableCities: (await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle()).data?.settings?.cities ?? [],
   });
 }
 

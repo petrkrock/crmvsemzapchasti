@@ -240,7 +240,11 @@ export default function SupplierServicePage() {
             {/* ШАПКА ЛК: логотип + Продвижение/Выход */}
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-5 py-3 flex items-center justify-between">
               <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[180px] h-auto" />
-              <div className="flex gap-2">
+              <div className="flex items-center gap-4">
+                <a href="https://vsemzapchasti.ru" target="_blank" rel="noreferrer"
+                  className="text-xs font-semibold uppercase tracking-wide text-red-700 hover:text-red-900 border-b-2 border-dashed border-red-400 hover:border-red-700 pb-0.5 transition-colors">
+                  Сервисы доставки и продаж
+                </a>
                 <a href="/forms/marketing-kit" target="_blank" rel="noreferrer"
                   className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
                   Продвижение
@@ -377,7 +381,7 @@ export default function SupplierServicePage() {
                         <button key={c} type="button"
                           onClick={() => {
                             if ((data.warehouses || []).length === 0 || !selectedWh) {
-                              setNotice('Выберите или создайте новый склад в разделе «Мои склады» для добавления условий в сервис поиска.');
+                              setNotice('Выберите или создайте новый склад в разделе «Мои склады» для добавления условий в сервис проценки.');
                               return;
                             }
                             setNotice('');
@@ -587,13 +591,21 @@ export default function SupplierServicePage() {
                     <p><b className="text-gray-600">Удаление</b> — Вы отправили запрос на удаление Вашего склада из проценки выбранного города, в течение 48 часов проценка будет удалена навсегда.</p>
                   </div>
                 )}
+                <div className="hidden lg:grid grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] gap-x-4 px-4 pb-1 text-[10px] uppercase tracking-wide text-gray-400 whitespace-nowrap">
+                  <span>Склад / Город</span>
+                  <span>График доставки</span>
+                  <span>Условия доставки</span>
+                  <span>Представитель</span>
+                  <span className="text-center">Статус</span>
+                  <span />
+                </div>
                 {(() => {
                   const list = data.serviceSearch || [];
                   const filtered = list.filter(c => (statusFilter === 'all' || (c.status || 'Новое') === statusFilter) && (!selectedWh || c.warehouseName === selectedWh) && (!pendingCity || c.city === pendingCity)); // ТЗ v1.23.23: фильтр склад+город
                   if (!filtered.length) return <p className="text-xs text-gray-400">По выбранным фильтрам (склад/город/статус) условий нет.</p>;
                   const cell = (label: string, value: React.ReactNode) => (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-gray-400">{label}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">{label}</p>
                       <div className="text-sm font-medium text-gray-800">{value || '—'}</div>
                     </div>
                   );
@@ -607,7 +619,7 @@ export default function SupplierServicePage() {
                       <div key={realIdx} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] items-center gap-x-4 gap-y-2 bg-gray-50 rounded-xl px-4 py-3 text-sm mb-2 transition-colors ${(c.status || 'Новое') === 'Удаление' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'}`} onClick={() => { if ((c.status || 'Новое') === 'Удаление') return; setEditingIdx(realIdx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Условия доставки по согласованию!')); setEditorOpen(true); }}>
                         {cell('Склад', <div className="flex flex-col"><span>{c.warehouseName}</span><span className="text-[11px] text-gray-400 font-normal">Город: {c.city}</span></div>)}
                         <div>
-                          <p className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</p>
+                          <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">График доставки</p>
                           <div className="flex gap-1">
                             {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
                               <span key={d} className={`w-6 h-6 text-[10px] flex items-center justify-center rounded-md border ${days.includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
@@ -615,14 +627,14 @@ export default function SupplierServicePage() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-[10px] uppercase tracking-wide text-gray-400">Условия доставки</p>
+                          <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">Условия доставки</p>
                           <div className="flex items-center gap-1.5 max-w-[300px]">
                             {tkOn && <span className="w-7 h-7 text-[10px] font-bold flex items-center justify-center rounded-lg bg-yellow-300 border border-yellow-400 text-gray-900">ТК</span>}
                             <span className="text-xs text-gray-600 truncate" title={delivText}>{delivText || '—'}</span>
                           </div>
                         </div>
                         {cell('Представитель', c.representative)}
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : (c.status || 'Новое') === 'Удаление' ? 'bg-gray-200 text-gray-600 border border-gray-300' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
+                        <span className={`self-center justify-self-center text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : (c.status || 'Новое') === 'Удаление' ? 'bg-gray-200 text-gray-600 border border-gray-300' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
                         <button
                           onClick={e => { e.stopPropagation(); markDeleted(realIdx); }}
                           className="ml-auto w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
