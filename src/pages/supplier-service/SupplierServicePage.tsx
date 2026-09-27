@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; } // verified выставляет менеджер в CRM
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -440,22 +440,27 @@ export default function SupplierServicePage() {
                         <input className={fld + ' flex-1 min-w-[140px] !py-2 text-xs'} placeholder="Например: 2-3 дня"
                           value={condForm.deliveryTime} onChange={e => setCondForm(f => ({ ...f, deliveryTime: e.target.value }))} />
                       </div>
-                      {/* ТЗ v1.23.26: шаблоны прямо в ячейке (datalist-хвостик, как у «Условий возврата»); при ТК текст — фиксированный хвост */}
-                      <input list="delivery-presets" className={fldM('orderUnloadSchedule') + ' mt-2'} placeholder="Выберите из списка или введите свой вариант"
-                        value={tkOn ? String(condForm.orderUnloadSchedule || '').replace('Условия доставки по согласованию!', '').trim() : condForm.orderUnloadSchedule}
-                        onChange={e => {
-                          const v = e.target.value;
-                          setCondForm(f => ({ ...f, orderUnloadSchedule: tkOn ? (v.trim() ? `${v.trim()} Условия доставки по согласованию!` : 'Условия доставки по согласованию!') : v }));
-                          setMissing(m => m.filter(k => k !== 'orderUnloadSchedule'));
-                        }} />
-                      <datalist id="delivery-presets">
-                        <option value="При заказе до (введите время) доставка на следующий день." />
-                        <option value="При заказе до (введите время) доставка день заказа." />
-                        <option value="При заказе до (введите время) доставка по сроку поставки." />
-                      </datalist>
+                      {/* ТЗ v1.23.27: ячейка 3 строки; «хвостик» шаблонов в правом углу ячейки; при ТК текст — фиксированный хвост */}
+                      <div className="relative mt-2">
+                        <textarea rows={3} className={fldM('orderUnloadSchedule') + ' resize-none pr-9'} placeholder="Выберите шаблон (стрелка справа) или введите свой вариант"
+                          value={tkOn ? String(condForm.orderUnloadSchedule || '').replace('Условия доставки по согласованию!', '').trim() : condForm.orderUnloadSchedule}
+                          onChange={e => {
+                            const v = e.target.value;
+                            setCondForm(f => ({ ...f, orderUnloadSchedule: tkOn ? (v.trim() ? `${v.trim()} Условия доставки по согласованию!` : 'Условия доставки по согласованию!') : v }));
+                            setMissing(m => m.filter(k => k !== 'orderUnloadSchedule'));
+                          }} />
+                        <select className="absolute right-1.5 top-1.5 w-7 h-7 opacity-0 cursor-pointer z-10" title="Шаблоны доставки"
+                          value="" onChange={e => { const t = e.target.value; if (t) { setCondForm(f => ({ ...f, orderUnloadSchedule: tkOn ? `${t} Условия доставки по согласованию!` : t })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); } }}>
+                          <option value="" disabled hidden>Шаблон</option>
+                          <option value="При заказе до (введите время) доставка на следующий день.">При заказе до (введите время) доставка на следующий день.</option>
+                          <option value="При заказе до (введите время) доставка день заказа.">При заказе до (введите время) доставка день заказа.</option>
+                          <option value="При заказе до (введите время) доставка по сроку поставки.">При заказе до (введите время) доставка по сроку поставки.</option>
+                        </select>
+                        <ChevronDown size={15} className="absolute right-2.5 top-2.5 text-gray-400 pointer-events-none" />
+                      </div>
                       {tkOn && (
                         <p className="mt-1.5 text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-2.5 py-1.5">
-                          + Условия доставки по согласованию! <span className="font-normal text-yellow-600">(добавлено кнопкой ТК — не удаляется)</span>
+                          + Условия доставки по согласованию!
                         </p>
                       )}
                     </div>
