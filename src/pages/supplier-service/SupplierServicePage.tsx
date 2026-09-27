@@ -440,14 +440,24 @@ export default function SupplierServicePage() {
                         <input className={fld + ' flex-1 min-w-[140px] !py-2 text-xs'} placeholder="Например: 2-3 дня"
                           value={condForm.deliveryTime} onChange={e => setCondForm(f => ({ ...f, deliveryTime: e.target.value }))} />
                       </div>
-                      <select className={fld + ' mt-2 text-xs'} value="" onChange={e => { if (e.target.value) { setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); } }}>
-                        <option value="">Выберите шаблон доставки…</option>
-                        <option value="При заказе до (введите время) доставка на следующий день.">При заказе до (введите время) доставка на следующий день.</option>
-                        <option value="При заказе до (введите время) доставка день заказа.">При заказе до (введите время) доставка день заказа.</option>
-                        <option value="При заказе до (введите время) доставка по сроку поставки.">При заказе до (введите время) доставка по сроку поставки.</option>
-                      </select>
-                      <textarea className={fldM('orderUnloadSchedule') + ' mt-2 h-24 resize-none text-xs'} placeholder="Например: при заказе до 16:00 на следующий день"
-                        value={condForm.orderUnloadSchedule} onChange={e => { setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); }} />
+                      {/* ТЗ v1.23.26: шаблоны прямо в ячейке (datalist-хвостик, как у «Условий возврата»); при ТК текст — фиксированный хвост */}
+                      <input list="delivery-presets" className={fldM('orderUnloadSchedule') + ' mt-2'} placeholder="Выберите из списка или введите свой вариант"
+                        value={tkOn ? String(condForm.orderUnloadSchedule || '').replace('Условия доставки по согласованию!', '').trim() : condForm.orderUnloadSchedule}
+                        onChange={e => {
+                          const v = e.target.value;
+                          setCondForm(f => ({ ...f, orderUnloadSchedule: tkOn ? (v.trim() ? `${v.trim()} Условия доставки по согласованию!` : 'Условия доставки по согласованию!') : v }));
+                          setMissing(m => m.filter(k => k !== 'orderUnloadSchedule'));
+                        }} />
+                      <datalist id="delivery-presets">
+                        <option value="При заказе до (введите время) доставка на следующий день." />
+                        <option value="При заказе до (введите время) доставка день заказа." />
+                        <option value="При заказе до (введите время) доставка по сроку поставки." />
+                      </datalist>
+                      {tkOn && (
+                        <p className="mt-1.5 text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-2.5 py-1.5">
+                          + Условия доставки по согласованию! <span className="font-normal text-yellow-600">(добавлено кнопкой ТК — не удаляется)</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-600">Условия возврата товара <span className="text-red-600">*</span></label>
