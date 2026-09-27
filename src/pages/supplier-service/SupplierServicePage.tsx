@@ -127,8 +127,8 @@ export default function SupplierServicePage() {
     if (err) setNotice(err);
   }
 
-  async function saveCondition() {
-    if (!condForm.city.trim()) { setNotice('Город показов обязателен'); return; }
+  async function saveCondition(): Promise<boolean> { // ТЗ v1.23.24: true = сохранено (кнопка закрывает форму только тогда)
+    if (!condForm.city.trim()) { setNotice('Город показов обязателен'); return false; }
     // ТЗ v1.23.19: обязательные поля условия
     // ТЗ v1.23.23: форма НЕ закрывается и данные не стираются — пустые поля подсвечиваются
     const NAMES: Record<string, string> = { deliverySchedule: 'График доставки', orderUnloadSchedule: 'Условия доставки', returnConditions: 'Условия возврата товара', representative: 'Представитель', contacts: 'Контакты', email: 'Email' };
@@ -139,14 +139,15 @@ export default function SupplierServicePage() {
     if (!condForm.representative?.trim()) missingKeys.push('representative');
     if (!condForm.contacts?.trim()) missingKeys.push('contacts');
     if (!condForm.email?.trim()) missingKeys.push('email');
-    if (missingKeys.length) { setNotice('Заполните обязательные поля: ' + missingKeys.map(k => NAMES[k]).join(', ')); setMissing(missingKeys); return; }
+    if (missingKeys.length) { setNotice('Заполните обязательные поля: ' + missingKeys.map(k => NAMES[k]).join(', ')); setMissing(missingKeys); return false; }
     // ТЗ v1.23.19: id обязателен у каждого условия — иначе в карточке CRM правка одного меняла все
     const cond = { ...condForm, id: condForm.id || crypto.randomUUID() };
     const list = [...(data?.serviceSearch || [])].map(c => c.id ? c : { ...c, id: crypto.randomUUID() });
     if (editingIdx !== null) list[editingIdx] = cond; else list.push(cond);
     const err = await post({ serviceSearch: list });
-    if (!err) { setCondForm(EMPTY_COND); setEditingIdx(null); setMissing([]); }
-    else setNotice(err);
+    if (err) { setNotice(err); return false; }
+    setCondForm(EMPTY_COND); setEditingIdx(null); setMissing([]);
+    return true;
   }
 
   async function applyToAllCities() {
@@ -420,14 +421,14 @@ export default function SupplierServicePage() {
                       <label className="text-xs font-semibold text-gray-600">Условия доставки <span className="text-red-600">*</span></label>
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         <button type="button" onClick={() => {
-                          const TK_TEXT = 'Доставка по согласованию с поставщиком!';
+                          const TK_TEXT = 'Условия доставки по согласованию!';
                           const cur = condForm.orderUnloadSchedule || '';
                           const has = cur.includes(TK_TEXT);
                           const next = has ? cur.replace(TK_TEXT, '').replace(/\s{2,}/g, ' ').trim() : (cur ? `${cur.trim()} ${TK_TEXT}` : TK_TEXT);
                           setCondForm(f => ({ ...f, orderUnloadSchedule: next }));
                           setTkOn(!has);
                         }}
-                          className={`w-9 h-9 text-xs font-bold rounded-lg border transition-colors ${tkOn || String(condForm.orderUnloadSchedule || '').includes('Доставка по согласованию с поставщиком!') ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-400'}`}>
+                          className={`w-9 h-9 text-xs font-bold rounded-lg border transition-colors ${tkOn || String(condForm.orderUnloadSchedule || '').includes('Условия доставки по согласованию!') ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-400'}`}>
                           ТК
                         </button>
                         {['Сегодня', 'Завтра'].map(v => (
@@ -439,14 +440,21 @@ export default function SupplierServicePage() {
                         <input className={fld + ' flex-1 min-w-[140px] !py-2 text-xs'} placeholder="Например: 2-3 дня"
                           value={condForm.deliveryTime} onChange={e => setCondForm(f => ({ ...f, deliveryTime: e.target.value }))} />
                       </div>
-                      <input list="delivery-presets" className={fldM('orderUnloadSchedule') + ' mt-2'} placeholder="Например: при заказе до 16:00 на следующий день"
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {[
+                          'При заказе до (введите время) доставка на следующий день.',
+                          'При заказе до (введите время) доставка день заказа.',
+                          'При заказе до (введите время) доставка по сроку поставки.',
+                        ].map(t => (
+                          <button key={t} type="button"
+                            onClick={() => { setCondForm(f => ({ ...f, orderUnloadSchedule: t })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); }}
+                            className={`text-[11px] px-2.5 py-1.5 rounded-lg border transition-colors ${condForm.orderUnloadSchedule === t ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                      <textarea className={fldM('orderUnloadSchedule') + ' mt-2 h-24 resize-none text-xs'} placeholder="Например: при заказе до 16:00 на следующий день"
                         value={condForm.orderUnloadSchedule} onChange={e => { setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); }} />
-                      <datalist id="delivery-presets">
-                        <option value="При заказе до 16:00 — на следующий день" />
-                        <option value="Доставка в день заказа" />
-                        <option value="Доставка на следующий день" />
-                        <option value="Доставка по согласованию с поставщиком!" />
-                      </datalist>
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-600">Условия возврата товара <span className="text-red-600">*</span></label>
@@ -494,16 +502,20 @@ export default function SupplierServicePage() {
                       <input className={fldM('email') + ' mt-2'} value={condForm.email} onChange={e => { setCondForm(f => ({ ...f, email: e.target.value })); setMissing(m => m.filter(k => k !== 'email')); }} />
                     </div>
                     <button type="button"
-                      onClick={() => {
+                      onClick={async () => {
+                        // ТЗ v1.23.24: пустые обязательные поля — подсветка и стоп, форма остаётся открытой
+                        const NAMES: Record<string, string> = { deliverySchedule: 'График доставки', orderUnloadSchedule: 'Условия доставки', returnConditions: 'Условия возврата товара', representative: 'Представитель', contacts: 'Контакты', email: 'Email' };
+                        const missingKeys = (Object.keys(NAMES) as string[]).filter(k => !(condForm as Record<string, unknown>)[k]);
+                        if (missingKeys.length) { setNotice('Заполните обязательные поля: ' + missingKeys.map(k => NAMES[k]).join(', ')); setMissing(missingKeys); return; }
                         if (!window.confirm('Вы точно согласны добавить данное условие для всех доступных городов?')) return;
                         if (!window.confirm('Далее Вы сможете редактировать каждое условие отдельно. Вы даете согласие?')) return;
-                        applyToAllCities();
+                        await applyToAllCities();
                         setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false);
                       }}
                       className="w-full text-xs text-red-700 hover:underline mt-6">
                       Сохранить условие для всех доступных городов
                     </button>
-                    <button onClick={() => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад'); return; } setNotice(''); saveCondition(); setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
+                    <button onClick={async () => { if (!condForm.city || !condForm.warehouseName) { setNotice('Заполните Город показов и Склад'); return; } setNotice(''); const ok = await saveCondition(); if (!ok) return; setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} disabled={saving}
                       className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl px-6 py-3 flex items-center justify-center gap-1 disabled:opacity-60">
                       <Plus size={15} /> {editingIdx !== null ? 'Сохранить условие' : 'Добавить условие'}
                     </button>
@@ -547,14 +559,14 @@ export default function SupplierServicePage() {
                       <div className="text-sm font-medium text-gray-800">{value || '—'}</div>
                     </div>
                   );
-                  const TK = 'Доставка по согласованию с поставщиком!';
+                  const TK = 'Условия доставки по согласованию!';
                   return filtered.map(c => {
                     const realIdx = list.indexOf(c);
                     const tkOn = String(c.orderUnloadSchedule || '').includes(TK);
                     const delivText = [c.deliveryTime, String(c.orderUnloadSchedule || '').replace(TK, '').trim()].filter(Boolean).join(' · ');
                     const days = (c.deliverySchedule || '').split(',').map(x => x.trim()).filter(Boolean);
                     return (
-                      <div key={realIdx} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] items-center gap-x-4 gap-y-2 bg-gray-50 hover:bg-gray-100 rounded-xl px-4 py-3 text-sm mb-2 cursor-pointer transition-colors" onClick={() => { setEditingIdx(realIdx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Доставка по согласованию с поставщиком!')); setEditorOpen(true); }}>
+                      <div key={realIdx} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] items-center gap-x-4 gap-y-2 bg-gray-50 hover:bg-gray-100 rounded-xl px-4 py-3 text-sm mb-2 cursor-pointer transition-colors" onClick={() => { setEditingIdx(realIdx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(String(c.orderUnloadSchedule || '').includes('Условия доставки по согласованию!')); setEditorOpen(true); }}>
                         {cell('Склад', <div className="flex flex-col"><span>{c.warehouseName}</span><span className="text-[11px] text-gray-400 font-normal">Город: {c.city}</span></div>)}
                         <div>
                           <p className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</p>
