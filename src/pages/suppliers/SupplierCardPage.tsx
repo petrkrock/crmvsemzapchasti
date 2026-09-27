@@ -363,7 +363,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
     return <input className="form-input text-xs" value={val} onChange={e => set(e.target.value)} />;
   }
 
-  function setConditionStatus(condId: string, status: 'Новое' | 'Загружено' | 'Есть изменения') {
+  function setConditionStatus(condId: string, status: 'Новое' | 'Загружено' | 'Есть изменения' | 'Удаление') { // ТЗ v1.23.28
     if (!window.confirm(`Установить условию статус «${status}»?`)) return;
     const u = getCurrentUser()!;
     updateStore(s => ({ ...s, suppliers: s.suppliers.map(sup => sup.id === id ? { ...sup, serviceSearch: (sup.serviceSearch || []).map(c => c.id === condId ? { ...c, status, updatedAt: new Date().toISOString() } : c), history: [...sup.history, makeHistoryEntry('service_search', undefined, `Статус условия → ${status}`, undefined, u.id, u.name)] } : sup) }));
@@ -739,6 +739,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   <option>Новое</option>
                   <option>Загружено</option>
                   <option>Есть изменения</option>
+                  <option>Удаление</option>
                 </select>
                 <select className="form-input text-xs w-auto py-1.5" value={ssFilterCity} onChange={e => setSsFilterCity(e.target.value)}>
                   <option value="">Город: все</option>

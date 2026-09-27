@@ -168,6 +168,18 @@ export default function SupplierServicePage() {
     if (err) setNotice(err);
   }
 
+  // ТЗ v1.23.28: «удаление» = статус «Удаление» (мягкое удаление)
+  async function markDeleted(idx: number) {
+    const c = (data?.serviceSearch || [])[idx];
+    if (!c) return;
+    if (!window.confirm(`Вы точно хотите удалить проценку склада ${c.warehouseName || '—'} из города ${c.city}? Данные удаляются навсегда, без возможности восстановить.`)) return;
+    const list = [...(data?.serviceSearch || [])];
+    list[idx] = { ...c, status: 'Удаление' };
+    const err = await post({ serviceSearch: list });
+    if (err) { setNotice(err); return; }
+    setData(d => d ? { ...d, serviceSearch: list } : d);
+  }
+
   const fld = 'w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-400';
 
   // ТЗ v1.23.0: экран ввода PIN — по центру, как страница входа в приложение
@@ -592,9 +604,13 @@ export default function SupplierServicePage() {
                           </div>
                         </div>
                         {cell('Представитель', c.representative)}
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
-                        <button onClick={() => { setEditingIdx(realIdx); setCondForm(c); setSelectedWh(c.warehouseName || selectedWh); setTkOn(tkOn); setEditorOpen(true); }}
-                          className="ml-auto text-gray-300 hover:text-red-600" title="Редактировать"><Pencil size={15} /></button>
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : (c.status || 'Новое') === 'Удаление' ? 'bg-gray-200 text-gray-600 border border-gray-300' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); markDeleted(realIdx); }}
+                          className="ml-auto w-8 h-8 rounded-full bg-gray-100 text-gray-400 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
+                          title="Удалить проценку">
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     );
                   });
