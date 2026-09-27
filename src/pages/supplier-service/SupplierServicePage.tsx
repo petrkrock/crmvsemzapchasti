@@ -245,14 +245,14 @@ export default function SupplierServicePage() {
                 </div>
                 {priceHint && (
                   <div className="absolute right-4 top-16 z-10 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2">
-                    <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - он понадобится в условиях поиска, укажите примерно сколько на данном складе SKU.</p>
+                    <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
                     <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
-                    <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условия в сервис поиска (DBS).</p>
+                    <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие в проценку (DBS).</p>
                     <p>Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>.</p>
                     <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
                   </div>
                 )}
-                <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад - он понадобится в условиях поиска</p>
+                <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад – это необходимо для создания условий в поиске.</p>
                 <div className="grid grid-cols-[1fr_195px_44px] gap-2">
                   <input className={fld} placeholder="Город, название Вашего склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
