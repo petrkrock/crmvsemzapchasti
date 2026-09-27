@@ -10,7 +10,7 @@
 // открытым текстом (доступ к БД есть только у service_role); рекомендуется не
 // использовать осмысленные коды и не включать PIN без необходимости.
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+// ТЗ v1.23.37: встроенный Deno.serve вместо legacy-импорта deno.land/std (устраняет сбои загрузки модуля)
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -275,7 +275,7 @@ async function handlePost(req: Request) {
   });
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
     if (req.method === 'GET') return await handleGet(req);
