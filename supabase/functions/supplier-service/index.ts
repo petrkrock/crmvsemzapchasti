@@ -47,7 +47,7 @@ type SupplierRow = {
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history')
+    .select('id, trade_name, inn, contact_name, phone, email, contacts, multiWarehouse, service_access, warehouse_locations, service_search, history') // ТЗ v1.23.35: контакты/ИНН/флаг мультисклада для ЛК
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -167,7 +167,9 @@ async function handleGet(req: Request) {
   return json({
     companyName: supplier.trade_name || 'Поставщик',
       inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
-      contactName: supplier.contact_name || '', contactPhone: supplier.phone || '', contactEmail: supplier.email || '', // ТЗ v1.23.2: «Заполнить из карточки»
+      contactName: supplier.contact_name || (Array.isArray((supplier as { contacts?: Array<{ name?: string }> }).contacts) ? ((supplier as { contacts: Array<{ name?: string }> }).contacts[0]?.name ?? '') : '') || '', // ТЗ v1.23.35: fallback — первый контакт карточки
+      contactPhone: supplier.phone || (Array.isArray((supplier as { contacts?: Array<{ phone?: string }> }).contacts) ? ((supplier as { contacts: Array<{ phone?: string }> }).contacts[0]?.phone ?? '') : '') || '',
+      contactEmail: supplier.email || (Array.isArray((supplier as { contacts?: Array<{ email?: string }> }).contacts) ? ((supplier as { contacts: Array<{ email?: string }> }).contacts[0]?.email ?? '') : '') || '',
         multiWarehouse: Boolean((supplier as SupplierRow & { multi_warehouse?: boolean }).multi_warehouse),
     hasPin: Boolean(supplier.service_access?.pin),
     warehouses: supplier.warehouse_locations || [],
@@ -221,7 +223,9 @@ async function handlePost(req: Request) {
       pinVerified: true,
       companyName: supplier.trade_name || 'Поставщик',
       inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
-      contactName: supplier.contact_name || '', contactPhone: supplier.phone || '', contactEmail: supplier.email || '', // ТЗ v1.23.2: «Заполнить из карточки»
+      contactName: supplier.contact_name || (Array.isArray((supplier as { contacts?: Array<{ name?: string }> }).contacts) ? ((supplier as { contacts: Array<{ name?: string }> }).contacts[0]?.name ?? '') : '') || '', // ТЗ v1.23.35: fallback — первый контакт карточки
+      contactPhone: supplier.phone || (Array.isArray((supplier as { contacts?: Array<{ phone?: string }> }).contacts) ? ((supplier as { contacts: Array<{ phone?: string }> }).contacts[0]?.phone ?? '') : '') || '',
+      contactEmail: supplier.email || (Array.isArray((supplier as { contacts?: Array<{ email?: string }> }).contacts) ? ((supplier as { contacts: Array<{ email?: string }> }).contacts[0]?.email ?? '') : '') || '',
       multiWarehouse: Boolean((supplier as SupplierRow & { multi_warehouse?: boolean }).multi_warehouse),
       warehouses: supplier.warehouse_locations || [],
       serviceSearch: supplier.service_search || [],

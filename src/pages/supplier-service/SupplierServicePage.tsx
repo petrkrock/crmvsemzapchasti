@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; } // verified выставляет менеджер в CRM
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -77,6 +77,13 @@ export default function SupplierServicePage() {
       else sessionStorage.setItem('dbs_pin_ok','1'); setPinPassed(true);
     });
   }, [data, pinPassed]);
+
+  // ТЗ v1.23.35: автообновление данных из CRM каждые 20 сек — изменения менеджера видны без ручного F5
+  useEffect(() => {
+    if (!pinPassed) return;
+    const t = setInterval(() => { post({}).catch(() => {}); }, 20000);
+    return () => clearInterval(t);
+  }, [pinPassed]);
 
   useEffect(() => {
     const el = wrapperRef.current;
@@ -242,8 +249,9 @@ export default function SupplierServicePage() {
               <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[180px] h-auto" />
               <div className="flex items-center gap-4">
                 <a href="https://vsemzapchasti.ru" target="_blank" rel="noreferrer"
-                  className="text-xs font-semibold uppercase tracking-wide text-red-700 hover:text-red-900 border-b-2 border-dashed border-red-400 hover:border-red-700 pb-0.5 transition-colors">
-                  Сервисы доставки и продаж
+                  className="group inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-red-700 shadow-sm transition-all hover:border-red-600 hover:bg-red-600 hover:text-white hover:shadow-md">
+                  Сервисы для доставки и продаж
+                  <ArrowUpRight size={14} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
                 <a href="/forms/marketing-kit" target="_blank" rel="noreferrer"
                   className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
