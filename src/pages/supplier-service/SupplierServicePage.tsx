@@ -51,6 +51,7 @@ export default function SupplierServicePage() {
   const [pendingCity, setPendingCity] = useState<string | null>(null); // ТЗ v1.23.11: город, ждущий кнопку «Создать условия»
   const [editingWhId, setEditingWhId] = useState<string | null>(null); // ТЗ v1.23.32: редактирование склада (карандаш)
   const [whHint, setWhHint] = useState(false);
+  const lastDataJson = useRef(''); // ТЗ v1.23.41: не перерисовываемся, если данные не изменились
   const [missing, setMissing] = useState<string[]>([]); // ТЗ v1.23.23: незаполненные обязательные поля (подсветка)
   const fldM = (k: string) => fld + (missing.includes(k) ? ' !border-red-400 !ring-2 !ring-red-200' : '');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -62,7 +63,7 @@ export default function SupplierServicePage() {
     if (!isSupabaseConfigured() || !/^[a-f0-9]{32}$/.test(token)) { setLoading(false); setFatal('Недействительная ссылка'); return; }
     fetch(`${getFunctionsUrl('supplier-service')}?token=${token}`, { headers: getAnonKeyHeaders() })
       .then(r => r.json())
-      .then(d => { if (d.error) setFatal(d.error); else { setData(d); if (sessionStorage.getItem('dbs_pin_ok') !== '1') setPinPassed(false); } }) // ТЗ v1.23.40: уважаем сессию — иначе F5 выбрасывал на ПИН
+      .then(d => { if (d.error) setFatal(d.error); else { setData(prev => prev ? { ...prev, ...d } : d); if (sessionStorage.getItem('dbs_pin_ok') !== '1') setPinPassed(false); } }) // ТЗ v1.23.41: МЕРДЖ — иначе GET затирал условия после F5
       .catch(() => setFatal('Не удалось загрузить данные'))
       .finally(() => setLoading(false));
   }, [token]);
@@ -81,7 +82,7 @@ export default function SupplierServicePage() {
   // ТЗ v1.23.35: автообновление данных из CRM каждые 20 сек — изменения менеджера видны без ручного F5
   useEffect(() => {
     if (!pinPassed) return;
-    const t = setInterval(() => { post({}, true).catch(() => {}); }, 20000);
+    const t = setInterval(() => { post({}, true).catch(() => {}); }, 45000);
     return () => clearInterval(t);
   }, [pinPassed]);
 
@@ -104,16 +105,21 @@ export default function SupplierServicePage() {
       });
       const d = await res.json();
       if (!res.ok || d.error) return d.error || 'Ошибка сохранения';
-      setData({
-        companyName: data!.companyName, hasPin: data!.hasPin,
-        warehouses: d.warehouses, serviceSearch: d.serviceSearch,
-        availableCities: d.availableCities ?? data!.availableCities,
-        multiWarehouse: d.multiWarehouse ?? data!.multiWarehouse,
-        inn: d.inn ?? data!.inn,
-        contactName: d.contactName ?? data!.contactName,
-        contactPhone: d.contactPhone ?? data!.contactPhone,
-        contactEmail: d.contactEmail ?? data!.contactEmail,
-      });
+      // ТЗ v1.23.41: дедупликация — одинаковые данные не вызывают перерисовку (ЛК тормозил)
+      const key = JSON.stringify([d.warehouses, d.serviceSearch, d.contactName, d.contactPhone, d.contactEmail, d.multiWarehouse, d.availableCities]);
+      if (key !== lastDataJson.current) {
+        lastDataJson.current = key;
+        setData({
+          companyName: data!.companyName, hasPin: data!.hasPin,
+          warehouses: d.warehouses, serviceSearch: d.serviceSearch,
+          availableCities: d.availableCities ?? data!.availableCities,
+          multiWarehouse: d.multiWarehouse ?? data!.multiWarehouse,
+          inn: d.inn ?? data!.inn,
+          contactName: d.contactName ?? data!.contactName,
+          contactPhone: d.contactPhone ?? data!.contactPhone,
+          contactEmail: d.contactEmail ?? data!.contactEmail,
+        });
+      }
       if (!silent) setNotice('✓ Сохранено');
       setTimeout(() => setNotice(''), 2500);
       return null;
