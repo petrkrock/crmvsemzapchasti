@@ -440,19 +440,12 @@ export default function SupplierServicePage() {
                         <input className={fld + ' flex-1 min-w-[140px] !py-2 text-xs'} placeholder="Например: 2-3 дня"
                           value={condForm.deliveryTime} onChange={e => setCondForm(f => ({ ...f, deliveryTime: e.target.value }))} />
                       </div>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {[
-                          'При заказе до (введите время) доставка на следующий день.',
-                          'При заказе до (введите время) доставка день заказа.',
-                          'При заказе до (введите время) доставка по сроку поставки.',
-                        ].map(t => (
-                          <button key={t} type="button"
-                            onClick={() => { setCondForm(f => ({ ...f, orderUnloadSchedule: t })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); }}
-                            className={`text-[11px] px-2.5 py-1.5 rounded-lg border transition-colors ${condForm.orderUnloadSchedule === t ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
-                            {t}
-                          </button>
-                        ))}
-                      </div>
+                      <select className={fld + ' mt-2 text-xs'} value="" onChange={e => { if (e.target.value) { setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); } }}>
+                        <option value="">Выберите шаблон доставки…</option>
+                        <option value="При заказе до (введите время) доставка на следующий день.">При заказе до (введите время) доставка на следующий день.</option>
+                        <option value="При заказе до (введите время) доставка день заказа.">При заказе до (введите время) доставка день заказа.</option>
+                        <option value="При заказе до (введите время) доставка по сроку поставки.">При заказе до (введите время) доставка по сроку поставки.</option>
+                      </select>
                       <textarea className={fldM('orderUnloadSchedule') + ' mt-2 h-24 resize-none text-xs'} placeholder="Например: при заказе до 16:00 на следующий день"
                         value={condForm.orderUnloadSchedule} onChange={e => { setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); }} />
                     </div>
