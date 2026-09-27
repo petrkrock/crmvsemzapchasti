@@ -34,7 +34,7 @@ export default function SupplierServicePage() {
   const [loading, setLoading] = useState(true);
   const [fatal, setFatal] = useState('');
   const [pinPassed, setPinPassed] = useState(() => sessionStorage.getItem('dbs_pin_ok') === '1'); // ТЗ v1.23.19: переживает F5
-  const [pin, setPin] = useState('');
+  const [pin, setPin] = useState(() => sessionStorage.getItem('dbs_pin') || ''); // ТЗ v1.23.39: переживает F5
   const [pinError, setPinError] = useState('');
   const [whCity, setWhCity] = useState('');
   const [whSku, setWhSku] = useState('');
@@ -74,14 +74,14 @@ export default function SupplierServicePage() {
     // returns public metadata.
     post({}).then(err => {
       if (err) setFatal(err);
-      else sessionStorage.setItem('dbs_pin_ok','1'); setPinPassed(true);
+      else { sessionStorage.setItem('dbs_pin_ok','1'); sessionStorage.setItem('dbs_pin', pin); } setPinPassed(true);
     });
   }, [data, pinPassed]);
 
   // ТЗ v1.23.35: автообновление данных из CRM каждые 20 сек — изменения менеджера видны без ручного F5
   useEffect(() => {
     if (!pinPassed) return;
-    const t = setInterval(() => { post({}).catch(() => {}); }, 20000);
+    const t = setInterval(() => { post({}, true).catch(() => {}); }, 20000);
     return () => clearInterval(t);
   }, [pinPassed]);
 
@@ -94,7 +94,7 @@ export default function SupplierServicePage() {
     return () => ro.disconnect();
   }, [data, pinPassed, loading]);
 
-  async function post(payload: Record<string, unknown>): Promise<string | null> {
+  async function post(payload: Record<string, unknown>, silent = false): Promise<string | null> {
     setSaving(true);
     try {
       const res = await fetch(getFunctionsUrl('supplier-service'), {
@@ -104,8 +104,17 @@ export default function SupplierServicePage() {
       });
       const d = await res.json();
       if (!res.ok || d.error) return d.error || 'Ошибка сохранения';
-      setData({ companyName: data!.companyName, hasPin: data!.hasPin, warehouses: d.warehouses, serviceSearch: d.serviceSearch, availableCities: data!.availableCities, multiWarehouse: data!.multiWarehouse });
-      setNotice('✓ Сохранено');
+      setData({
+        companyName: data!.companyName, hasPin: data!.hasPin,
+        warehouses: d.warehouses, serviceSearch: d.serviceSearch,
+        availableCities: d.availableCities ?? data!.availableCities,
+        multiWarehouse: d.multiWarehouse ?? data!.multiWarehouse,
+        inn: d.inn ?? data!.inn,
+        contactName: d.contactName ?? data!.contactName,
+        contactPhone: d.contactPhone ?? data!.contactPhone,
+        contactEmail: d.contactEmail ?? data!.contactEmail,
+      });
+      if (!silent) setNotice('✓ Сохранено');
       setTimeout(() => setNotice(''), 2500);
       return null;
     } catch { return 'Ошибка сохранения. Проверьте интернет.'; }
@@ -116,7 +125,7 @@ export default function SupplierServicePage() {
     setPinError('');
     const err = await post({}); // пустой PATCH — сервер проверит PIN (403 при неверном)
     if (err) { setPinError(err); setPin(''); }
-    else sessionStorage.setItem('dbs_pin_ok','1'); setPinPassed(true);
+    else { sessionStorage.setItem('dbs_pin_ok','1'); sessionStorage.setItem('dbs_pin', pin); } setPinPassed(true);
   }
 
   async function addWarehouse() {
@@ -257,7 +266,7 @@ export default function SupplierServicePage() {
                   className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
                   Продвижение
                 </a>
-                <button onClick={() => { sessionStorage.removeItem('dbs_pin_ok'); setPinPassed(false); setPin(''); }}
+                <button onClick={() => { sessionStorage.removeItem('dbs_pin_ok'); sessionStorage.removeItem('dbs_pin'); setPinPassed(false); setPin(''); }}
                   className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
                   Выход
                 </button>

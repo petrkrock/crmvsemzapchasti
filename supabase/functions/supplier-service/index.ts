@@ -263,8 +263,14 @@ async function handlePost(req: Request) {
 
   const { error } = await client.from('suppliers').update(patch).eq('id', supplier.id);
   if (error) return json({ error: 'Не удалось сохранить. Попробуйте позже.' }, 500);
+  const c0 = Array.isArray((supplier as { contacts?: Array<Record<string, unknown>> }).contacts) ? (supplier as { contacts: Array<Record<string, unknown>> }).contacts[0] : undefined;
   return json({
     ok: true,
+    // ТЗ v1.23.39: контакты/ИНН в POST-ответ — иначе ЛК терял их после каждого сохранения
+    contactName: supplier.contact_name || String(c0?.name ?? ''),
+    contactPhone: supplier.phone || String(c0?.phone ?? ''),
+    contactEmail: supplier.email || String(c0?.email ?? ''),
+    inn: supplier.inn || '',
     warehouses: patch.warehouse_locations ?? supplier.warehouse_locations ?? [],
     serviceSearch: patch.service_search ?? supplier.service_search ?? [],
     // ТЗ v1.23.34: флаг мультисклада ОБЯЗАН возвращаться — иначе после первого сохранения
