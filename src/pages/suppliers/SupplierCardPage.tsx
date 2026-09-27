@@ -29,7 +29,7 @@ const SS_FIELDS: { key: keyof ServiceSearchCondition; label: string }[] = [
   { key: 'city', label: 'Город показов' }, { key: 'warehouseName', label: 'Склад поставщика' },
   { key: 'representative', label: 'Представитель' }, { key: 'contacts', label: 'Контакты' },
   { key: 'email', label: 'Email' }, { key: 'deliverySchedule', label: 'График доставки' },
-  { key: 'orderUnloadSchedule', label: 'График выгрузки заказов' },
+  { key: 'orderUnloadSchedule', label: 'Условия доставки' },
   { key: 'returnConditions', label: 'Условия возврата товара' },
   { key: 'deliveryTime', label: 'Срок поставки до выбранного города' }, // v_1.9
 ];
@@ -39,10 +39,10 @@ function DeliveryTimeInput({ value, onChange }: { value: string; onChange: (v: s
   return (
     <div>
       <div className="flex gap-1.5 mb-1.5">
-        <button type="button" onClick={() => onChange(value === 'Сегодня' ? '' : 'Сегодня')}
-          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${value === 'Сегодня' ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>Сегодня</button>
-        <button type="button" onClick={() => onChange(value === 'Завтра' ? '' : 'Завтра')}
-          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${value === 'Завтра' ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>Завтра</button>
+        <button type="button" onClick={() => onChange(value.toLowerCase() === 'сегодня' ? '' : 'Сегодня')}
+          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${value.toLowerCase() === 'сегодня' ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>Сегодня</button>
+        <button type="button" onClick={() => onChange(value.toLowerCase() === 'завтра' ? '' : 'Завтра')}
+          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${value.toLowerCase() === 'завтра' ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:bg-brand-gray'}`}>Завтра</button>
       </div>
       <input className="form-input text-xs" value={value} onChange={e => onChange(e.target.value)} placeholder="например: 2 дня" />
     </div>
@@ -353,7 +353,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
       </>);
     }
     if (f.key === 'deliverySchedule') {
-      const days = val.split(',').filter(Boolean);
+      const days = val.split(',').map(x => x.trim()).filter(Boolean); // ТЗ v1.23.33: ЛК пишет дни через «, » — без trim плашки не подсвечивались
       return (<div className="flex flex-wrap gap-1">{['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
         <button key={d} type="button" onClick={() => set(days.includes(d) ? days.filter(x => x !== d).join(',') : [...days, d].join(','))}
           className={`w-8 h-7 text-[10px] rounded-md border transition-colors ${days.includes(d) ? 'bg-red-50 border-red-300 text-red-700 font-semibold' : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'}`}>{d}</button>

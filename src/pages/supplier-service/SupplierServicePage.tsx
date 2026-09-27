@@ -313,7 +313,7 @@ export default function SupplierServicePage() {
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
                 <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
-                  className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white shadow-md shadow-red-200 hover:shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center transition-all">
+                  className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
                   <Warehouse size={16} />
                 </button>
               </div>
@@ -461,8 +461,8 @@ export default function SupplierServicePage() {
                           ТК
                         </button>
                         {['Сегодня', 'Завтра'].map(v => (
-                          <button key={v} type="button" onClick={() => setCondForm(f => ({ ...f, deliveryTime: v.toLowerCase() }))}
-                            className={`text-xs px-3 py-2 rounded-lg border transition-colors ${condForm.deliveryTime === v.toLowerCase() ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                          <button key={v} type="button" onClick={() => setCondForm(f => ({ ...f, deliveryTime: v }))} // ТЗ v1.23.33: канонический вид «Сегодня»/«Завтра» — как в CRM
+                            className={`text-xs px-3 py-2 rounded-lg border transition-colors ${(condForm.deliveryTime || '').toLowerCase() === v.toLowerCase() ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
                             {v}
                           </button>
                         ))}
