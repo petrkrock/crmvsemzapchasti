@@ -49,6 +49,8 @@ export default function SupplierServicePage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Новое' | 'Загружено' | 'Есть изменения'>('all'); // ТЗ v1.23.10: фильтр условий по статусу
   const [statusHint, setStatusHint] = useState(false);
   const [pendingCity, setPendingCity] = useState<string | null>(null); // ТЗ v1.23.11: город, ждущий кнопку «Создать условия»
+  const [missing, setMissing] = useState<string[]>([]); // ТЗ v1.23.23: незаполненные обязательные поля (подсветка)
+  const fldM = (k: string) => fld + (missing.includes(k) ? ' !border-red-400 !ring-2 !ring-red-200' : '');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
@@ -128,20 +130,22 @@ export default function SupplierServicePage() {
   async function saveCondition() {
     if (!condForm.city.trim()) { setNotice('Город показов обязателен'); return; }
     // ТЗ v1.23.19: обязательные поля условия
-    const missing: string[] = [];
-    if (!condForm.deliverySchedule?.trim()) missing.push('График доставки');
-    if (!condForm.orderUnloadSchedule?.trim()) missing.push('Условия доставки');
-    if (!condForm.returnConditions?.trim()) missing.push('Условия возврата товара');
-    if (!condForm.representative?.trim()) missing.push('Представитель');
-    if (!condForm.contacts?.trim()) missing.push('Контакты');
-    if (!condForm.email?.trim()) missing.push('Email');
-    if (missing.length) { setNotice('Заполните обязательные поля: ' + missing.join(', ')); return; }
+    // ТЗ v1.23.23: форма НЕ закрывается и данные не стираются — пустые поля подсвечиваются
+    const NAMES: Record<string, string> = { deliverySchedule: 'График доставки', orderUnloadSchedule: 'Условия доставки', returnConditions: 'Условия возврата товара', representative: 'Представитель', contacts: 'Контакты', email: 'Email' };
+    const missingKeys: string[] = [];
+    if (!condForm.deliverySchedule?.trim()) missingKeys.push('deliverySchedule');
+    if (!condForm.orderUnloadSchedule?.trim()) missingKeys.push('orderUnloadSchedule');
+    if (!condForm.returnConditions?.trim()) missingKeys.push('returnConditions');
+    if (!condForm.representative?.trim()) missingKeys.push('representative');
+    if (!condForm.contacts?.trim()) missingKeys.push('contacts');
+    if (!condForm.email?.trim()) missingKeys.push('email');
+    if (missingKeys.length) { setNotice('Заполните обязательные поля: ' + missingKeys.map(k => NAMES[k]).join(', ')); setMissing(missingKeys); return; }
     // ТЗ v1.23.19: id обязателен у каждого условия — иначе в карточке CRM правка одного меняла все
     const cond = { ...condForm, id: condForm.id || crypto.randomUUID() };
     const list = [...(data?.serviceSearch || [])].map(c => c.id ? c : { ...c, id: crypto.randomUUID() });
     if (editingIdx !== null) list[editingIdx] = cond; else list.push(cond);
     const err = await post({ serviceSearch: list });
-    if (!err) { setCondForm(EMPTY_COND); setEditingIdx(null); }
+    if (!err) { setCondForm(EMPTY_COND); setEditingIdx(null); setMissing([]); }
     else setNotice(err);
   }
 
@@ -347,10 +351,9 @@ export default function SupplierServicePage() {
                               return;
                             }
                             setNotice('');
-                            if (active) { setPendingCity(null); return; } // условие уже есть — оно в таблице
-                            setPendingCity(prev => prev === c ? null : c);
+                            setPendingCity(prev => prev === c ? null : c); // ТЗ v1.23.23: склад+город — фильтры таблицы (покрытый тоже)
                           }}
-                          className={`text-sm px-4 py-2 rounded-xl border transition-colors ${active ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-red-300'}`}>
+                          className={`text-sm px-4 py-2 rounded-xl border transition-colors ${active ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-red-300'} ${pendingCity === c ? 'ring-2 ring-red-300' : ''}`}>
                           {c}
                         </button>
                       );
@@ -358,7 +361,7 @@ export default function SupplierServicePage() {
                   </div>
                 );
               })()}
-              {pendingCity && !!selectedWh && (
+              {pendingCity && !!selectedWh && !(data.serviceSearch || []).some(x => (x.city || '').toLowerCase() === pendingCity.toLowerCase()) && (
                 <button type="button"
                   onClick={() => {
                     setCondForm({ ...EMPTY_COND, city: pendingCity, warehouseName: selectedWh });
@@ -398,8 +401,8 @@ export default function SupplierServicePage() {
                   {/* КОЛОНКА 2: график/условия доставки, возврат */}
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">График доставки</label>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
+                      <label className="text-xs font-semibold text-gray-600">График доставки <span className="text-red-600">*</span></label>
+                      <div className={`flex flex-wrap gap-1.5 mt-2 ${missing.includes('deliverySchedule') ? 'rounded-lg ring-2 ring-red-200 p-1' : ''}`}>
                         {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => {
                           const days = (condForm.deliverySchedule || '').split(',').map(x => x.trim()).filter(Boolean);
                           const on = days.includes(d);
@@ -414,7 +417,7 @@ export default function SupplierServicePage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">Условия доставки</label>
+                      <label className="text-xs font-semibold text-gray-600">Условия доставки <span className="text-red-600">*</span></label>
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         <button type="button" onClick={() => {
                           const TK_TEXT = 'Доставка по согласованию с поставщиком!';
@@ -436,17 +439,24 @@ export default function SupplierServicePage() {
                         <input className={fld + ' flex-1 min-w-[140px] !py-2 text-xs'} placeholder="Например: 2-3 дня"
                           value={condForm.deliveryTime} onChange={e => setCondForm(f => ({ ...f, deliveryTime: e.target.value }))} />
                       </div>
-                      <textarea className={fld + ' mt-2 h-24 resize-none text-xs'} placeholder="Например: при заказе до 16:00 на следующий день"
-                        value={condForm.orderUnloadSchedule} onChange={e => setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value }))} />
+                      <input list="delivery-presets" className={fldM('orderUnloadSchedule') + ' mt-2'} placeholder="Например: при заказе до 16:00 на следующий день"
+                        value={condForm.orderUnloadSchedule} onChange={e => { setCondForm(f => ({ ...f, orderUnloadSchedule: e.target.value })); setMissing(m => m.filter(k => k !== 'orderUnloadSchedule')); }} />
+                      <datalist id="delivery-presets">
+                        <option value="При заказе до 16:00 — на следующий день" />
+                        <option value="Доставка в день заказа" />
+                        <option value="Доставка на следующий день" />
+                        <option value="Доставка по согласованию с поставщиком!" />
+                      </datalist>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">Условия возврата товара</label>
-                      <select className={fld + ' mt-2'} value={condForm.returnConditions} onChange={e => setCondForm(f => ({ ...f, returnConditions: e.target.value }))}>
-                        {!['Возврат без комиссии', 'Возврат с комиссией', 'Нет возврата', ''].includes(condForm.returnConditions) && <option value={condForm.returnConditions}>{condForm.returnConditions}</option>}
-                        <option value="Возврат без комиссии">Возврат без комиссии</option>
-                        <option value="Возврат с комиссией">Возврат с комиссией</option>
-                        <option value="Нет возврата">Нет возврата</option>
-                      </select>
+                      <label className="text-xs font-semibold text-gray-600">Условия возврата товара <span className="text-red-600">*</span></label>
+                      <input list="return-presets" className={fldM('returnConditions') + ' mt-2'} placeholder="Выберите из списка или введите свой вариант"
+                        value={condForm.returnConditions} onChange={e => { setCondForm(f => ({ ...f, returnConditions: e.target.value })); setMissing(m => m.filter(k => k !== 'returnConditions')); }} />
+                      <datalist id="return-presets">
+                        <option value="Возврат без комиссии" />
+                        <option value="Возврат с комиссией" />
+                        <option value="Нет возврата" />
+                      </datalist>
                     </div>
                   </div>
 
@@ -454,7 +464,7 @@ export default function SupplierServicePage() {
                   <div className="space-y-4">
                     <div>
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-gray-600">Представитель</label>
+                        <label className="text-xs font-semibold text-gray-600">Представитель <span className="text-red-600">*</span></label>
                         <button type="button" className="text-xs text-red-700 hover:underline"
                           onClick={() => {
                             const d = data as { contactName?: string; contactPhone?: string; contactEmail?: string };
@@ -473,15 +483,15 @@ export default function SupplierServicePage() {
                           Добавить данные из анкеты
                         </button>
                       </div>
-                      <input className={fld + ' mt-2'} placeholder="ФИО" value={condForm.representative} onChange={e => setCondForm(f => ({ ...f, representative: e.target.value }))} />
+                      <input className={fldM('representative') + ' mt-2'} placeholder="ФИО" value={condForm.representative} onChange={e => { setCondForm(f => ({ ...f, representative: e.target.value })); setMissing(m => m.filter(k => k !== 'representative')); }} />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">Контакты</label>
-                      <input className={fld + ' mt-2'} placeholder="Телефон" value={condForm.contacts} onChange={e => setCondForm(f => ({ ...f, contacts: e.target.value }))} />
+                      <label className="text-xs font-semibold text-gray-600">Контакты <span className="text-red-600">*</span></label>
+                      <input className={fldM('contacts') + ' mt-2'} placeholder="Телефон" value={condForm.contacts} onChange={e => { setCondForm(f => ({ ...f, contacts: e.target.value })); setMissing(m => m.filter(k => k !== 'contacts')); }} />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">Email</label>
-                      <input className={fld + ' mt-2'} value={condForm.email} onChange={e => setCondForm(f => ({ ...f, email: e.target.value }))} />
+                      <label className="text-xs font-semibold text-gray-600">Email <span className="text-red-600">*</span></label>
+                      <input className={fldM('email') + ' mt-2'} value={condForm.email} onChange={e => { setCondForm(f => ({ ...f, email: e.target.value })); setMissing(m => m.filter(k => k !== 'email')); }} />
                     </div>
                     <button type="button"
                       onClick={() => {
@@ -529,8 +539,8 @@ export default function SupplierServicePage() {
                 )}
                 {(() => {
                   const list = data.serviceSearch || [];
-                  const filtered = list.filter(c => statusFilter === 'all' ? true : (c.status || 'Новое') === statusFilter);
-                  if (!filtered.length) return <p className="text-xs text-gray-400">Условий с выбранным статусом нет.</p>;
+                  const filtered = list.filter(c => (statusFilter === 'all' || (c.status || 'Новое') === statusFilter) && (!selectedWh || c.warehouseName === selectedWh) && (!pendingCity || c.city === pendingCity)); // ТЗ v1.23.23: фильтр склад+город
+                  if (!filtered.length) return <p className="text-xs text-gray-400">По выбранным фильтрам (склад/город/статус) условий нет.</p>;
                   const cell = (label: string, value: React.ReactNode) => (
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-gray-400">{label}</p>
