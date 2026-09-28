@@ -121,16 +121,19 @@ export default function SupplierServicePage() {
       const key = JSON.stringify([d.warehouses, d.serviceSearch, d.contactName, d.contactPhone, d.contactEmail, d.multiWarehouse, d.availableCities]);
       if (key !== lastDataJson.current) {
         lastDataJson.current = key;
-        setData({
-          companyName: data!.companyName, hasPin: data!.hasPin,
+        // ТЗ v1.23.53: null-safe merge — при F5 POST может ответить РАНЬШЕ GET-метаданных,
+        // и data ещё null: data! кидал исключение, загрузка молча падала, условия пропадали.
+        setData(prev => ({
+          companyName: prev?.companyName ?? d.companyName ?? '',
+          hasPin: prev?.hasPin ?? d.hasPin ?? false,
           warehouses: d.warehouses, serviceSearch: d.serviceSearch,
-          availableCities: d.availableCities ?? data!.availableCities,
-          multiWarehouse: d.multiWarehouse ?? data!.multiWarehouse,
-          inn: d.inn ?? data!.inn,
-          contactName: d.contactName ?? data!.contactName,
-          contactPhone: d.contactPhone ?? data!.contactPhone,
-          contactEmail: d.contactEmail ?? data!.contactEmail,
-        });
+          availableCities: d.availableCities ?? prev?.availableCities ?? [],
+          multiWarehouse: d.multiWarehouse ?? prev?.multiWarehouse ?? false,
+          inn: d.inn ?? prev?.inn,
+          contactName: d.contactName ?? prev?.contactName,
+          contactPhone: d.contactPhone ?? prev?.contactPhone,
+          contactEmail: d.contactEmail ?? prev?.contactEmail,
+        }));
       }
       if (!silent) setNotice('✓ Сохранено');
       setTimeout(() => setNotice(''), 2500);
