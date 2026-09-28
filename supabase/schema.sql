@@ -39,6 +39,7 @@ CREATE TABLE public.suppliers (
   comment             TEXT,
   scoring             JSONB,
   requisites          JSONB,
+  multiWarehouse      BOOLEAN NOT NULL DEFAULT FALSE,
   service_search      JSONB NOT NULL DEFAULT '[]'::jsonb,
   service_access      JSONB,
   history             JSONB NOT NULL DEFAULT '[]'::jsonb,

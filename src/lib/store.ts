@@ -1,5 +1,5 @@
 import type {
-  Supplier, Buyer, Task, Ticket, AppSettings, AppUser, HistoryEntry, FormConfig, FormConsentConfig,
+  Supplier, Buyer, Task, Ticket, AppSettings, AppUser, HistoryEntry, FormConfig, FormConsentConfig, SyncLogEntry,
   ProductGroup, Source, PlanCity, PlanFactEntry, SupplierService, UserAccess,
   DEFAULT_LEAD_STATUSES,
   MediaAdType, MediaStatus, MediaRecord, KnowledgeCategory, KnowledgeItem,
@@ -19,6 +19,43 @@ import {
 } from './supabase';
 
 const STORE_KEY = 'vz_crm_data';
+
+// ─────────────────────────────────────────────────────────────
+// ЛОГ СИНХРОНИЗАЦИИ (ТЗ v1.23.43): локальный кольцевой буфер (последние 300 записей).
+// Хранится в отдельном ключе localStorage и НИКОГДА не отправляется на сервер —
+// иначе лог синка сам бы себя синхронизировал.
+// ─────────────────────────────────────────────────────────────
+const SYNC_LOG_KEY = 'vz_crm_sync_log';
+let syncLogEntries: SyncLogEntry[] = (() => { try { return JSON.parse(localStorage.getItem(SYNC_LOG_KEY) || '[]'); } catch { return []; } })();
+const syncLogListeners = new Set<() => void>();
+
+export function getSyncLog(): SyncLogEntry[] { return syncLogEntries; }
+export function clearSyncLog(): void {
+  syncLogEntries = [];
+  try { localStorage.setItem(SYNC_LOG_KEY, '[]'); } catch { /* noop */ }
+  syncLogListeners.forEach(f => f());
+}
+export function useSyncLog(): SyncLogEntry[] {
+  const [v, setV] = useState<SyncLogEntry[]>(syncLogEntries);
+  useEffect(() => {
+    const f = () => setV([...syncLogEntries]);
+    syncLogListeners.add(f);
+    return () => { syncLogListeners.delete(f); };
+  }, []);
+  return v;
+}
+/** Кол-во ошибок синка за последние N минут (для индикатора). */
+export function recentSyncErrorCount(minutes = 15): number {
+  const cutoff = Date.now() - minutes * 60 * 1000;
+  return syncLogEntries.filter(e => e.status === 'error' && new Date(e.ts).getTime() >= cutoff).length;
+}
+function logSync(e: Omit<SyncLogEntry, 'id' | 'ts'>): void {
+  syncLogEntries.push({ ...e, id: generateId(), ts: new Date().toISOString() });
+  if (syncLogEntries.length > 300) syncLogEntries = syncLogEntries.slice(-300);
+  try { localStorage.setItem(SYNC_LOG_KEY, JSON.stringify(syncLogEntries)); } catch { /* noop */ }
+  syncLogListeners.forEach(f => f());
+}
+
 
 export interface CRMStore {
   suppliers: Supplier[];
@@ -597,8 +634,23 @@ const SYNC_DEBOUNCE_MS = 1500;
 
 type EntityName = 'suppliers' | 'buyers' | 'tasks' | 'tickets' | 'mediaRecords';
 
+// ТЗ v1.23.44: сервер владеет служебными полями — они НЕ должны участвовать в сравнении,
+// иначе дифф никогда не сходится: update → триггер меняет updated_at/дописывает history →
+// pull видит "расхождение" → снова update → бесконечный цикл (шторм уведомлений, тормоза).
+const VOLATILE_SYNC_KEYS = new Set(['updatedAt', 'updated_at', 'history']);
+
 function stableEntityJson(value: unknown): string {
-  return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(stableEntityJson).join(',') + ']';
+  if (value && typeof value === 'object') {
+    const src = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(src).sort()) {
+      if (VOLATILE_SYNC_KEYS.has(k)) continue;
+      out[k] = src[k];
+    }
+    return JSON.stringify(out);
+  }
+  return JSON.stringify(value ?? null);
 }
 
 async function syncEntityDiff<T extends { id: string }>(
@@ -609,10 +661,12 @@ async function syncEntityDiff<T extends { id: string }>(
   const oldById = new Map(previous.map(x => [x.id, x]));
   const newById = new Map(current.map(x => [x.id, x]));
   const operations: Promise<unknown>[] = [];
+  const opsMeta: Array<{ entity: typeof entity; op: 'create' | 'update' | 'delete'; id: string }> = [];
 
   for (const [id, next] of newById) {
     const prev = oldById.get(id);
     if (!prev) {
+      opsMeta.push({ entity, op: 'create', id });
       switch (entity) {
         case 'suppliers': operations.push(createSupplier(next as never, id)); break;
         case 'buyers': operations.push(createBuyer(next as never, id)); break;
@@ -621,6 +675,7 @@ async function syncEntityDiff<T extends { id: string }>(
         case 'mediaRecords': operations.push(createMediaRecord(next as never, id)); break;
       }
     } else if (stableEntityJson(prev) !== stableEntityJson(next)) {
+      opsMeta.push({ entity, op: 'update', id });
       switch (entity) {
         case 'suppliers': operations.push(updateSupplier(id, next as never)); break;
         case 'buyers': operations.push(updateBuyer(id, next as never)); break;
@@ -635,6 +690,7 @@ async function syncEntityDiff<T extends { id: string }>(
   // admin hard-delete actions so the server cannot retain orphaned rows.
   for (const id of oldById.keys()) {
     if (newById.has(id)) continue;
+    opsMeta.push({ entity, op: 'delete', id });
     switch (entity) {
       case 'suppliers': operations.push(deleteSupplier(id)); break;
       case 'buyers': operations.push(deleteBuyer(id)); break;
@@ -645,8 +701,20 @@ async function syncEntityDiff<T extends { id: string }>(
   }
 
   const results = await Promise.allSettled(operations);
-  const failed = results.filter(r => r.status === 'rejected');
-  if (failed.length) console.warn(`[supabase] ${entity} diff sync had ${failed.length} failed operation(s)`, failed);
+  let okCount = 0;
+  results.forEach((r, i) => {
+    const errObj = r.status === 'fulfilled' ? (r.value as { error?: { message?: string; code?: string } | null } | null)?.error : undefined;
+    const reason = r.status === 'rejected' ? String((r as PromiseRejectedResult).reason) : undefined;
+    const meta = opsMeta[i];
+    if (errObj || reason) {
+      // ТЗ v1.23.43: операции с ошибкой ВНУТРИ resolved-значения (PostgREST возвращает
+      // {error} без throw!) раньше пропадали молча — теперь каждая попадает в лог.
+      logSync({ kind: 'op', entity: meta.entity, op: meta.op, itemId: meta.id, status: 'error',
+        message: [errObj?.code, errObj?.message || reason].filter(Boolean).join(': ') });
+    } else okCount++;
+  });
+  logSync({ kind: 'summary', entity, op: 'sync', status: results.some((r, i) => r.status === 'rejected' || (r.value as { error?: unknown } | null)?.error) ? 'error' : 'ok',
+    message: `${entity}: ${okCount} ок / ${results.length - okCount} ошибок` });
 }
 
 async function pushRemoteDiff(previous: CRMStore, current: CRMStore): Promise<void> {
@@ -661,7 +729,12 @@ async function pushRemoteDiff(previous: CRMStore, current: CRMStore): Promise<vo
   if (JSON.stringify(previous.settings) !== JSON.stringify(current.settings)) {
     jobs.push(saveSettings(current.settings));
   }
-  await Promise.all(jobs);
+  try {
+    await Promise.all(jobs);
+    logSync({ kind: 'system', entity: 'system', op: 'push', status: 'ok', message: 'pushRemoteDiff завершён' });
+  } catch (e) {
+    logSync({ kind: 'system', entity: 'system', op: 'push', status: 'error', message: String(e) });
+  }
 }
 
 let pendingSyncPrevious: CRMStore | null = null;
