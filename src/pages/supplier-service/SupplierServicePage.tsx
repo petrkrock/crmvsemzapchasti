@@ -80,14 +80,20 @@ export default function SupplierServicePage() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  // ТЗ v1.23.54: полные данные грузим ОДИН РАЗ после прохождения PIN-гейта —
+  // независимо от пути (ввод PIN или сессия после F5). Раньше эффект срабатывал
+  // только при hasPin === false, поэтому после F5 данные ждали поллинга 45с
+  // и условия «исчезали» до следующего цикла.
+  const initialLoadDone = useRef(false);
   useEffect(() => {
-    if (!data || data.hasPin || pinPassed) return;
-    // No PIN configured: perform the same authenticated-by-token POST so the
-    // server returns protected warehouse/service data. GET intentionally only
-    // returns public metadata.
+    if (initialLoadDone.current || !data) return;
+    if (!pinPassed && data.hasPin) return; // ждём ввод PIN
+    initialLoadDone.current = true;
     post({}).then(err => {
-      if (err) setFatal(err);
-      else { sessionStorage.setItem('dbs_pin_ok','1'); sessionStorage.setItem('dbs_pin', pin); } setPinPassed(true);
+      if (err) { initialLoadDone.current = false; setNotice(err); return; }
+      sessionStorage.setItem('dbs_pin_ok', '1');
+      if (pin) sessionStorage.setItem('dbs_pin', pin);
+      setPinPassed(true);
     });
   }, [data, pinPassed]);
 
