@@ -187,7 +187,43 @@ export default function DatabasePage() {
         </div>
       </div>
 
-      <div className="card-base overflow-hidden">
+      {tab === 'Логи синка' && (() => {
+              const log = getSyncLog().slice().reverse();
+              const errs = log.filter(e => e.status === 'error').length;
+              return (
+                <div className="card-base p-4 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 font-medium">{log.length - errs} ок</span>
+                    <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${errs ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>{errs} ошибок</span>
+                    <div className="ml-auto flex gap-2">
+                      <button onClick={() => { navigator.clipboard.writeText(JSON.stringify(getSyncLog(), null, 2)).then(() => alert('Лог синка скопирован — отправьте разработчику')); }}
+                        className="btn-secondary text-xs py-1.5 px-3">Скопировать лог</button>
+                      <button onClick={() => { if (window.confirm('Очистить локальный лог синхронизации?')) clearSyncLog(); }}
+                        className="btn-secondary text-xs py-1.5 px-3">Очистить</button>
+                    </div>
+                  </div>
+                  <div className="table-scroll"><table className="w-full">
+                    <thead><tr className="border-b border-brand-gray-mid">
+                      <th className="table-header">Время</th><th className="table-header">Операция</th><th className="table-header">Сущность</th><th className="table-header">Статус</th><th className="table-header">Сообщение</th>
+                    </tr></thead>
+                    <tbody>
+                      {log.length === 0 && <tr><td className="table-cell text-gray-400" colSpan={5}>Лог пуст — записи появятся после первого прохода синхронизации.</td></tr>}
+                      {log.map(e => (
+                        <tr key={e.id} className="border-b border-brand-gray-mid">
+                          <td className="table-cell whitespace-nowrap text-xs">{e.ts.slice(11, 19)}</td>
+                          <td className="table-cell text-xs">{e.op}{e.kind === 'summary' ? ' (итог)' : ''}</td>
+                          <td className="table-cell text-xs">{e.entity}{e.itemId ? ` · ${e.itemId.slice(0, 8)}` : ''}</td>
+                          <td className="table-cell"><span className={`text-[11px] px-2 py-0.5 rounded-full border ${e.status === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{e.status === 'ok' ? 'ок' : 'ошибка'}</span></td>
+                          <td className="table-cell text-xs text-gray-500 max-w-[420px] truncate" title={e.message}>{e.message || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table></div>
+                </div>
+              );
+            })()}
+
+            <div className={`card-base overflow-hidden ${tab === 'Логи синка' ? 'sync-log-mode' : ''}`}>
         <div className="flex overflow-x-auto border-b border-brand-gray-mid">
           {DB_TABS.map(t => <button key={t} onClick={() => { setTab(t); setSearch(''); setSelected([]); setPage(1); }} className={`tab-button flex-shrink-0 ${tab === t ? 'tab-active' : 'tab-inactive'}`}>{t}</button>)}
         </div>

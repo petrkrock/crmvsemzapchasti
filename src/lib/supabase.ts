@@ -428,7 +428,7 @@ export async function fetchSuppliers(): Promise<Supplier[]> {
 
 export async function createSupplier(supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<Supplier> {
   const uid = await currentAuthUserId();
-  const { data, error } = await requireClient().from('suppliers').insert([{ ...(id ? { id } : {}), ...mapSupplierToDb(supplier), created_by: uid }]).select().single();
+  const { data, error } = await requireClient().from('suppliers').upsert([{ ...(id ? { id } : {}), ...mapSupplierToDb(supplier), created_by: uid }], { onConflict: 'id' }).select().single();
   if (error) throw error;
   return mapSupplier(data);
 }
@@ -454,7 +454,7 @@ export async function fetchBuyers(): Promise<Buyer[]> {
 
 export async function createBuyer(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<Buyer> {
   const uid = await currentAuthUserId();
-  const { data, error } = await requireClient().from('buyers').insert([{ ...(id ? { id } : {}), ...mapBuyerToDb(buyer), created_by: uid }]).select().single();
+  const { data, error } = await requireClient().from('buyers').upsert([{ ...(id ? { id } : {}), ...mapBuyerToDb(buyer), created_by: uid }], { onConflict: 'id' }).select().single();
   if (error) throw error;
   return mapBuyer(data);
 }
@@ -480,7 +480,7 @@ export async function fetchTasks(): Promise<Task[]> {
 
 export async function createTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<Task> {
   const uid = await currentAuthUserId();
-  const { data, error } = await requireClient().from('tasks').insert([{ ...(id ? { id } : {}), ...mapTaskToDb(task), created_by: uid }]).select().single();
+  const { data, error } = await requireClient().from('tasks').upsert([{ ...(id ? { id } : {}), ...mapTaskToDb(task), created_by: uid }], { onConflict: 'id' }).select().single();
   if (error) throw error;
   return mapTask(data);
 }
@@ -507,7 +507,7 @@ export async function fetchTickets(): Promise<Ticket[]> {
 }
 
 export async function createTicket(ticket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<Ticket> {
-  const { data, error } = await requireClient().from('tickets').insert([{ ...(id ? { id } : {}), ...mapTicketToDb(ticket) }]).select().single();
+  const { data, error } = await requireClient().from('tickets').upsert([{ ...(id ? { id } : {}), ...mapTicketToDb(ticket) }], { onConflict: 'id' }).select().single();
   if (error) throw error;
   return mapTicket(data);
 }
@@ -532,7 +532,7 @@ export async function fetchMediaRecords(): Promise<MediaRecord[]> {
 }
 
 export async function createMediaRecord(record: Omit<MediaRecord, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<MediaRecord> {
-  const { data, error } = await requireClient().from('media_records').insert([{ ...(id ? { id } : {}), ...mapMediaRecordToDb(record) }]).select().single();
+  const { data, error } = await requireClient().from('media_records').upsert([{ ...(id ? { id } : {}), ...mapMediaRecordToDb(record) }], { onConflict: 'id' }).select().single();
   if (error) throw error;
   return mapMediaRecord(data);
 }
