@@ -9,7 +9,7 @@ import { Download, Trash2, Search, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DbLog, HistoryEntry } from '@/types';
 
-const DB_TABS = ['Поставщики', 'Покупатели', 'Задачи', 'Поддержка', 'Сервис проценки', 'База лидов', 'Логи дублей', 'План/факт', 'Медиа сервис', 'Пользователи', 'Логи'];
+const DB_TABS = ['Поставщики', 'Покупатели', 'Задачи', 'Поддержка', 'Сервис проценки', 'База лидов', 'Логи дублей', 'План/факт', 'Медиа сервис', 'Пользователи', 'Логи синка', 'Логи'];
 
 function addDbLog(action: DbLog['action'], entityType: string, entityIds: string[], details: string) {
   const u = getCurrentUser();
@@ -59,6 +59,7 @@ export default function DatabasePage() {
       case 'Пользователи': return (store.settings.users || [])
         .map(u => ({ id: u.id, 'дата создания': (u.createdAt || '').slice(0, 10) || '—', имя: u.name, роль: u.role === 'admin' ? 'Администратор' : 'Менеджер', 'дата блокировки или увольнения': u.firedAt ? u.firedAt.slice(0, 10) : '—' }))
         .filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
+      case 'Логи синка': return [];
       case 'База лидов': return ((store.settings.leads || []) as unknown as Record<string, unknown>[])
         .filter(l => (l as { type?: string }).type === leadBase)
         .filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
@@ -149,6 +150,7 @@ export default function DatabasePage() {
       case 'Сервис проценки': return ['timestamp', 'userName', 'supplierName', 'details'];
       // ТЗ v1.22.11: без этого кейса таблица «Пользователи» рендерилась без колонок и строки не были видны
       case 'Пользователи': return ['id', 'дата создания', 'имя', 'роль', 'дата блокировки или увольнения'];
+      case 'Логи синка': return ['время', 'операция', 'сущность', 'статус', 'сообщение'];
       case 'База лидов': return ['type', 'subType', 'inn', 'tradeName', 'city', 'contactName', 'status', 'phone', 'email', 'deletedAt'];
       case 'План/факт': return ['startDate', 'endDate', 'cityName', 'filterType', 'serviceIds', 'responsibleName', 'plan', 'report', 'notes', 'createdAt', 'updatedAt', 'deletedAt'];
       case 'Медиа сервис': return ['supplierName', 'adTypeName', 'durationLabel', 'pricePerMonth', 'totalPrice', 'status', 'startDate', 'endDate', 'responsibleName', 'notes', 'createdAt', 'updatedAt', 'deletedAt'];
@@ -265,7 +267,7 @@ export default function DatabasePage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-brand-gray-mid bg-brand-gray">
-                {!isLogTab && tab !== 'Пользователи' && <th className="table-header w-10"><input type="checkbox" checked={selected.length === pagedData.length && pagedData.length > 0} onChange={toggleAll} className="rounded" /></th>}
+                {!isLogTab && tab !== 'Пользователи' && tab !== 'Логи синка' && <th className="table-header w-10"><input type="checkbox" checked={selected.length === pagedData.length && pagedData.length > 0} onChange={toggleAll} className="rounded" /></th>}
                 <th className="table-header text-xs font-semibold text-gray-400">ID</th>
                 {columns.map(c => <th key={c} className="table-header text-xs font-semibold text-gray-400">{colLabels[c] || c}</th>)}
               </tr>
@@ -276,7 +278,7 @@ export default function DatabasePage() {
                 const isDeleted = !!row['deletedAt'];
                 return (
                   <tr key={row['id'] as string} className={`border-b border-brand-gray-mid hover:bg-brand-gray ${isDeleted ? 'opacity-50' : ''}`}>
-                    {!isLogTab && tab !== 'Пользователи' && (
+                    {!isLogTab && tab !== 'Пользователи' && tab !== 'Логи синка' && (
                       <td className="table-cell" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" checked={selected.includes(row['id'] as string)} onChange={() => toggleSelect(row['id'] as string)} className="rounded" />
                       </td>
