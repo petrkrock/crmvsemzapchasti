@@ -1,3 +1,4 @@
+import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
@@ -234,6 +235,7 @@ export default function SupplierServicePage() {
           <div className="flex flex-col items-center" style={{ marginBottom: '4.5rem' }}>
             <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[333px] h-auto mb-3" />
             <p className="text-sm font-normal text-gray-900 tracking-wide text-center">НАСТРОЙКА СЕРВИСА ПРОЦЕНКИ (DBS)</p>
+            <p className="text-[10px] text-gray-300 text-center mt-1">v{APP_VERSION}</p>
           </div>
         )}
 

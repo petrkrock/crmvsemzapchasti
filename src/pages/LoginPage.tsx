@@ -1,3 +1,4 @@
+import { APP_VERSION } from '@/constants';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '@/lib/auth';
@@ -39,6 +40,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[230px] h-auto mx-auto mb-3" />
           <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">CRM система отдела продаж</p>
+            <p className="text-[10px] text-gray-300 mt-1">v{APP_VERSION}</p>
         </div>
 
         <div className="card-base p-8 shadow-md">
