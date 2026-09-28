@@ -637,7 +637,13 @@ type EntityName = 'suppliers' | 'buyers' | 'tasks' | 'tickets' | 'mediaRecords';
 // ТЗ v1.23.44: сервер владеет служебными полями — они НЕ должны участвовать в сравнении,
 // иначе дифф никогда не сходится: update → триггер меняет updated_at/дописывает history →
 // pull видит "расхождение" → снова update → бесконечный цикл (шторм уведомлений, тормоза).
-const VOLATILE_SYNC_KEYS = new Set(['updatedAt', 'updated_at', 'history']);
+// ТЗ v1.23.51: кроме служебных — игнорируем поля, которыми владеет СЕРВЕР/ЛК:
+// service_access (PIN самообслуживания), warehouse_locations (склады из ЛК),
+// company_score/scoring (вычисляемые триггерами). Иначе CRM вечно «догонял» сервер —
+// дифф не сходился, и одна и та же запись уходила в обновление каждый цикл.
+const VOLATILE_SYNC_KEYS = new Set(['updatedAt', 'updated_at', 'history',
+  'serviceAccess', 'service_access', 'warehouseLocations', 'warehouse_locations',
+  'companyScore', 'company_score', 'scoring']);
 
 function stableEntityJson(value: unknown): string {
   if (Array.isArray(value)) return '[' + value.map(stableEntityJson).join(',') + ']';
@@ -710,7 +716,7 @@ async function syncEntityDiff<T extends { id: string }>(
       // ТЗ v1.23.43: операции с ошибкой ВНУТРИ resolved-значения (PostgREST возвращает
       // {error} без throw!) раньше пропадали молча — теперь каждая попадает в лог.
       logSync({ kind: 'op', entity: meta.entity, op: meta.op, itemId: meta.id, status: 'error',
-        message: [errObj?.code, errObj?.message || reason].filter(Boolean).join(': ') });
+        message: [errObj?.code, errObj?.message || (errObj ? JSON.stringify(errObj) : reason)].filter(Boolean).join(': ') });
     } else okCount++;
   });
   logSync({ kind: 'summary', entity, op: 'sync', status: results.some((r, i) => r.status === 'rejected' || (r.value as { error?: unknown } | null)?.error) ? 'error' : 'ok',
