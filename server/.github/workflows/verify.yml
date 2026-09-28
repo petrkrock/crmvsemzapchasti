@@ -1,0 +1,26 @@
+# Проверка PR до мержа: typecheck + сборка. Зелёный статус — обязательное
+# условие мержа (включите branch protection: Require status checks).
+
+name: verify-pr
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Аудит зависимостей (блокирует релиз при уязвимостях high+)
+        run: npm audit --audit-level=high
+      - run: npx tsc --noEmit
+      - name: Сборка (env подставляются, но артефакт не публикуется)
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

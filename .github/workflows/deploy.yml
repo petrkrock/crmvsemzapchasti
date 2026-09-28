@@ -1,0 +1,72 @@
+# CI/CD: push в main → typecheck → build → атомарный деплой на VPS (rsync --delete).
+# Деплой ВСЕГДА заливает dist целиком — на сервере не остаётся старых chunk'ов
+# (причина класса ошибок вида «X is not defined» при частичной заливке).
+# Требуемые Secrets (Settings → Secrets and variables → Actions):
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY — env для сборки фронта
+#   VPS_HOST, VPS_USER, VPS_SSH_KEY            — доступ к серверу по SSH
+#   VPS_PORT (опционально, по умолчанию 22), VPS_TARGET (по умолчанию /var/www/vz-crm)
+
+name: build-and-deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Проверка (typecheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Аудит зависимостей (блокирует релиз при уязвимостях high+)
+        run: npm audit --audit-level=high
+      - name: "TypeScript: непроходящий код не уходит в релиз"
+        run: npx tsc --noEmit
+
+  build:
+    name: Сборка
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Аудит зависимостей (блокирует релиз при уязвимостях high+)
+        run: npm audit --audit-level=high
+      - name: Vite build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  deploy:
+    name: Деплой на VPS
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: "rsync dist → VPS (--delete: зеркало, без хвостов старых релизов)"
+        uses: easingthemes/ssh-deploy@v5
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.VPS_HOST }}
+          REMOTE_USER: ${{ secrets.VPS_USER }}
+          REMOTE_PORT: ${{ secrets.VPS_PORT || '22' }}
+          SOURCE: dist/
+          TARGET: ${{ secrets.VPS_TARGET || '/var/www/vz-crm' }}
+          ARGS: -avz --delete --chmod=755
