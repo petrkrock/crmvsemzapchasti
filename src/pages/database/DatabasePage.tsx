@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStore, updateStore, useStoreVersion } from '@/lib/store';
+import { getStore, updateStore, useStoreVersion, getSyncLog, clearSyncLog } from '@/lib/store';
 import { exportToCSV, formatDateTime } from '@/lib/utils';
 import { generateId } from '@/lib/utils';
 import { isAdmin, getCurrentUser } from '@/lib/auth';
