@@ -253,6 +253,3 @@
   0%, 100% { transform: scale(1); opacity: 1; }
   50%      { transform: scale(1.5); opacity: .55; }
 }
-
-/* ТЗ v1.23.43: на вкладке «Логи синка» в Базе данных скрываем всё, кроме панели вкладок */
-.sync-log-mode > *:not(:first-child) { display: none !important; }

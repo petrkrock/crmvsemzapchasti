@@ -666,15 +666,3 @@ export interface AuthSession {
   user: AppUser;
   expiresAt: string;
 }
-
-/** Запись локального лога синхронизации (ТЗ v1.23.43). НЕ синхронизируется с сервером. */
-export interface SyncLogEntry {
-  id: string;
-  ts: string;
-  kind: 'op' | 'summary' | 'system';
-  entity?: 'suppliers' | 'buyers' | 'tasks' | 'tickets' | 'mediaRecords' | 'settings' | 'system';
-  op?: 'create' | 'update' | 'delete' | 'sync' | 'push' | 'pull';
-  itemId?: string;
-  status: 'ok' | 'error';
-  message?: string;
-}
