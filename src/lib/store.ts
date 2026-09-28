@@ -26,13 +26,17 @@ const STORE_KEY = 'vz_crm_data';
 // иначе лог синка сам бы себя синхронизировал.
 // ─────────────────────────────────────────────────────────────
 const SYNC_LOG_KEY = 'vz_crm_sync_log';
+const SYNC_ERRORS_KEY = 'vz_crm_sync_errors'; // ТЗ v1.23.52: история ошибок (переживает очистку лога)
 let syncLogEntries: SyncLogEntry[] = (() => { try { return JSON.parse(localStorage.getItem(SYNC_LOG_KEY) || '[]'); } catch { return []; } })();
+let syncErrorEntries: SyncLogEntry[] = (() => { try { return JSON.parse(localStorage.getItem(SYNC_ERRORS_KEY) || '[]'); } catch { return []; } })();
 const syncLogListeners = new Set<() => void>();
 
 export function getSyncLog(): SyncLogEntry[] { return syncLogEntries; }
+export function getSyncErrors(): SyncLogEntry[] { return syncErrorEntries; } // история ошибок
 export function clearSyncLog(): void {
   syncLogEntries = [];
-  try { localStorage.setItem(SYNC_LOG_KEY, '[]'); } catch { /* noop */ }
+  syncErrorEntries = []; // ТЗ v1.23.52: «Очистить» чистит и лог, и историю ошибок
+  try { localStorage.setItem(SYNC_LOG_KEY, '[]'); localStorage.setItem(SYNC_ERRORS_KEY, '[]'); } catch { /* noop */ }
   syncLogListeners.forEach(f => f());
 }
 export function useSyncLog(): SyncLogEntry[] {
@@ -50,9 +54,20 @@ export function recentSyncErrorCount(minutes = 15): number {
   return syncLogEntries.filter(e => e.status === 'error' && new Date(e.ts).getTime() >= cutoff).length;
 }
 function logSync(e: Omit<SyncLogEntry, 'id' | 'ts'>): void {
-  syncLogEntries.push({ ...e, id: generateId(), ts: new Date().toISOString() });
-  if (syncLogEntries.length > 300) syncLogEntries = syncLogEntries.slice(-300);
-  try { localStorage.setItem(SYNC_LOG_KEY, JSON.stringify(syncLogEntries)); } catch { /* noop */ }
+  const entry: SyncLogEntry = { ...e, id: generateId(), ts: new Date().toISOString() };
+  syncLogEntries.push(entry);
+  if (e.status === 'error') { // ошибки дублируем в историю (кап 500)
+    syncErrorEntries.push(entry);
+    if (syncErrorEntries.length > 500) syncErrorEntries = syncErrorEntries.slice(-500);
+  }
+  // ТЗ v1.23.52: автоочистка лога — перед вырезанием старых записей сохраняем ошибки в историю
+  if (syncLogEntries.length > 300) {
+    const removed = syncLogEntries.slice(0, syncLogEntries.length - 200);
+    for (const r of removed) if (r.status === 'error' && !syncErrorEntries.includes(r)) syncErrorEntries.push(r);
+    if (syncErrorEntries.length > 500) syncErrorEntries = syncErrorEntries.slice(-500);
+    syncLogEntries = syncLogEntries.slice(-200);
+  }
+  try { localStorage.setItem(SYNC_LOG_KEY, JSON.stringify(syncLogEntries)); localStorage.setItem(SYNC_ERRORS_KEY, JSON.stringify(syncErrorEntries)); } catch { /* noop */ }
   syncLogListeners.forEach(f => f());
 }
 

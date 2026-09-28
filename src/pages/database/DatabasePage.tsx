@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStore, updateStore, useStoreVersion, getSyncLog, clearSyncLog } from '@/lib/store';
+import { getStore, updateStore, useStoreVersion, getSyncLog, clearSyncLog, getSyncErrors } from '@/lib/store';
 import { exportToCSV, formatDateTime } from '@/lib/utils';
 import { generateId } from '@/lib/utils';
 import { isAdmin, getCurrentUser } from '@/lib/auth';
@@ -37,6 +37,7 @@ export default function DatabasePage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [pageSize, setPageSize] = useState(50);
   const [page, setPage] = useState(1);
+  const [showSyncErrors, setShowSyncErrors] = useState(false); // ТЗ v1.23.52: вид «Ошибки»
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
   const [logSearch, setLogSearch] = useState('');
   const [leadBase, setLeadBase] = useState<'buyer' | 'supplier'>('buyer'); // ТЗ: фильтр вкладки «База лидов», по умолчанию покупатели
@@ -189,18 +190,27 @@ export default function DatabasePage() {
         </div>
       </div>
 
-      {tab === 'Логи синка' && (() => {
-              const log = getSyncLog().slice().reverse();
-              const errs = log.filter(e => e.status === 'error').length;
+                  <div className={`card-base overflow-hidden ${tab === 'Логи синка' ? 'sync-log-mode' : ''}`}>
+        <div className="flex overflow-x-auto border-b border-brand-gray-mid">
+          {DB_TABS.map(t => <button key={t} onClick={() => { setTab(t); setSearch(''); setSelected([]); setPage(1); }} className={`tab-button flex-shrink-0 ${tab === t ? 'tab-active' : 'tab-inactive'}`}>{t}</button>)}
+        </div>
+
+{tab === 'Логи синка' && (() => {
+              const log = (showSyncErrors ? getSyncErrors() : getSyncLog()).slice().reverse();
+              const errs = getSyncErrors().length;
               return (
-                <div className="card-base p-4 space-y-3">
+                <div className="sync-log-panel p-4 space-y-3 border-b border-brand-gray-mid">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 font-medium">{log.length - errs} ок</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 font-medium">{showSyncErrors ? 'История ошибок' : log.length + ' записей'}</span>
                     <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${errs ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>{errs} ошибок</span>
                     <div className="ml-auto flex gap-2">
-                      <button onClick={() => { navigator.clipboard.writeText(JSON.stringify(getSyncLog(), null, 2)).then(() => alert('Лог синка скопирован — отправьте разработчику')); }}
+                      <button onClick={() => setShowSyncErrors(v => !v)}
+                        className={`text-xs py-1.5 px-3 rounded-lg border transition-colors ${showSyncErrors ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
+                        Ошибки ({errs})
+                      </button>
+                      <button onClick={() => { const payload = showSyncErrors ? { errors: getSyncErrors() } : { log: getSyncLog(), errors: getSyncErrors() }; navigator.clipboard.writeText(JSON.stringify(payload, null, 2)).then(() => alert('Скопировано — отправьте разработчику')); }}
                         className="btn-secondary text-xs py-1.5 px-3">Скопировать лог</button>
-                      <button onClick={() => { if (window.confirm('Очистить локальный лог синхронизации?')) clearSyncLog(); }}
+                      <button onClick={() => { if (window.confirm('Очистить лог и историю ошибок синхронизации?')) { clearSyncLog(); setShowSyncErrors(false); } }}
                         className="btn-secondary text-xs py-1.5 px-3">Очистить</button>
                     </div>
                   </div>
@@ -224,11 +234,6 @@ export default function DatabasePage() {
                 </div>
               );
             })()}
-
-            <div className={`card-base overflow-hidden ${tab === 'Логи синка' ? 'sync-log-mode' : ''}`}>
-        <div className="flex overflow-x-auto border-b border-brand-gray-mid">
-          {DB_TABS.map(t => <button key={t} onClick={() => { setTab(t); setSearch(''); setSelected([]); setPage(1); }} className={`tab-button flex-shrink-0 ${tab === t ? 'tab-active' : 'tab-inactive'}`}>{t}</button>)}
-        </div>
 
         <div className="p-3 border-b border-brand-gray-mid flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[180px]">

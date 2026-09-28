@@ -106,7 +106,9 @@
     @apply bg-brand-gray text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3 text-left;
   }
   .table-cell {
-    @apply px-4 py-3 text-sm text-brand-black;
+    @apply px-4 text-sm text-brand-black;
+    padding-top: 0.3rem; /* ТЗ v1.23.52: плотнее */
+    padding-bottom: 0.3rem;
   }
   .table-row {
     @apply border-b border-brand-gray-mid hover:bg-brand-gray transition-colors duration-150 cursor-pointer;
@@ -254,5 +256,7 @@
   50%      { transform: scale(1.5); opacity: .55; }
 }
 
-/* ТЗ v1.23.43: на вкладке «Логи синка» в Базе данных скрываем всё, кроме панели вкладок */
-.sync-log-mode > *:not(:first-child) { display: none !important; }
+/* ТЗ v1.23.52: на вкладке «Логи синка» скрываем всё, кроме вкладок и панели лога */
+.sync-log-mode > *:not(:first-child):not(.sync-log-panel) { display: none !important; }
+.sync-log-panel .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.sync-log-panel table { min-width: 760px; } /* боковой скролл на узких экранах */

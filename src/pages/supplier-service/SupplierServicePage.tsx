@@ -64,7 +64,18 @@ export default function SupplierServicePage() {
     if (!isSupabaseConfigured() || !/^[a-f0-9]{32}$/.test(token)) { setLoading(false); setFatal('Недействительная ссылка'); return; }
     fetch(`${getFunctionsUrl('supplier-service')}?token=${token}`, { headers: getAnonKeyHeaders() })
       .then(r => r.json())
-      .then(d => { if (d.error) setFatal(d.error); else { setData(prev => prev ? { ...prev, ...d } : d); if (sessionStorage.getItem('dbs_pin_ok') !== '1') setPinPassed(false); } }) // ТЗ v1.23.41: МЕРДЖ — иначе GET затирал условия после F5
+      .then(d => { if (d.error) setFatal(d.error); else { setData(prev => prev ? {
+        ...prev,
+        // ТЗ v1.23.52: мерджим ТОЛЬКО скаляры — GET-метаданные содержат пустые массивы,
+        // которые затирали загруженные условия/склады после F5.
+        companyName: d.companyName ?? prev.companyName,
+        hasPin: d.hasPin ?? prev.hasPin,
+        inn: d.inn ?? prev.inn,
+        contactName: d.contactName ?? prev.contactName,
+        contactPhone: d.contactPhone ?? prev.contactPhone,
+        contactEmail: d.contactEmail ?? prev.contactEmail,
+        multiWarehouse: d.multiWarehouse ?? prev.multiWarehouse,
+      } : d); if (sessionStorage.getItem('dbs_pin_ok') !== '1') setPinPassed(false); } }) // ТЗ v1.23.41: МЕРДЖ — иначе GET затирал условия после F5
       .catch(() => setFatal('Не удалось загрузить данные'))
       .finally(() => setLoading(false));
   }, [token]);
