@@ -128,7 +128,8 @@ export interface FormFieldDefinition {
   label: string;
   inputType: FormFieldInputType;
   core?: boolean;
-  defaultValue?: string | number; // ТЗ v1.22.31 // always included + always required — DB NOT NULL column
+  defaultValue?: string | number; // ТЗ v1.22.31: предзаполнение поля (торговые точки = 1)
+  alwaysShow?: boolean; // ТЗ v1.22.32: показывать в форме всегда (при этом необязательное)
   optionsSource?: 'supplierTypes' | 'buyerTypes' | 'productGroups' | 'supplierServices' | 'roleTypes' | 'contactPrefs' | 'ticketTypes' | 'abcCategories' | 'sources' | 'buyerCategoryComments';
 }
 
