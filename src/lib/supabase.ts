@@ -600,8 +600,10 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
       .select('id', { count: 'exact', head: true });
     if (upd.error) throw upd.error;
     if ((upd.count ?? 0) === 0) {
+      // ТЗ v1.23.46: upsert вместо insert — иначе гонка «update вернул 0 строк → insert»
+      // давала 409 duplicate key app_settings_pkey на каждом сохранении настроек.
       const ins = await client.from('app_settings')
-        .insert({ id: 'global', settings: sanitized, updated_at: now });
+        .upsert({ id: 'global', settings: sanitized, updated_at: now }, { onConflict: 'id' });
       if (ins.error) throw ins.error;
     }
   } catch (e) {
