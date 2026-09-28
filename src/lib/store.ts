@@ -634,8 +634,23 @@ const SYNC_DEBOUNCE_MS = 1500;
 
 type EntityName = 'suppliers' | 'buyers' | 'tasks' | 'tickets' | 'mediaRecords';
 
+// ТЗ v1.23.44: сервер владеет служебными полями — они НЕ должны участвовать в сравнении,
+// иначе дифф никогда не сходится: update → триггер меняет updated_at/дописывает history →
+// pull видит "расхождение" → снова update → бесконечный цикл (шторм уведомлений, тормоза).
+const VOLATILE_SYNC_KEYS = new Set(['updatedAt', 'updated_at', 'history']);
+
 function stableEntityJson(value: unknown): string {
-  return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(stableEntityJson).join(',') + ']';
+  if (value && typeof value === 'object') {
+    const src = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(src).sort()) {
+      if (VOLATILE_SYNC_KEYS.has(k)) continue;
+      out[k] = src[k];
+    }
+    return JSON.stringify(out);
+  }
+  return JSON.stringify(value ?? null);
 }
 
 async function syncEntityDiff<T extends { id: string }>(
