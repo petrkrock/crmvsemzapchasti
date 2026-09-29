@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
@@ -319,17 +320,17 @@ export default function SupplierServicePage() {
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
             <div className="flex flex-col gap-4">
               <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 order-2">
-                {priceHint && (
-                  <div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
+                {priceHint && createPortal(
+<div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
                     <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
                     <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
                     <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие в проценку (DBS).</p>
                     <p>Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>.</p>
                     <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
                   </div>
-                )}
-                <div className="grid grid-cols-[210px_minmax(280px,1fr)_150px_44px] gap-2">
-                  <input className={fld} placeholder="Город или название склад *"
+              , document.body)}
+                <div className="grid grid-cols-[230px_minmax(280px,1fr)_150px_44px] gap-2">
+                  <input className={fld} placeholder="Город или название склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
                   <input className={fld} placeholder="Адрес склада, начиная с города *"
                     value={whAddress} onChange={e => setWhAddress(e.target.value)} />
@@ -342,7 +343,7 @@ export default function SupplierServicePage() {
                 </div>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-3 sm:p-4 order-1">
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-2 sm:p-3 order-1">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h2 className="text-base font-semibold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
                 <div className="flex items-center gap-5 flex-wrap text-sm">
@@ -379,12 +380,12 @@ export default function SupplierServicePage() {
                   <Warehouse size={16} />
                 </button>
               </div>
-              {whHint && (
-                <div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
+              {whHint && createPortal(
+<div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
                   <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
                   <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
                 </div>
-              )}
+              , document.body)}
               {(data.warehouses || []).length === 0 && (
                 <p className="text-sm text-gray-400">Шаг 1. Сначала добавьте склад – это необходимо для создания условий в поиске.</p>
               )}
@@ -426,11 +427,11 @@ export default function SupplierServicePage() {
                   </button>
                 </div>
               </div>
-              {cityHint && (
-                <div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
+              {cityHint && createPortal(
+<div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
                   Настраивайте склад во всех городах, даже если у вас туда пока нет доставки. При заполнении условий поиска (проценки) обязательно выбирайте пункт «Условия доставки ТК». Клиенты увидят, что постоянной доставки нет, но привыкнут к вашему складу и запомнят Вашу компанию.
                 </div>
-              )}
+              , document.body)}
               {(() => {
                 const list = data.serviceSearch || [];
                 const cities = data.availableCities || [];
@@ -678,14 +679,14 @@ export default function SupplierServicePage() {
                     </button>
                   </div>
                 </div>
-                {statusHint && (
-                  <div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
+                {statusHint && createPortal(
+<div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
                     <p><b className="text-red-700">Новое</b> — Условие создано, но ещё не опубликовано на платформе.</p>
                     <p><b className="text-green-700">Загружено</b> — Склад и его условия поставки доступны в проценке на платформе.</p>
                     <p><b className="text-amber-700">Есть изменения</b> — Вы редактировали одно из условий, оно ждёт очереди на загрузку в платформу.</p>
                     <p><b className="text-gray-600">Удаление</b> — Вы отправили запрос на удаление Вашего склада из проценки выбранного города, в течение 48 часов проценка будет удалена навсегда.</p>
                   </div>
-                )}
+              , document.body)}
                 <div className="hidden lg:grid grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] gap-x-4 px-4 pb-1 text-[10px] uppercase tracking-wide text-gray-400 whitespace-nowrap">
                   <span>Склад / Город</span>
                   <span>График доставки</span>
