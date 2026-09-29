@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getStore, useStoreVersion, updateStore } from '@/lib/store';
-import { Search, Pencil, FileDown, Trash2, Save } from 'lucide-react';
+import { Search, Pencil, FileDown, Trash2, Save, History } from 'lucide-react';
 
 const STATUS_FILTERS = ['Все', 'Новое', 'Загружено', 'Есть изменения', 'Удаление'] as const;
 const DAYS = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
@@ -207,16 +207,16 @@ export default function PricingPage() {
         <div className="flex flex-wrap gap-1.5 pt-1">
           {STATUS_FILTERS.map(st => (
             <button key={st} onClick={() => setFStatus(st)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${fStatus === st ? 'bg-brand-black text-white border-brand-black font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>{st}</button>
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${fStatus === st ? 'bg-brand-black text-white border-brand-black font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>{st}</button>
           ))}
           <button onClick={() => setFTk(v => v === 'off' ? 'with' : v === 'with' ? 'without' : 'off')}
-            className={`text-xs px-3 py-1.5 rounded-full border font-bold transition-colors ${fTk !== 'off' ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400'}`}
+            className={`text-[11px] px-2.5 py-1 rounded-full border font-bold transition-colors ${fTk !== 'off' ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400'}`}
             title="Фильтр ТК: нажали — только с ТК, ещё раз — только без ТК, ещё раз — выкл">ТК{fTk === 'with' ? ': с' : fTk === 'without' ? ': без' : ''}</button>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {(['Все', 'DBS', 'FBS', 'MEDIA'] as const).map(sv => (
             <button key={sv} onClick={() => setFService(sv)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${fService === sv ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>{sv}</button>
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${fService === sv ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>{sv}</button>
           ))}
         </div>
       </div>
@@ -267,7 +267,7 @@ export default function PricingPage() {
                       <td className="table-cell">
                         <div className="flex flex-wrap gap-1">
                           {(((s as unknown as { services?: string[] }).services) || []).map(sv => (
-                            <span key={sv} className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">{sv}</span>
+                            <span key={sv} className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">{sv}</span>
                           ))}
                           {!((s as unknown as { services?: string[] }).services || []).length && <span className="text-xs text-gray-400">—</span>}
                         </div>
@@ -290,9 +290,13 @@ export default function PricingPage() {
                       </td>
                       <td className="table-cell text-xs max-w-[240px] truncate" title={c.orderUnloadSchedule}>{c.orderUnloadSchedule || '—'}</td>
                       <td className="table-cell text-center">
-                        <div className="flex flex-col items-center gap-0.5">
+                        <div className="flex items-center justify-center gap-1.5">
                           <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${chipCls(c.status)}`}>{c.status || 'Новое'}</span>
-                          {dateStr(c) && <p className="text-[10px] text-gray-400">{dateStr(c)}</p>}
+                          {dateStr(c) && (
+                            <span title={`Условие создано: ${dateStr(c)}`} className="text-gray-300 hover:text-gray-500 cursor-help transition-colors inline-flex">
+                              <History size={13} />
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
