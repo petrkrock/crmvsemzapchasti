@@ -320,7 +320,23 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
   function renderSsField(f: { key: string; label: string }, state: Record<string, unknown>, setter: (fn: (prev: Record<string, unknown>) => Record<string, unknown>) => void) {
     const val = String(state[f.key] ?? '');
     const set = (v: string) => setter(prev => ({ ...prev, [f.key]: v }));
-    if (f.key === 'deliveryTime') return <DeliveryTimeInput value={val} onChange={set} />; // v_1.9
+    if (f.key === 'deliveryTime') {
+      // ТЗ v1.24.3: кнопка ТК — зеркало ЛК: дописывает/убирает фразу в «Условиях доставки» (orderUnloadSchedule)
+      const TK_TEXT = 'Условия доставки по согласованию!';
+      const tkOn = String(state['orderUnloadSchedule'] ?? '').includes(TK_TEXT);
+      return (
+        <div className="space-y-1.5">
+          <button type="button"
+            onClick={() => setter(prev => ({ ...prev, orderUnloadSchedule: tkOn
+              ? String(prev['orderUnloadSchedule'] ?? '').replace(TK_TEXT, '').replace(/\s{2,}/g, ' ').trim()
+              : [String(prev['orderUnloadSchedule'] ?? '').trim(), TK_TEXT].filter(Boolean).join(' ') }))}
+            className={`text-[11px] px-2.5 py-1 rounded-lg border font-bold transition-colors ${tkOn ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400'}`}>
+            ТК
+          </button>
+          <DeliveryTimeInput value={val} onChange={set} />
+        </div>
+      );
+    }
     if (f.key === 'city') {
       // Guard: карточка открыта по битой ссылке или стор ещё пуст (первый pull) —
   // показываем «не найдено» вместо красного экрана ErrorBoundary.
