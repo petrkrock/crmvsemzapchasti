@@ -145,27 +145,36 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* ТЗ v1.24.6: сводка по сервису проценки */}
+      {/* ТЗ v1.24.8: сводка в белой подложке, как «Сводка по базе лидов» */}
       {(() => {
         const all = rows;
         const cnt = (st: string) => all.filter(r => (r.c.status || 'Новое') === st).length;
         const withTk = all.filter(r => tkOn(r.c)).length;
         const stat = (label: string, value: number) => (
-          <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 min-w-[190px] flex-1">
+          <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 min-w-[170px] flex-1">
             <p className="text-xs text-gray-500">{label}</p>
             <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
           </div>
         );
         return (
-          <div className="flex flex-wrap gap-3">
-            {stat('Условий загружено', cnt('Загружено'))}
-            {stat('Новых', cnt('Новое'))}
-            {stat('Есть изменения', cnt('Есть изменения'))}
-            {stat('На удаление', cnt('Удаление'))} // ТЗ v1.24.7
-            <div className="bg-white border border-gray-200 rounded-xl p-4 min-w-[260px] flex-[2]">
-              <p className="text-xs text-gray-500 mb-2">Условия доставки</p>
-              <div className="flex items-center justify-between text-sm"><span>Есть доставка</span><b className="text-base">{all.length - withTk}</b></div>
-              <div className="flex items-center justify-between text-sm mt-1.5"><span>Нет доставки (ТК)</span><b className="text-base">{withTk}</b></div>
+          <div className="card-base p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-900">Сводка по сервису проценки</h3>
+            <div className="flex flex-wrap gap-3">
+              {stat('Условий загружено', cnt('Загружено'))}
+              {stat('Новых', cnt('Новое'))}
+              {stat('Есть изменения', cnt('Есть изменения'))}
+              {stat('На удаление', cnt('Удаление'))}
+              <div className="bg-white border border-gray-200 rounded-xl p-4 min-w-[260px] flex-[2]">
+                <p className="text-xs text-gray-500 mb-2">Условия доставки</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Есть доставка</span>
+                  <span className="text-sm font-bold bg-green-50 text-green-700 border border-green-200 rounded-lg px-2.5 py-0.5">{all.length - withTk}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-2">
+                  <span>Нет доставки (ТК)</span>
+                  <span className="text-sm font-bold bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-lg px-2.5 py-0.5">{withTk}</span>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -203,6 +212,8 @@ export default function PricingPage() {
           <button onClick={() => setFTk(v => v === 'off' ? 'with' : v === 'with' ? 'without' : 'off')}
             className={`text-xs px-3 py-1.5 rounded-full border font-bold transition-colors ${fTk !== 'off' ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400'}`}
             title="Фильтр ТК: нажали — только с ТК, ещё раз — только без ТК, ещё раз — выкл">ТК{fTk === 'with' ? ': с' : fTk === 'without' ? ': без' : ''}</button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
           {(['Все', 'DBS', 'FBS', 'MEDIA'] as const).map(sv => (
             <button key={sv} onClick={() => setFService(sv)}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${fService === sv ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>{sv}</button>
@@ -253,7 +264,14 @@ export default function PricingPage() {
                       <td className="table-cell">
                         <Link to={`/suppliers/${s.id}`} onClick={e => e.stopPropagation()} className="text-red-700 hover:underline font-medium">{s.tradeName}</Link>
                       </td>
-                      <td className="table-cell text-xs text-gray-500">{((s as unknown as { services?: string[] }).services || []).join(', ') || '—'}</td>
+                      <td className="table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {(((s as unknown as { services?: string[] }).services) || []).map(sv => (
+                            <span key={sv} className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">{sv}</span>
+                          ))}
+                          {!((s as unknown as { services?: string[] }).services || []).length && <span className="text-xs text-gray-400">—</span>}
+                        </div>
+                      </td>
                       <td className="table-cell">{c.warehouseName || '—'}</td>
                       <td className="table-cell">{c.city || '—'}</td>
                       <td className="table-cell">
@@ -271,9 +289,11 @@ export default function PricingPage() {
                         </span>
                       </td>
                       <td className="table-cell text-xs max-w-[240px] truncate" title={c.orderUnloadSchedule}>{c.orderUnloadSchedule || '—'}</td>
-                      <td className="table-cell">
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${chipCls(c.status)}`}>{c.status || 'Новое'}</span>
-                        {dateStr(c) && <p className="text-[10px] text-gray-400 mt-1">{dateStr(c)}</p>}
+                      <td className="table-cell text-center">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${chipCls(c.status)}`}>{c.status || 'Новое'}</span>
+                          {dateStr(c) && <p className="text-[10px] text-gray-400">{dateStr(c)}</p>}
+                        </div>
                       </td>
                     </tr>
                     {open && (
