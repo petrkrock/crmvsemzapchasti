@@ -336,8 +336,7 @@ export default function SupplierServicePage() {
                     <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
                   </div>
                 )}
-                <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад – это необходимо для создания условий в поиске.</p>
-                <div className="grid grid-cols-[190px_1fr_130px_44px] gap-2"> // ТЗ v1.25.0
+                <div className="grid grid-cols-[170px_2fr_110px_44px] gap-2">
                   <input className={fld} placeholder="Город, название склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
                   <input className={fld} placeholder="Адрес склада *"
@@ -398,7 +397,7 @@ export default function SupplierServicePage() {
                 </div>
               )}
               {(data.warehouses || []).length === 0 && (
-                <p className="text-sm text-gray-400">Склады не добавлены — начните с шага 1.</p>
+                <p className="text-sm text-gray-400">Шаг 1. Сначала добавьте склад – это необходимо для создания условий в поиске.</p>
               )}
               <div className="flex flex-wrap gap-2">
                 {(data.warehouses || []).map(w => {
