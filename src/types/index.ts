@@ -100,6 +100,9 @@ export interface WarehouseLocation {
   verified?: boolean;
   /** Статус проверки. По умолчанию «Новый» — ставится системой при создании склада */
   status?: WarehouseStatus;
+
+  /** Адрес склада (ТЗ v1.25.0, зеркально ЛК) */
+  address?: string;
 }
 
 export interface ServiceSearchCondition {

@@ -91,7 +91,7 @@ export default function SupplierCardPage() {
   const [pinDraft, setPinDraft] = useState(freshSupplier?.serviceAccess?.pin || '');
   const [ssFilterStatus, setSsFilterStatus] = useState('');
   const [editingWhId, setEditingWhId] = useState<string | null>(null);
-  const [whEditForm, setWhEditForm] = useState({ city: '', skuCount: 0 });
+  const [whEditForm, setWhEditForm] = useState({ city: '', skuCount: 0, address: '' }); // ТЗ v1.25.0: +адрес
   const [ssFilterCity, setSsFilterCity] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
   const form: Supplier = formState || (freshSupplier ? { ...freshSupplier } : {} as Supplier);
@@ -231,20 +231,21 @@ if (form.status !== freshSupplier.status) history.push(makeHistoryEntry('status'
 
   function addWarehouseLocation() {
     if (!whForm.city.trim()) { toast.error('Укажите город'); return; }
+    if (!whForm.address?.trim()) { toast.error('Укажите адрес склада'); return; } // ТЗ v1.25.0: адрес обязателен
     if (!freshSupplier.multiWarehouse && (freshSupplier.warehouseLocations || []).length >= 1) {
       toast.error('Мультисклад выключен — нельзя добавить больше 1 склада. Включите «Мультисклад» переключателем слева от кнопки.');
       return;
     }
-    const loc: WarehouseLocation = { id: generateId(), city: whForm.city.trim(), skuCount: whForm.skuCount || 0, status: 'Новый', verified: false }; // статус «Новый» ставит система
+    const loc: WarehouseLocation = { id: generateId(), city: whForm.city.trim(), address: whForm.address?.trim() || '', skuCount: whForm.skuCount || 0, status: 'Новый', verified: false }; // статус «Новый» ставит система
     updateStore(s => ({ ...s, suppliers: s.suppliers.map(sup => sup.id === id ? { ...sup, warehouseLocations: [...(sup.warehouseLocations || []), loc], updatedAt: new Date().toISOString() } : sup) }));
     setWhForm({ city: '', skuCount: 0, verified: false }); setNewWarehouse(false); forceUpdate(n => n + 1); toast.success('Склад добавлен');
   }
 
-  function startEditWarehouse(wl: WarehouseLocation) { setEditingWhId(wl.id); setWhEditForm({ city: wl.city, skuCount: wl.skuCount }); }
+  function startEditWarehouse(wl: WarehouseLocation) { setEditingWhId(wl.id); setWhEditForm({ city: wl.city, skuCount: wl.skuCount, address: wl.address || '' }); }
   function saveWarehouseEdit(locId: string) {
     if (!window.confirm('Я согласен и проверил вносимые изменения. Сохранить?')) return;
     const u = getCurrentUser()!;
-    updateStore(s => ({ ...s, suppliers: s.suppliers.map(sup => sup.id === id ? { ...sup, warehouseLocations: (sup.warehouseLocations || []).map(w => w.id === locId ? { ...w, city: whEditForm.city.trim() || w.city, skuCount: whEditForm.skuCount || 0 } : w), history: [...sup.history, makeHistoryEntry('warehouseLocations', undefined, `Склад изменён: ${whEditForm.city} (SKU ${whEditForm.skuCount})`, 'Редактирование склада', u.id, u.name)] } : sup) }));
+    updateStore(s => ({ ...s, suppliers: s.suppliers.map(sup => sup.id === id ? { ...sup, warehouseLocations: (sup.warehouseLocations || []).map(w => w.id === locId ? { ...w, city: whEditForm.city.trim() || w.city, skuCount: whEditForm.skuCount || 0, address: whEditForm.address?.trim() || w.address } : w), history: [...sup.history, makeHistoryEntry('warehouseLocations', undefined, `Склад изменён: ${whEditForm.city} (SKU ${whEditForm.skuCount})`, 'Редактирование склада', u.id, u.name)] } : sup) }));
     setEditingWhId(null); forceUpdate(n => n + 1); toast.success('Склад обновлён');
   }
 
@@ -673,6 +674,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   <div className="card-base p-3 bg-blue-50 border-blue-200 mb-3 animate-fade-in">
                     <div className="flex gap-3 flex-wrap items-end">
                       <div className="flex-1 min-w-[140px]"><label className="form-label">Город (название) склада *</label><input className="form-input" placeholder="Город (название) склада" value={whForm.city} onChange={e => setWhForm(f => ({ ...f, city: e.target.value }))} /></div>
+                      <div className="flex-[2] min-w-[220px]"><label className="form-label">Адрес склада</label><input className="form-input" placeholder="Адрес склада" value={whForm.address || ''} onChange={e => setWhForm(f => ({ ...f, address: e.target.value }))} /></div>
                       <div className="w-32"><label className="form-label">SKU</label><input type="number" min="0" className="form-input" value={whForm.skuCount} onChange={e => setWhForm(f => ({ ...f, skuCount: parseInt(e.target.value) || 0 }))} /></div>
                       
                       <div className="flex gap-2"><button onClick={addWarehouseLocation} className="btn-primary text-xs"><Plus size={12} /> Добавить</button><button onClick={() => setNewWarehouse(false)} className="btn-secondary text-xs">Отмена</button></div>
@@ -681,16 +683,19 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                 )}
                 <div className="overflow-hidden rounded-lg border border-brand-gray-mid">
                   <table className="w-full text-sm">
-                    <thead><tr className="border-b border-brand-gray-mid bg-brand-gray"><th className="table-header text-left">Город (название) склада</th><th className="table-header text-right">SKU</th><th className="table-header">Склад подтвержден</th><th className="table-header w-10"></th></tr></thead>
+                    <thead><tr className="border-b border-brand-gray-mid bg-brand-gray"><th className="table-header text-left">Город (название) склада</th>
+                    <th className="table-header text-left">Адрес склада</th><th className="table-header text-right">SKU</th><th className="table-header">Склад подтвержден</th><th className="table-header w-10"></th></tr></thead>
                     <tbody>
-                      {warehouseLocations.length === 0 && <tr><td colSpan={4} className="text-center py-6 text-gray-400 text-xs">Нет складов. Добавьте первый.</td></tr>}
+                      {warehouseLocations.length === 0 && <tr><td colSpan={5} className="text-center py-6 text-gray-400 text-xs">Нет складов. Добавьте первый.</td></tr>}
                       {warehouseLocations.map(wl => (
                         <tr key={wl.id} className={`border-b border-brand-gray-mid last:border-0 hover:bg-brand-gray ${wl.status === 'Заморожен' ? 'opacity-50 bg-gray-50' : ''}`}>
                           {editingWhId === wl.id ? (<>
                             <td className="table-cell"><input className="form-input text-xs" value={whEditForm.city} onChange={e => setWhEditForm(f => ({ ...f, city: e.target.value }))} /></td>
+                            <td className="table-cell"><input className="form-input text-xs w-56" placeholder="Адрес склада" value={whEditForm.address} onChange={e => setWhEditForm(f => ({ ...f, address: e.target.value }))} /></td>
                             <td className="table-cell text-right"><input type="number" min="0" className="form-input text-xs w-24 text-right" value={whEditForm.skuCount} onChange={e => setWhEditForm(f => ({ ...f, skuCount: parseInt(e.target.value) || 0 }))} /></td>
                           </>) : (<>
                             <td className="table-cell font-medium">{wl.city}</td>
+                            <td className="table-cell text-xs text-gray-600">{wl.address || '—'}</td>
                             <td className="table-cell text-right text-xs text-gray-600">{wl.skuCount.toLocaleString('ru')}</td>
                           </>)}
                           <td className="table-cell">

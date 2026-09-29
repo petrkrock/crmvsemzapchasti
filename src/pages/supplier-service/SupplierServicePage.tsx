@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
 import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight } from 'lucide-react';
 
-interface Wh { id: string; city: string; skuCount: number; verified?: boolean; } // verified выставляет менеджер в CRM
+interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
   email: string; deliverySchedule: string; orderUnloadSchedule: string; returnConditions: string; officialWarehouse: string;
   status?: string; } // статус условия (Новое/Загружено/Есть изменения) — из CRM
@@ -38,6 +38,7 @@ export default function SupplierServicePage() {
   const [pin, setPin] = useState(() => sessionStorage.getItem('dbs_pin') || ''); // ТЗ v1.23.39: переживает F5
   const [pinError, setPinError] = useState('');
   const [whCity, setWhCity] = useState('');
+  const [whAddress, setWhAddress] = useState(''); // ТЗ v1.25.0: адрес склада
   const [whSku, setWhSku] = useState('');
   const [condForm, setCondForm] = useState<Cond>(EMPTY_COND);
   const [tkCarrier, setTkCarrier] = useState(''); // ТЗ v1.23.2: перевозчик для «Срок поставки»
@@ -167,6 +168,7 @@ export default function SupplierServicePage() {
 
   async function addWarehouse() {
     if (!whCity.trim()) { setNotice('Укажите город склада'); return; }
+    if (!whAddress.trim()) { setNotice('Укажите адрес склада'); return; } // ТЗ v1.25.0: адрес обязателен
     if (!whSku.trim()) { setNotice('Укажите примерное кол-во SKU'); return; } // ТЗ v1.23.19: обе ячейки обязательны
     if (!editingWhId && (data?.warehouses || []).length >= 1 && !data?.multiWarehouse) { // ТЗ v1.23.32: при редактировании лимит не применяем
       setNotice('Для включения функции мультисклад обратитесь в поддержку');
@@ -174,9 +176,9 @@ export default function SupplierServicePage() {
     }
     // ТЗ v1.23.32: карандаш — обновление существующего склада, иначе добавление
     const err = editingWhId
-      ? await post({ warehouses: (data?.warehouses || []).map(w => w.id === editingWhId ? { ...w, city: whCity.trim(), skuCount: Number(whSku) || 0 } : w) })
-      : await post({ warehouses: [...(data?.warehouses || []), { id: crypto.randomUUID(), city: whCity.trim(), skuCount: Number(whSku) || 0 }] }); // ТЗ v1.23.19: id обязателен
-    if (!err) { setWhCity(''); setWhSku(''); setEditingWhId(null); }
+      ? await post({ warehouses: (data?.warehouses || []).map(w => w.id === editingWhId ? { ...w, city: whCity.trim(), skuCount: Number(whSku) || 0, address: whAddress.trim() } : w) })
+      : await post({ warehouses: [...(data?.warehouses || []), { id: crypto.randomUUID(), city: whCity.trim(), skuCount: Number(whSku) || 0, address: whAddress.trim() }] }); // ТЗ v1.23.19: id обязателен
+    if (!err) { setWhCity(''); setWhSku(''); setWhAddress(''); setEditingWhId(null); }
     else setNotice(err);
   }
 
@@ -335,9 +337,11 @@ export default function SupplierServicePage() {
                   </div>
                 )}
                 <p className="text-xs text-gray-400 mt-1 mb-4">Шаг 1. Сначала добавьте склад – это необходимо для создания условий в поиске.</p>
-                <div className="grid grid-cols-[1fr_195px_44px] gap-2">
-                  <input className={fld} placeholder="Город, название Вашего склада *"
+                <div className="grid grid-cols-[190px_1fr_130px_44px] gap-2"> // ТЗ v1.25.0
+                  <input className={fld} placeholder="Город, название склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
+                  <input className={fld} placeholder="Адрес склада *"
+                    value={whAddress} onChange={e => setWhAddress(e.target.value)} />
                   <input className={fld} placeholder="Примерное кол-во SKU" inputMode="numeric" maxLength={6}
                     value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, '').slice(0, 6))} />
                   <button onClick={addWarehouse} disabled={saving} title="Добавить склад"
@@ -355,15 +359,15 @@ export default function SupplierServicePage() {
                     const chip = (v: number, cls: string) => <span className={`min-w-[28px] text-center text-xs font-bold rounded-md px-2 py-0.5 ${cls}`}>{v}</span>;
                     return (
                       <>
-                        <div className="flex items-center justify-between max-w-[280px]">
+                        <div className="flex items-center justify-between max-w-[200px]">
                           <span className="text-gray-500">Всего городов:</span>
                           {chip((data.availableCities || []).length, 'bg-blue-50 text-blue-700')}
                         </div>
-                        <div className="flex items-center justify-between max-w-[280px]">
+                        <div className="flex items-center justify-between max-w-[200px]">
                           <span className="text-gray-500" title="Условия сервиса проценки со статусом «Загружено»">Охвачено:</span>
                           {chip(loaded, 'bg-green-50 text-green-700')}
                         </div>
-                        <div className="flex items-center justify-between max-w-[280px]">
+                        <div className="flex items-center justify-between max-w-[200px]">
                           <span className="text-gray-500">Мультисклад:</span>
                           {data.multiWarehouse
                             ? <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-green-50 text-green-700">доступен</span>
@@ -397,14 +401,19 @@ export default function SupplierServicePage() {
                 <p className="text-sm text-gray-400">Склады не добавлены — начните с шага 1.</p>
               )}
               <div className="flex flex-wrap gap-2">
-                {(data.warehouses || []).map(w => (
+                {(data.warehouses || []).map(w => {
+                    const st = w.status || (w.verified ? 'Проверен' : 'Новый');
+                    const borderCls = editingWhId === w.id ? 'border-red-400 ring-2 ring-red-200'
+                      : st === 'Заморожен' ? 'border-gray-300 bg-gray-100 opacity-60'
+                      : st === 'Проверен' ? (selectedWh === w.city ? 'border-green-500 bg-green-50 ring-2 ring-green-300' : 'border-green-400 bg-green-50 hover:border-green-600')
+                      : (selectedWh === w.city ? 'border-gray-300 bg-gray-50' : 'border-transparent bg-white hover:border-gray-300');
+                    return (
                   <button key={w.id} type="button" onClick={() => setSelectedWh(prev => prev === w.city ? '' : w.city)}
-                    className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${editingWhId === w.id ? 'border-red-400 ring-2 ring-red-200' : selectedWh === w.city ? 'border-green-500 bg-green-50 ring-1 ring-green-200' : w.verified ? 'border-green-300 bg-green-50 hover:border-green-500' : 'border-green-200 bg-white hover:border-green-500'}`}>
+                    className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${borderCls}`}>
                     <span className="font-semibold text-gray-900">{w.city}</span>
                     <span className="text-gray-400 text-xs">{Number(w.skuCount).toLocaleString('ru-RU')} SKU</span>
-                    <span className={`text-xs ${w.verified ? 'text-green-600 font-medium' : 'text-gray-400'}`}>{w.verified ? 'Проверен' : 'Не проверен'}</span>
-                    <span onClick={e => { e.stopPropagation(); setEditingWhId(w.id); setWhCity(w.city); setWhSku(String(w.skuCount || '')); }} className="text-gray-300 hover:text-red-600 cursor-pointer" title="Редактировать склад"><Pencil size={14} /></span>
-                  </button>
+                    <span className={`text-xs ${st === 'Проверен' ? 'text-green-600 font-medium' : st === 'Заморожен' ? 'text-gray-400' : 'text-gray-400'}`}>{st}</span>
+                    <span onClick={e => e.stopPropagation()} title={w.address ? `Адрес: ${w.address}` : 'Адрес не указан'} className="text-gray-300 hover:text-gray-500 cursor-help inline-flex"><Warehouse size={12} /></span>
                 ))}
               </div>
             </div>

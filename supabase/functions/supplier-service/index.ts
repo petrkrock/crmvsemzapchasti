@@ -112,7 +112,11 @@ function validateWarehouses(input: unknown, existing: Array<Record<string, unkno
     // флаг сохраняется из текущей записи (по id или городу).
     const old = existing.find((e) => e.id === id) ||
       existing.find((e) => String(e.city || '').toLowerCase() === city.toLowerCase());
-    return { id, city, skuCount: Number(w.skuCount ?? 0), verified: Boolean(old?.verified) };
+    // ТЗ v1.25.0: сохраняем адрес склада и статус (статус меняет только менеджер в CRM)
+    const st = String(old?.status || '');
+    return { id, city, skuCount: Number(w.skuCount ?? 0), verified: Boolean(old?.verified),
+      address: String(w.address || old?.address || '').trim().slice(0, 300),
+      status: ['Новый', 'Проверен', 'Заморожен'].includes(st) ? st : (old?.verified ? 'Проверен' : 'Новый') };
   });
 }
 
