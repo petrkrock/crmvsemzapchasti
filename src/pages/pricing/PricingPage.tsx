@@ -14,11 +14,10 @@ type Cond = {
   returnConditions?: string; representative?: string; contacts?: string; email?: string;
   status?: string;
 };
+type SupplierRow = ReturnType<typeof getStore>['suppliers'][number];
+type WhLoc = { city?: string; verified?: boolean };
 
-/**
- * Проценка (ТЗ v1.24.0–1.24.3): единое управление условиями сервиса проценки (DBS)
- * всех поставщиков. Источник — supplier.serviceSearch: правки здесь = правки везде.
- */
+/** Проценка (ТЗ v1.24.0–1.24.5): единое управление условиями DBS. Источник — supplier.serviceSearch. */
 export default function PricingPage() {
   useStoreVersion();
   const store = getStore();
@@ -30,14 +29,14 @@ export default function PricingPage() {
   const [fType, setFType] = useState('');
   const [fResp, setFResp] = useState('');
   const [fStatus, setFStatus] = useState<string>('Все');
-  const [fTk, setFTk] = useState<'off' | 'with' | 'without'>('off'); // ТЗ v1.24.3: трёхступенчатый фильтр ТК
+  const [fTk, setFTk] = useState<'off' | 'with' | 'without'>('off');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [draft, setDraft] = useState<Cond | null>(null);
-  const [editMode, setEditMode] = useState(false); // ТЗ v1.24.4: вид (как в анкете) / редактирование
+  const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const suppliers = store.suppliers.filter(s => (tab === 'archived' ? !!s.deletedAt : !s.deletedAt));
-  const rows: Array<{ s: (typeof store.suppliers)[number]; c: Cond; idx: number; key: string }> = [];
+  const rows: Array<{ s: SupplierRow; c: Cond; idx: number; key: string }> = [];
   suppliers.forEach(s => (s.serviceSearch || []).forEach((c, i) => rows.push({ s, c: c as Cond, idx: i, key: `${s.id}:${i}` })));
 
   const cities = Array.from(new Set(rows.map(r => r.c.city).filter(Boolean) as string[]));
@@ -67,12 +66,13 @@ export default function PricingPage() {
       : (st || 'Новое') === 'Удаление'
         ? 'bg-gray-200 text-gray-600 border-gray-300'
         : 'bg-red-50 text-red-700 border-red-200';
-  const selectCls = 'form-input text-xs py-1.5 w-auto';
   const inCls = 'form-input text-xs';
+  const lblCls = 'block text-xs font-medium text-gray-600 mb-1';
+  const tkOn = (c?: Cond) => !!c && String(c.orderUnloadSchedule || '').includes(TK_TEXT);
 
   const openRow = (key: string, c: Cond) => { setExpanded(key); setEditMode(false); setDraft({ ...(c as object) } as Cond); };
   const closeRow = () => { setExpanded(null); setEditMode(false); setDraft(null); };
-  // ТЗ v1.24.4: смена статуса плашкой — сразу в store (зеркало карточки поставщика)
+
   const setStatus = (supplierId: string, idx: number, status: string) => {
     updateStore(st => ({
       ...st,
@@ -81,11 +81,6 @@ export default function PricingPage() {
         : s),
     }));
   };
-  const whVerified = (s: (typeof store.suppliers)[number], name?: string): boolean => {
-    const list = ((s as unknown as { warehouse_locations?: Array<{ city?: string; verified?: boolean }> }).warehouse_locations) || [];
-    return !!name && list.some(w => (w.city || '') === name && !!w.verified);
-  };
-
   const saveCond = (supplierId: string, idx: number) => {
     if (!draft) return;
     updateStore(st => ({
@@ -94,7 +89,6 @@ export default function PricingPage() {
         ? { ...s, serviceSearch: (s.serviceSearch || []).map((cc, i) => (i === idx ? { ...(cc as object), ...(draft as object) } : cc)) }
         : s),
     }));
-    setEditMode(false);
     closeRow();
   };
   const deleteCond = (supplierId: string, idx: number) => {
@@ -107,6 +101,8 @@ export default function PricingPage() {
     }));
     closeRow();
   };
+  const whList = (s: SupplierRow): WhLoc[] => ((s as unknown as { warehouse_locations?: WhLoc[] }).warehouse_locations) || [];
+  const whVerified = (s: SupplierRow, name?: string) => !!name && whList(s).some(w => (w.city || '') === name && !!w.verified);
 
   const toggleSelect = (key: string) => setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
   const allSel = list.length > 0 && list.every(r => selected.has(r.key));
@@ -137,26 +133,26 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* Поиск, затем фильтры */}
+      {/* ТЗ v1.24.5: поиск и все фильтры — в ОДНУ строку */}
       <div className="card-base p-3 space-y-2">
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="form-input text-xs pl-8 w-full" placeholder="Поиск: поставщик, город, склад, условия…" value={q} onChange={e => setQ(e.target.value)} />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <select className={selectCls} value={fSupplier} onChange={e => setFSupplier(e.target.value)}>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input className="form-input text-xs pl-8 w-full" placeholder="Поиск: поставщик, город, склад, условия…" value={q} onChange={e => setQ(e.target.value)} />
+          </div>
+          <select className="form-input text-xs py-1.5 w-auto" value={fSupplier} onChange={e => setFSupplier(e.target.value)}>
             <option value="">Все поставщики</option>
             {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
           </select>
-          <select className={selectCls} value={fCity} onChange={e => setFCity(e.target.value)}>
+          <select className="form-input text-xs py-1.5 w-auto" value={fCity} onChange={e => setFCity(e.target.value)}>
             <option value="">Все города</option>
             {cities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select className={selectCls} value={fType} onChange={e => setFType(e.target.value)}>
+          <select className="form-input text-xs py-1.5 w-auto" value={fType} onChange={e => setFType(e.target.value)}>
             <option value="">Все типы</option>
             {(store.settings.supplierTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <select className={selectCls} value={fResp} onChange={e => setFResp(e.target.value)}>
+          <select className="form-input text-xs py-1.5 w-auto" value={fResp} onChange={e => setFResp(e.target.value)}>
             <option value="">Все ответственные</option>
             {respUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
@@ -166,16 +162,12 @@ export default function PricingPage() {
             <button key={st} onClick={() => setFStatus(st)}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${fStatus === st ? 'bg-brand-black text-white border-brand-black font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>{st}</button>
           ))}
-          {/* ТЗ v1.24.3: фильтр ТК — 3 состояния: выкл → только с ТК → только без ТК → выкл */}
           <button onClick={() => setFTk(v => v === 'off' ? 'with' : v === 'with' ? 'without' : 'off')}
             className={`text-xs px-3 py-1.5 rounded-full border font-bold transition-colors ${fTk !== 'off' ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400'}`}
-            title="Фильтр по кнопке ТК: нажали — только с ТК, ещё раз — только без ТК, ещё раз — выкл">
-            ТК{fTk === 'with' ? ': с' : fTk === 'without' ? ': без' : ''}
-          </button>
+            title="Фильтр ТК: нажали — только с ТК, ещё раз — только без ТК, ещё раз — выкл">ТК{fTk === 'with' ? ': с' : fTk === 'without' ? ': без' : ''}</button>
         </div>
       </div>
 
-      {/* Скрытое меню при выбранных строках */}
       {selected.size > 0 && (
         <div className="flex items-center gap-2 text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
           <span className="text-gray-500">Выбрано: {selected.size}</span>
@@ -185,7 +177,6 @@ export default function PricingPage() {
         </div>
       )}
 
-      {/* Таблица */}
       <div className="card-base overflow-hidden">
         <div className="table-scroll">
           <table className="w-full">
@@ -208,6 +199,7 @@ export default function PricingPage() {
               {list.map(({ s, c, idx, key }) => {
                 const open = expanded === key;
                 const dlist = days(c.deliverySchedule);
+                const whs = whList(s);
                 return (
                   <Fragment key={key}>
                     <tr onClick={() => (open ? closeRow() : openRow(key, c))}
@@ -227,7 +219,13 @@ export default function PricingPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="table-cell text-xs">{c.deliveryTime || '—'}</td>
+                      {/* ТЗ v1.24.5: ТК перед сроком поставки */}
+                      <td className="table-cell text-xs">
+                        <span className="inline-flex items-center gap-1.5 flex-wrap">
+                          {tkOn(c) && <span className="w-6 h-6 text-[9px] font-bold flex items-center justify-center rounded-md bg-yellow-300 border border-yellow-400 text-gray-900" title="ТК — доставка по согласованию">ТК</span>}
+                          {c.deliveryTime || '—'}
+                        </span>
+                      </td>
                       <td className="table-cell text-xs max-w-[240px] truncate" title={c.orderUnloadSchedule}>{c.orderUnloadSchedule || '—'}</td>
                       <td className="table-cell"><span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${chipCls(c.status)}`}>{c.status || 'Новое'}</span></td>
                     </tr>
@@ -236,7 +234,6 @@ export default function PricingPage() {
                         <td colSpan={8} className="px-4 py-4">
                           {!editMode ? (
                             <>
-                              {/* Вид — зеркало карточки поставщика (ТЗ v1.24.4) */}
                               <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
                                 <p className="text-sm font-bold text-gray-900">Город: {c.city || '—'}</p>
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -270,7 +267,7 @@ export default function PricingPage() {
                                   <div>
                                     <p className="text-[10px] uppercase tracking-wide text-gray-400">Срок поставки до выбранного города</p>
                                     <p className="text-gray-800 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                      {String(c.orderUnloadSchedule || '').includes(TK_TEXT) && <span className="w-7 h-7 text-[10px] font-bold flex items-center justify-center rounded-lg bg-yellow-300 border border-yellow-400 text-gray-900">ТК</span>}
+                                      {tkOn(c) && <span className="w-7 h-7 text-[10px] font-bold flex items-center justify-center rounded-lg bg-yellow-300 border border-yellow-400 text-gray-900">ТК</span>}
                                       {c.deliveryTime || '—'}
                                     </p>
                                   </div>
@@ -282,82 +279,78 @@ export default function PricingPage() {
                               </div>
                             </>
                           ) : (
-                            /* Редактирование — те же поля, что в карточке */
+                            /* ТЗ v1.24.5: редактор — как в анкете (2 колонки, тот же порядок строк) */
                             <>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                                <div className="space-y-2">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-xs">
+                                <div className="space-y-3">
                                   <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Город показов</label>
-                                    <input className={inCls + ' w-full mt-1'} value={draft?.city || ''} onChange={e => setDraft(d => d && { ...d, city: e.target.value })} />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Склад отгрузки</label>
-                                    <input className={inCls + ' w-full mt-1'} value={draft?.warehouseName || ''} onChange={e => setDraft(d => d && { ...d, warehouseName: e.target.value })} />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Статус</label>
-                                    <select className={inCls + ' w-full mt-1'} value={draft?.status || 'Новое'} onChange={e => setDraft(d => d && { ...d, status: e.target.value })}>
-                                      {STATUS_FILTERS.filter(x => x !== 'Все').map(sx => <option key={sx} value={sx}>{sx}</option>)}
+                                    <label className={lblCls}>Город показов</label>
+                                    <select className={inCls + ' w-full'} value={draft?.city || ''} onChange={e => setDraft(d => d && { ...d, city: e.target.value })}>
+                                      <option value="">—</option>
+                                      {Array.from(new Set([...(cities || []), ...(draft?.city ? [draft.city] : [])])).map(ct => <option key={ct} value={ct}>{ct}</option>)}
                                     </select>
                                   </div>
-                                </div>
-                                <div className="space-y-2">
                                   <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Срок поставки</label>
-                                    <div className="flex gap-1.5 mt-1">
-                                      <button type="button" onClick={() => setDraft(d => d && { ...d, orderUnloadSchedule: String(d.orderUnloadSchedule || '').includes(TK_TEXT) ? String(d.orderUnloadSchedule || '').replace(TK_TEXT, '').trim() : [String(d.orderUnloadSchedule || '').trim(), TK_TEXT].filter(Boolean).join(' ') })}
-                                        className={`px-2 py-1.5 rounded-lg border font-bold ${String(draft?.orderUnloadSchedule || '').includes(TK_TEXT) ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500'}`}>ТК</button>
-                                      {['Сегодня', 'Завтра'].map(v => (
-                                        <button key={v} type="button" onClick={() => setDraft(d => d && { ...d, deliveryTime: v })}
-                                          className={`px-2 py-1.5 rounded-lg border ${(draft?.deliveryTime || '').toLowerCase() === v.toLowerCase() ? 'bg-brand-black text-white' : 'bg-white border-gray-200 text-gray-500'}`}>{v}</button>
-                                      ))}
-                                      <input className={inCls + ' flex-1'} value={draft?.deliveryTime || ''} onChange={e => setDraft(d => d && { ...d, deliveryTime: e.target.value })} placeholder="2-3 дня" />
-                                    </div>
+                                    <label className={lblCls}>Представитель</label>
+                                    <input className={inCls + ' w-full'} value={draft?.representative || ''} onChange={e => setDraft(d => d && { ...d, representative: e.target.value })} />
                                   </div>
                                   <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</label>
-                                    <div className="flex gap-1 mt-1">
+                                    <label className={lblCls}>Email</label>
+                                    <input className={inCls + ' w-full'} value={draft?.email || ''} onChange={e => setDraft(d => d && { ...d, email: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <label className={lblCls}>Условия доставки</label>
+                                    <input className={inCls + ' w-full'} value={draft?.orderUnloadSchedule || ''} onChange={e => setDraft(d => d && { ...d, orderUnloadSchedule: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <label className={lblCls}>Срок поставки до выбранного города</label>
+                                    <div className="flex gap-1.5 mb-2">
+                                      <button type="button" onClick={() => setDraft(d => d && { ...d, orderUnloadSchedule: tkOn(d) ? String(d.orderUnloadSchedule || '').replace(TK_TEXT, '').trim() : [String(d.orderUnloadSchedule || '').trim(), TK_TEXT].filter(Boolean).join(' ') })}
+                                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold ${tkOn(draft || undefined) ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400'}`}>ТК</button>
+                                      {['Сегодня', 'Завтра'].map(v => (
+                                        <button key={v} type="button" onClick={() => setDraft(d => d && { ...d, deliveryTime: v })}
+                                          className={`px-2.5 py-1.5 rounded-full border text-[11px] ${(draft?.deliveryTime || '').toLowerCase() === v.toLowerCase() ? 'bg-brand-black text-white' : 'bg-white border-gray-200 text-gray-500'}`}>{v}</button>
+                                      ))}
+                                    </div>
+                                    <input className={inCls + ' w-full'} value={draft?.deliveryTime || ''} onChange={e => setDraft(d => d && { ...d, deliveryTime: e.target.value })} placeholder="2-3 дня" />
+                                  </div>
+                                </div>
+                                <div className="space-y-3">
+                                  <div>
+                                    <label className={lblCls}>Склад поставщика</label>
+                                    <select className={inCls + ' w-full'} value={draft?.warehouseName || ''} onChange={e => setDraft(d => d && { ...d, warehouseName: e.target.value })}>
+                                      <option value="">—</option>
+                                      {Array.from(new Set([...whs.map(w => w.city || ''), ...(draft?.warehouseName ? [draft.warehouseName] : [])])).filter(Boolean).map(wn => <option key={wn} value={wn}>{wn}</option>)}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className={lblCls}>Контакты</label>
+                                    <input className={inCls + ' w-full'} value={draft?.contacts || ''} onChange={e => setDraft(d => d && { ...d, contacts: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <label className={lblCls}>График доставки</label>
+                                    <div className="flex gap-1 pt-1">
                                       {DAYS.map(d => {
                                         const cur = days(draft?.deliverySchedule);
                                         const on = cur.includes(d);
                                         return (
                                           <button key={d} type="button"
                                             onClick={() => setDraft(dd => dd && { ...dd, deliverySchedule: on ? cur.filter(x => x !== d).join(', ') : [...cur, d].join(', ') })}
-                                            className={`w-8 h-8 rounded-lg border text-[11px] ${on ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500'}`}>{d}</button>
+                                            className={`w-9 h-9 rounded-lg border text-[11px] font-medium ${on ? 'bg-red-50 border-red-400 text-red-700' : 'bg-white border-gray-200 text-gray-500'}`}>{d}</button>
                                         );
                                       })}
                                     </div>
                                   </div>
-                                </div>
-                                <div className="space-y-2">
                                   <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Условия доставки</label>
-                                    <input className={inCls + ' w-full mt-1'} value={draft?.orderUnloadSchedule || ''} onChange={e => setDraft(d => d && { ...d, orderUnloadSchedule: e.target.value })} />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Возврат</label>
-                                    <input className={inCls + ' w-full mt-1'} list="return-presets" value={draft?.returnConditions || ''} onChange={e => setDraft(d => d && { ...d, returnConditions: e.target.value })} />
+                                    <label className={lblCls}>Условия возврата товара</label>
+                                    <input className={inCls + ' w-full'} list="return-presets" value={draft?.returnConditions || ''} onChange={e => setDraft(d => d && { ...d, returnConditions: e.target.value })} />
                                     <datalist id="return-presets">{RETURN_PRESETS.map(r => <option key={r} value={r} />)}</datalist>
                                   </div>
                                 </div>
-                                <div className="space-y-2">
-                                  <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Представитель</label>
-                                    <input className={inCls + ' w-full mt-1'} value={draft?.representative || ''} onChange={e => setDraft(d => d && { ...d, representative: e.target.value })} />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Контакты</label>
-                                    <input className={inCls + ' w-full mt-1'} value={draft?.contacts || ''} onChange={e => setDraft(d => d && { ...d, contacts: e.target.value })} />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Email</label>
-                                    <input className={inCls + ' w-full mt-1'} value={draft?.email || ''} onChange={e => setDraft(d => d && { ...d, email: e.target.value })} />
-                                  </div>
-                                </div>
                               </div>
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <button onClick={() => saveCond(s.id, idx)} className="btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1"><Save size={13} /> Сохранить</button>
-                                <button onClick={() => setEditMode(false)} className="btn-secondary text-xs py-1.5 px-3">Отмена</button>
+                              <div className="mt-4 flex justify-end gap-2">
+                                <button onClick={() => setEditMode(false)} className="btn-secondary text-xs py-2 px-4">Отмена</button>
+                                <button onClick={() => saveCond(s.id, idx)} className="bg-brand-black hover:opacity-90 text-white text-xs font-semibold rounded-xl px-4 py-2 inline-flex items-center gap-1.5 transition-opacity"><Save size={14} /> Сохранить</button>
                               </div>
                             </>
                           )}
