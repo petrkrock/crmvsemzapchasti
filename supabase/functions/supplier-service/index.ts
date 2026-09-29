@@ -220,9 +220,19 @@ async function handlePost(req: Request) {
   if (body.warehouses !== undefined) {
     const wh = validateWarehouses(body.warehouses, supplier.warehouse_locations || []);
 
-    // ТЗ v1.25.7: лимит мультисклада — только на сервере (флаг из базы = зеркало CRM)
-    if (!supplier.multiWarehouse && !supplier.multi_warehouse && wh.length > 1) {
-      return json({ error: 'Мультисклад не подключён. Для добавления второго склада обратитесь в поддержку.' }, 403);
+    // ТЗ v1.25.8: лимит мультисклада — читаем флаг из базы напрямую (колонка может быть
+    // camelCase multiWarehouse или lowercase multiwarehouse — пробуем обе, какая есть).
+    {
+      let mk = false;
+      const fr = await client.from('suppliers').select('multiWarehouse').eq('id', supplier.id).maybeSingle();
+      if (!fr.error && fr.data) mk = !!fr.data.multiWarehouse;
+      else {
+        const fr2 = await client.from('suppliers').select('multiwarehouse').eq('id', supplier.id).maybeSingle();
+        if (!fr2.error && fr2.data) mk = !!fr2.data.multiwarehouse;
+      }
+      if (!mk && wh.length > 1) {
+        return json({ error: 'Мультисклад не подключён. Для добавления второго склада обратитесь в поддержку.' }, 403);
+      }
     }
     if (typeof wh === 'string') return json({ error: wh }, 400);
     patch.warehouse_locations = wh;

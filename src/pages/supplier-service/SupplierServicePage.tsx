@@ -320,7 +320,7 @@ export default function SupplierServicePage() {
             <div className="flex flex-col gap-4">
               <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 order-2">
                 {priceHint && (
-                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
+                  <div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
                     <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
                     <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
                     <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие в проценку (DBS).</p>
@@ -328,12 +328,12 @@ export default function SupplierServicePage() {
                     <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
                   </div>
                 )}
-                <div className="grid grid-cols-[190px_2fr_180px_44px] gap-2">
-                  <input className={fld} placeholder="Город, название склада *"
+                <div className="grid grid-cols-[210px_minmax(280px,1fr)_150px_44px] gap-2">
+                  <input className={fld} placeholder="Город или название склад *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
-                  <input className={fld} placeholder="Адрес склада *"
+                  <input className={fld} placeholder="Адрес склада, начиная с города *"
                     value={whAddress} onChange={e => setWhAddress(e.target.value)} />
-                  <input className={fld} placeholder="Примерное кол-во SKU" inputMode="numeric" maxLength={6}
+                  <input className={fld} placeholder="Примерно SKU *" inputMode="numeric" maxLength={6}
                     value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, '').slice(0, 6))} />
                   <button onClick={addWarehouse} disabled={saving} title="Добавить склад"
                     className="bg-red-600 hover:bg-red-700 text-white rounded-xl w-11 h-11 flex items-center justify-center disabled:opacity-60">
@@ -342,7 +342,7 @@ export default function SupplierServicePage() {
                 </div>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 order-1">
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-3 sm:p-4 order-1">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h2 className="text-base font-semibold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
                 <div className="flex items-center gap-5 flex-wrap text-sm">
@@ -380,7 +380,7 @@ export default function SupplierServicePage() {
                 </button>
               </div>
               {whHint && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
+                <div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
                   <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
                   <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
                 </div>
@@ -427,7 +427,7 @@ export default function SupplierServicePage() {
                 </div>
               </div>
               {cityHint && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
+                <div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
                   Настраивайте склад во всех городах, даже если у вас туда пока нет доставки. При заполнении условий поиска (проценки) обязательно выбирайте пункт «Условия доставки ТК». Клиенты увидят, что постоянной доставки нет, но привыкнут к вашему складу и запомнят Вашу компанию.
                 </div>
               )}
@@ -679,7 +679,7 @@ export default function SupplierServicePage() {
                   </div>
                 </div>
                 {statusHint && (
-                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
+                  <div className="fixed top-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)]">
                     <p><b className="text-red-700">Новое</b> — Условие создано, но ещё не опубликовано на платформе.</p>
                     <p><b className="text-green-700">Загружено</b> — Склад и его условия поставки доступны в проценке на платформе.</p>
                     <p><b className="text-amber-700">Есть изменения</b> — Вы редактировали одно из условий, оно ждёт очереди на загрузку в платформу.</p>
