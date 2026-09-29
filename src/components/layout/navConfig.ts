@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Truck, ShoppingCart, CheckSquare,
-  BarChart2, TrendingUp, HeadphonesIcon, Settings, Database, Video, BookOpen, Server } from 'lucide-react';
+  BarChart2, TrendingUp, HeadphonesIcon, Settings, Database, Video, BookOpen, Server, Percent } from 'lucide-react';
 import { canAccess, isAdmin } from '@/lib/auth';
 
 export interface NavItem {
