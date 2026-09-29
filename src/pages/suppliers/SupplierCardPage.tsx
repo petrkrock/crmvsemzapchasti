@@ -809,7 +809,22 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                         </div>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {SS_FIELDS.filter(f => f.key !== 'city').map(f => <div key={f.key}><p className="text-xs text-gray-500">{f.label}</p><p className="text-xs font-medium">{(cond as unknown as Record<string, string | undefined>)[f.key as string] || '—'}</p></div>)}
+                        {SS_FIELDS.filter(f => f.key !== 'city').map(f => (
+                          <div key={f.key}>
+                            <p className="text-xs text-gray-500">{f.label}</p>
+                            {f.key === 'deliveryTime' ? (
+                              /* ТЗ v1.24.6: ТК в просмотре, как в ЛК/Проценке */
+                              <p className="text-xs font-medium flex items-center gap-1.5 flex-wrap">
+                                {String((cond as { orderUnloadSchedule?: string }).orderUnloadSchedule || '').includes('Условия доставки по согласованию!') && (
+                                  <span className="w-6 h-6 text-[9px] font-bold flex items-center justify-center rounded-md bg-yellow-300 border border-yellow-400 text-gray-900" title="ТК — доставка по согласованию">ТК</span>
+                                )}
+                                {(cond as { deliveryTime?: string }).deliveryTime || '—'}
+                              </p>
+                            ) : (
+                              <p className="text-xs font-medium">{(cond as unknown as Record<string, string | undefined>)[f.key as string] || '—'}</p>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </>
                   )}

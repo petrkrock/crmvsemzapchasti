@@ -12,7 +12,7 @@ type Cond = {
   id?: string; city?: string; warehouseName?: string;
   deliveryTime?: string; deliverySchedule?: string; orderUnloadSchedule?: string;
   returnConditions?: string; representative?: string; contacts?: string; email?: string;
-  status?: string;
+  status?: string; createdAt?: string; updatedAt?: string; // ТЗ v1.24.6
 };
 type SupplierRow = ReturnType<typeof getStore>['suppliers'][number];
 type WhLoc = { city?: string; verified?: boolean };
@@ -30,6 +30,7 @@ export default function PricingPage() {
   const [fResp, setFResp] = useState('');
   const [fStatus, setFStatus] = useState<string>('Все');
   const [fTk, setFTk] = useState<'off' | 'with' | 'without'>('off');
+  const [fService, setFService] = useState<'Все' | 'DBS' | 'FBS' | 'MEDIA'>('Все'); // ТЗ v1.24.6
   const [expanded, setExpanded] = useState<string | null>(null);
   const [draft, setDraft] = useState<Cond | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -51,6 +52,7 @@ export default function PricingPage() {
     const hasTk = String(c.orderUnloadSchedule || '').includes(TK_TEXT);
     if (fTk === 'with' && !hasTk) return false;
     if (fTk === 'without' && hasTk) return false;
+    if (fService !== 'Все' && !(((s as unknown as { services?: string[] }).services) || []).includes(fService)) return false;
     if (q) {
       const hay = `${s.tradeName} ${c.city} ${c.warehouseName} ${c.deliveryTime} ${c.orderUnloadSchedule} ${c.representative}`.toLowerCase();
       if (!hay.includes(q.trim().toLowerCase())) return false;
@@ -104,6 +106,16 @@ export default function PricingPage() {
   const whList = (s: SupplierRow): WhLoc[] => ((s as unknown as { warehouse_locations?: WhLoc[] }).warehouse_locations) || [];
   const whVerified = (s: SupplierRow, name?: string) => !!name && whList(s).some(w => (w.city || '') === name && !!w.verified);
 
+  // ТЗ v1.24.6: сортировка по умолчанию — чем новее, тем выше
+  const dateOf = (c: Cond): number => { const t = c.updatedAt || c.createdAt || ''; return t ? new Date(t).getTime() : 0; };
+  const dateStr = (c: Cond): string => {
+    const t = dateOf(c); if (!t) return '';
+    const d = new Date(t);
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  const sortedList = [...list].sort((a, b) => dateOf(b.c) - dateOf(a.c));
+
   const toggleSelect = (key: string) => setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
   const allSel = list.length > 0 && list.every(r => selected.has(r.key));
   const toggleAll = () => setSelected(allSel ? new Set() : new Set(list.map(r => r.key)));
@@ -132,6 +144,32 @@ export default function PricingPage() {
           <button onClick={() => setTab('archived')} className={`btn-secondary text-xs py-1.5 px-3 ${tab === 'archived' ? 'bg-gray-200' : ''}`}>Архив</button>
         </div>
       </div>
+
+      {/* ТЗ v1.24.6: сводка по сервису проценки */}
+      {(() => {
+        const all = rows;
+        const cnt = (st: string) => all.filter(r => (r.c.status || 'Новое') === st).length;
+        const withTk = all.filter(r => tkOn(r.c)).length;
+        const stat = (label: string, value: number) => (
+          <div key={label} className="bg-white border border-gray-200 rounded-xl p-4 min-w-[190px] flex-1">
+            <p className="text-xs text-gray-500">{label}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+          </div>
+        );
+        return (
+          <div className="flex flex-wrap gap-3">
+            {stat('Условий загружено', cnt('Загружено'))}
+            {stat('Новых', cnt('Новое'))}
+            {stat('Есть изменения', cnt('Есть изменения'))}
+            {stat('На удаление', cnt('Удаление'))} // ТЗ v1.24.7
+            <div className="bg-white border border-gray-200 rounded-xl p-4 min-w-[260px] flex-[2]">
+              <p className="text-xs text-gray-500 mb-2">Условия доставки</p>
+              <div className="flex items-center justify-between text-sm"><span>Есть доставка</span><b className="text-base">{all.length - withTk}</b></div>
+              <div className="flex items-center justify-between text-sm mt-1.5"><span>Нет доставки (ТК)</span><b className="text-base">{withTk}</b></div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ТЗ v1.24.5: поиск и все фильтры — в ОДНУ строку */}
       <div className="card-base p-3 space-y-2">
@@ -165,6 +203,10 @@ export default function PricingPage() {
           <button onClick={() => setFTk(v => v === 'off' ? 'with' : v === 'with' ? 'without' : 'off')}
             className={`text-xs px-3 py-1.5 rounded-full border font-bold transition-colors ${fTk !== 'off' ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500 hover:border-yellow-400'}`}
             title="Фильтр ТК: нажали — только с ТК, ещё раз — только без ТК, ещё раз — выкл">ТК{fTk === 'with' ? ': с' : fTk === 'without' ? ': без' : ''}</button>
+          {(['Все', 'DBS', 'FBS', 'MEDIA'] as const).map(sv => (
+            <button key={sv} onClick={() => setFService(sv)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${fService === sv ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>{sv}</button>
+          ))}
         </div>
       </div>
 
@@ -184,6 +226,7 @@ export default function PricingPage() {
               <tr className="border-b border-brand-gray-mid">
                 <th className="table-header w-8"><input type="checkbox" checked={allSel} onChange={toggleAll} /></th>
                 <th className="table-header">Поставщик</th>
+                <th className="table-header">Сервисы продаж</th>
                 <th className="table-header">Склад поставщика</th>
                 <th className="table-header">Город</th>
                 <th className="table-header">График доставки</th>
@@ -194,9 +237,9 @@ export default function PricingPage() {
             </thead>
             <tbody>
               {list.length === 0 && (
-                <tr><td className="table-cell text-gray-400 text-center py-8" colSpan={8}>Условия проценки не найдены{tab === 'archived' ? ' в архиве' : ''}.</td></tr>
+                <tr><td className="table-cell text-gray-400 text-center py-8" colSpan={9}>Условия проценки не найдены{tab === 'archived' ? ' в архиве' : ''}.</td></tr>
               )}
-              {list.map(({ s, c, idx, key }) => {
+              {sortedList.map(({ s, c, idx, key }) => {
                 const open = expanded === key;
                 const dlist = days(c.deliverySchedule);
                 const whs = whList(s);
@@ -210,6 +253,7 @@ export default function PricingPage() {
                       <td className="table-cell">
                         <Link to={`/suppliers/${s.id}`} onClick={e => e.stopPropagation()} className="text-red-700 hover:underline font-medium">{s.tradeName}</Link>
                       </td>
+                      <td className="table-cell text-xs text-gray-500">{((s as unknown as { services?: string[] }).services || []).join(', ') || '—'}</td>
                       <td className="table-cell">{c.warehouseName || '—'}</td>
                       <td className="table-cell">{c.city || '—'}</td>
                       <td className="table-cell">
@@ -227,11 +271,14 @@ export default function PricingPage() {
                         </span>
                       </td>
                       <td className="table-cell text-xs max-w-[240px] truncate" title={c.orderUnloadSchedule}>{c.orderUnloadSchedule || '—'}</td>
-                      <td className="table-cell"><span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${chipCls(c.status)}`}>{c.status || 'Новое'}</span></td>
+                      <td className="table-cell">
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${chipCls(c.status)}`}>{c.status || 'Новое'}</span>
+                        {dateStr(c) && <p className="text-[10px] text-gray-400 mt-1">{dateStr(c)}</p>}
+                      </td>
                     </tr>
                     {open && (
                       <tr className="border-b border-brand-gray-mid bg-gray-50">
-                        <td colSpan={8} className="px-4 py-4">
+                        <td colSpan={9} className="px-4 py-4">
                           {!editMode ? (
                             <>
                               <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
