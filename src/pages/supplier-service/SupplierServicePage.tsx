@@ -170,10 +170,7 @@ export default function SupplierServicePage() {
     if (!whCity.trim()) { setNotice('Укажите город склада'); return; }
     if (!whAddress.trim()) { setNotice('Укажите адрес склада'); return; } // ТЗ v1.25.0: адрес обязателен
     if (!whSku.trim()) { setNotice('Укажите примерное кол-во SKU'); return; } // ТЗ v1.23.19: обе ячейки обязательны
-    if (!editingWhId && (data?.warehouses || []).length >= 1 && !data?.multiWarehouse) { // ТЗ v1.23.32: при редактировании лимит не применяем
-      setNotice('Для включения функции мультисклад обратитесь в поддержку');
-      return;
-    }
+    // ТЗ v1.25.7: лимит мультисклада решает СЕРВЕР (функция читает флаг из базы = зеркало CRM)
     // ТЗ v1.23.32: карандаш — обновление существующего склада, иначе добавление
     const err = editingWhId
       ? await post({ warehouses: (data?.warehouses || []).map(w => w.id === editingWhId ? { ...w, city: whCity.trim(), skuCount: Number(whSku) || 0, address: whAddress.trim() } : w) })
@@ -201,6 +198,10 @@ export default function SupplierServicePage() {
     if (!condForm.contacts?.trim()) missingKeys.push('contacts');
     if (!condForm.email?.trim()) missingKeys.push('email');
     if (missingKeys.length) { setNotice('Заполните обязательные поля: ' + missingKeys.map(k => NAMES[k]).join(', ')); setMissing(missingKeys); return false; }
+    // ТЗ v1.25.7: дубль-проверка по паре склад+город
+    if (editingIdx === null && (data?.serviceSearch || []).some(x => (x.city || '').toLowerCase() === condForm.city.trim().toLowerCase() && (x.warehouseName || '') === condForm.warehouseName)) {
+      setNotice('Условие для этого склада и города уже есть — откройте его в таблице'); return false;
+    }
     // ТЗ v1.23.19: id обязателен у каждого условия — иначе в карточке CRM правка одного меняла все
     const cond = { ...condForm, id: condForm.id || crypto.randomUUID() };
     const list = [...(data?.serviceSearch || [])].map(c => c.id ? c : { ...c, id: crypto.randomUUID() });
@@ -215,10 +216,11 @@ export default function SupplierServicePage() {
     const cities = data?.availableCities || [];
     if (!cities.length) { setNotice('Список доступных городов не настроен — уточните у менеджера'); return; }
     if ((data?.warehouses || []).length === 0) { setNotice('Сначала добавьте хотя бы один склад'); return; }
-    const existing = new Set((data?.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
+    // ТЗ v1.25.7: «во все города» = города без условия ДЛЯ ТЕКУЩЕГО склада
+    const existing = new Set((data?.serviceSearch || []).filter(c => (c.warehouseName || '') === condForm.warehouseName).map(c => (c.city || '').toLowerCase()));
     const template = { ...condForm, city: '' };
     const additions = cities.filter(c => !existing.has(c.toLowerCase())).map(c => ({ ...template, id: crypto.randomUUID(), city: c })); // ТЗ v1.23.19
-    if (!additions.length) { setNotice('Все доступные города уже добавлены'); return; }
+    if (!additions.length) { setNotice('Для этого склада все доступные города уже добавлены'); return; }
     const normalized = [...(data?.serviceSearch || [])].map(c => c.id ? c : { ...c, id: crypto.randomUUID() });
     const err = await post({ serviceSearch: [...normalized, ...additions] });
     if (!err) setCondForm(EMPTY_COND); else setNotice(err);
@@ -315,18 +317,8 @@ export default function SupplierServicePage() {
             </div>
 
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
-            <div className="flex flex-col gap-4"> // ТЗ v1.25.4: блоки друг за другом на всю ширину
+            <div className="flex flex-col gap-4">
               <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 order-2">
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-base font-semibold text-gray-900">Добавить склад</h2>
-                  <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
-                    className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white shadow-md shadow-red-200 hover:shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center transition-all">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M8.6 9.2a3.4 3.4 0 1 1 5 2.9c-1 .7-1.6 1.2-1.6 2.4" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
-                      <circle cx="12" cy="18" r="1.4" fill="currentColor" />
-                    </svg>
-                  </button>
-                </div>
                 {priceHint && (
                   <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
                     <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
@@ -336,7 +328,7 @@ export default function SupplierServicePage() {
                     <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
                   </div>
                 )}
-                <div className="grid grid-cols-[170px_2fr_110px_44px] gap-2">
+                <div className="grid grid-cols-[190px_2fr_180px_44px] gap-2">
                   <input className={fld} placeholder="Город, название склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
                   <input className={fld} placeholder="Адрес склада *"
@@ -351,33 +343,30 @@ export default function SupplierServicePage() {
               </div>
 
               <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 order-1">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h2 className="text-base font-semibold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
-                <div className="mt-3 space-y-2 text-sm">
+                <div className="flex items-center gap-5 flex-wrap text-sm">
                   {(() => {
                     const loaded = (data.serviceSearch || []).filter(c => (c.status || 'Новое') === 'Загружено').length;
                     const chip = (v: number, cls: string) => <span className={`min-w-[28px] text-center text-xs font-bold rounded-md px-2 py-0.5 ${cls}`}>{v}</span>;
                     return (
                       <>
-                        <div className="flex items-center justify-between max-w-[200px]">
-                          <span className="text-gray-500">Всего городов:</span>
-                          {chip((data.availableCities || []).length, 'bg-blue-50 text-blue-700')}
-                        </div>
-                        <div className="flex items-center justify-between max-w-[200px]">
-                          <span className="text-gray-500" title="Условия сервиса проценки со статусом «Загружено»">Охвачено:</span>
-                          {chip(loaded, 'bg-green-50 text-green-700')}
-                        </div>
-                        <div className="flex items-center justify-between max-w-[200px]">
-                          <span className="text-gray-500">Мультисклад:</span>
+                        <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span>{chip((data.availableCities || []).length, 'bg-blue-50 text-blue-700')}</span>
+                        <span className="flex items-center gap-2" title="Условия сервиса проценки со статусом «Загружено»"><span className="text-gray-500">Охвачено:</span>{chip(loaded, 'bg-green-50 text-green-700')}</span>
+                        <span className="flex items-center gap-2"><span className="text-gray-500">Мультисклад:</span>
                           {data.multiWarehouse
                             ? <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-green-50 text-green-700">доступен</span>
                             : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
                                 className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                                 title="Нажмите для подсказки">выкл ⓘ</button>}
-                        </div>
+                        </span>
+                        <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
+                          className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
                       </>
                     );
                   })()}
                 </div>
+              </div>
               </div>
             </div>
 
@@ -405,7 +394,7 @@ export default function SupplierServicePage() {
                     const borderCls = editingWhId === w.id ? 'border-red-400 ring-2 ring-red-200'
                       : st === 'Заморожен' ? 'border-gray-300 bg-gray-100 opacity-60'
                       : st === 'Проверен' ? (selectedWh === w.city ? 'border-green-500 bg-green-50 ring-2 ring-green-300' : 'border-green-400 bg-green-50 hover:border-green-600')
-                      : (selectedWh === w.city ? 'border-gray-300 bg-gray-50' : 'border-transparent bg-white hover:border-gray-300');
+                      : (selectedWh === w.city ? 'border-blue-300 bg-blue-50' : 'border-blue-200 bg-white hover:border-blue-400');
                     return (
                   <button key={w.id} type="button" onClick={() => setSelectedWh(prev => prev === w.city ? '' : w.city)}
                     className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${borderCls}`}>
@@ -452,7 +441,8 @@ export default function SupplierServicePage() {
                 return (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {filtered.map(c => {
-                      const idx = list.findIndex(x => (x.city || '').toLowerCase() === c.toLowerCase());
+                      // ТЗ v1.25.7: уникальность ПАРОЙ склад+город — один склад покрывает все города
+                      const idx = list.findIndex(x => (x.city || '').toLowerCase() === c.toLowerCase() && (x.warehouseName || '') === selectedWh);
                       const active = idx >= 0;
                       return (
                         <button key={c} type="button"
@@ -462,7 +452,20 @@ export default function SupplierServicePage() {
                               return;
                             }
                             setNotice('');
-                            setPendingCity(prev => prev === c ? null : c); // ТЗ v1.23.23: склад+город — фильтры таблицы (покрытый тоже)
+                            if (active && idx >= 0) {
+                              // ТЗ v1.25.7: покрытый город открывает СВОЁ условие (пара склад+город) на редактирование
+                              const cid = (list[idx].c as { id?: string }).id;
+                              const real = (data?.serviceSearch || []).findIndex(x => (x as { id?: string }).id === cid);
+                              if (real >= 0) {
+                                setEditingIdx(real);
+                                setCondForm({ ...(data!.serviceSearch![real] as object) } as Cond);
+                                setTkOn(String((data!.serviceSearch![real] as { orderUnloadSchedule?: string }).orderUnloadSchedule || '').includes('Условия доставки по согласованию!'));
+                                setEditorOpen(true);
+                              }
+                              setPendingCity(null);
+                              return;
+                            }
+                            setPendingCity(prev => prev === c ? null : c);
                           }}
                           className={`text-sm px-4 py-2 rounded-xl border transition-colors ${active ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-red-300'} ${pendingCity === c ? 'ring-2 ring-red-300' : ''}`}>
                           {c}
@@ -472,7 +475,7 @@ export default function SupplierServicePage() {
                   </div>
                 );
               })()}
-              {pendingCity && !!selectedWh && !(data.serviceSearch || []).some(x => (x.city || '').toLowerCase() === pendingCity.toLowerCase()) && (
+              {pendingCity && !!selectedWh && !(data.serviceSearch || []).some(x => (x.city || '').toLowerCase() === pendingCity.toLowerCase() && (x.warehouseName || '') === selectedWh) && ( // ТЗ v1.25.7: пара склад+город
                 <button type="button"
                   onClick={() => {
                     setCondForm({ ...EMPTY_COND, city: pendingCity, warehouseName: selectedWh });
@@ -499,8 +502,8 @@ export default function SupplierServicePage() {
             {/* ШАГ 3: ОКНО «УСЛОВИЯ СЕРВИСА ПОИСКА» — открывается после выбора города */}
             {editorOpen && (data.warehouses || []).length > 0 && (
               /* ТЗ v1.25.5: редактор — модальное окно: видно целиком, доскролл не нужен */
-              <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-3 sm:p-6" onClick={() => { setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }}>
-                <div className="w-full max-w-[1080px] max-h-[92vh] overflow-y-auto rounded-2xl" onClick={e => e.stopPropagation()}>
+              <div className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-3 sm:p-6" onClick={() => { setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }}>
+                <div className="w-full max-w-[1080px] max-h-[92vh] overflow-y-auto rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="bg-gray-50 border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-base font-bold text-gray-900">{editingIdx !== null ? 'Условия сервиса проценки (редактирование)' : 'Условия сервиса проценки'}</h2>

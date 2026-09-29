@@ -219,6 +219,11 @@ async function handlePost(req: Request) {
   const patch: Record<string, unknown> = {};
   if (body.warehouses !== undefined) {
     const wh = validateWarehouses(body.warehouses, supplier.warehouse_locations || []);
+
+    // ТЗ v1.25.7: лимит мультисклада — только на сервере (флаг из базы = зеркало CRM)
+    if (!supplier.multiWarehouse && !supplier.multi_warehouse && wh.length > 1) {
+      return json({ error: 'Мультисклад не подключён. Для добавления второго склада обратитесь в поддержку.' }, 403);
+    }
     if (typeof wh === 'string') return json({ error: wh }, 400);
     patch.warehouse_locations = wh;
   }
