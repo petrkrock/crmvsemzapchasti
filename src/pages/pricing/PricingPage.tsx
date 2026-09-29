@@ -33,6 +33,7 @@ export default function PricingPage() {
   const [fTk, setFTk] = useState<'off' | 'with' | 'without'>('off'); // ТЗ v1.24.3: трёхступенчатый фильтр ТК
   const [expanded, setExpanded] = useState<string | null>(null);
   const [draft, setDraft] = useState<Cond | null>(null);
+  const [editMode, setEditMode] = useState(false); // ТЗ v1.24.4: вид (как в анкете) / редактирование
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const suppliers = store.suppliers.filter(s => (tab === 'archived' ? !!s.deletedAt : !s.deletedAt));
@@ -69,8 +70,21 @@ export default function PricingPage() {
   const selectCls = 'form-input text-xs py-1.5 w-auto';
   const inCls = 'form-input text-xs';
 
-  const openRow = (key: string, c: Cond) => { setExpanded(key); setDraft({ ...(c as object) } as Cond); };
-  const closeRow = () => { setExpanded(null); setDraft(null); };
+  const openRow = (key: string, c: Cond) => { setExpanded(key); setEditMode(false); setDraft({ ...(c as object) } as Cond); };
+  const closeRow = () => { setExpanded(null); setEditMode(false); setDraft(null); };
+  // ТЗ v1.24.4: смена статуса плашкой — сразу в store (зеркало карточки поставщика)
+  const setStatus = (supplierId: string, idx: number, status: string) => {
+    updateStore(st => ({
+      ...st,
+      suppliers: st.suppliers.map(s => s.id === supplierId
+        ? { ...s, serviceSearch: (s.serviceSearch || []).map((cc, i) => (i === idx ? { ...(cc as object), status } : cc)) }
+        : s),
+    }));
+  };
+  const whVerified = (s: (typeof store.suppliers)[number], name?: string): boolean => {
+    const list = ((s as unknown as { warehouse_locations?: Array<{ city?: string; verified?: boolean }> }).warehouse_locations) || [];
+    return !!name && list.some(w => (w.city || '') === name && !!w.verified);
+  };
 
   const saveCond = (supplierId: string, idx: number) => {
     if (!draft) return;
@@ -80,6 +94,7 @@ export default function PricingPage() {
         ? { ...s, serviceSearch: (s.serviceSearch || []).map((cc, i) => (i === idx ? { ...(cc as object), ...(draft as object) } : cc)) }
         : s),
     }));
+    setEditMode(false);
     closeRow();
   };
   const deleteCond = (supplierId: string, idx: number) => {
@@ -216,86 +231,136 @@ export default function PricingPage() {
                       <td className="table-cell text-xs max-w-[240px] truncate" title={c.orderUnloadSchedule}>{c.orderUnloadSchedule || '—'}</td>
                       <td className="table-cell"><span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${chipCls(c.status)}`}>{c.status || 'Новое'}</span></td>
                     </tr>
-                    {open && draft && (
+                    {open && (
                       <tr className="border-b border-brand-gray-mid bg-gray-50">
                         <td colSpan={8} className="px-4 py-4">
-                          {/* Зеркальный редактор условия (как в карточке поставщика) */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                            <div className="space-y-2">
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Город показов</label>
-                                <input className={inCls + ' w-full mt-1'} value={draft.city || ''} onChange={e => setDraft(d => d && { ...d, city: e.target.value })} />
-                              </div>
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Склад отгрузки</label>
-                                <input className={inCls + ' w-full mt-1'} value={draft.warehouseName || ''} onChange={e => setDraft(d => d && { ...d, warehouseName: e.target.value })} />
-                              </div>
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Статус</label>
-                                <select className={inCls + ' w-full mt-1'} value={draft.status || 'Новое'} onChange={e => setDraft(d => d && { ...d, status: e.target.value })}>
-                                  {STATUS_FILTERS.filter(x => x !== 'Все').map(sx => <option key={sx} value={sx}>{sx}</option>)}
-                                </select>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Срок поставки</label>
-                                <div className="flex gap-1.5 mt-1">
-                                  <button type="button" onClick={() => setDraft(d => d && { ...d, orderUnloadSchedule: String(d.orderUnloadSchedule || '').includes(TK_TEXT) ? String(d.orderUnloadSchedule || '').replace(TK_TEXT, '').trim() : [String(d.orderUnloadSchedule || '').trim(), TK_TEXT].filter(Boolean).join(' ') })}
-                                    className={`px-2 py-1.5 rounded-lg border font-bold ${String(draft.orderUnloadSchedule || '').includes(TK_TEXT) ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500'}`}>ТК</button>
-                                  {['Сегодня', 'Завтра'].map(v => (
-                                    <button key={v} type="button" onClick={() => setDraft(d => d && { ...d, deliveryTime: v })}
-                                      className={`px-2 py-1.5 rounded-lg border ${(draft.deliveryTime || '').toLowerCase() === v.toLowerCase() ? 'bg-brand-black text-white' : 'bg-white border-gray-200 text-gray-500'}`}>{v}</button>
+                          {!editMode ? (
+                            <>
+                              {/* Вид — зеркало карточки поставщика (ТЗ v1.24.4) */}
+                              <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+                                <p className="text-sm font-bold text-gray-900">Город: {c.city || '—'}</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${whVerified(s, c.warehouseName) ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                    Склад проверен: {whVerified(s, c.warehouseName) ? 'Да' : 'Нет'}
+                                  </span>
+                                  {STATUS_FILTERS.filter(x => x !== 'Все').map(sx => (
+                                    <button key={sx} type="button" onClick={e => { e.stopPropagation(); setStatus(s.id, idx, sx); }}
+                                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${(c.status || 'Новое') === sx
+                                        ? (sx === 'Загружено' ? 'bg-green-50 border-green-300 text-green-700 font-semibold'
+                                          : sx === 'Есть изменения' ? 'bg-amber-50 border-amber-300 text-amber-700 font-semibold'
+                                          : sx === 'Удаление' ? 'bg-gray-200 border-gray-300 text-gray-600 font-semibold'
+                                          : 'bg-blue-50 border-blue-300 text-blue-700 font-semibold')
+                                        : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'}`}>{sx}</button>
                                   ))}
-                                  <input className={inCls + ' flex-1'} value={draft.deliveryTime || ''} onChange={e => setDraft(d => d && { ...d, deliveryTime: e.target.value })} placeholder="2-3 дня" />
+                                  <button type="button" title="Редактировать" onClick={() => { setDraft({ ...(c as object) } as Cond); setEditMode(true); }}
+                                    className="w-7 h-7 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 flex items-center justify-center transition-colors"><Pencil size={13} /></button>
+                                  <button type="button" title="Удалить" onClick={() => deleteCond(s.id, idx)}
+                                    className="w-7 h-7 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 flex items-center justify-center transition-colors"><Trash2 size={13} /></button>
                                 </div>
                               </div>
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</label>
-                                <div className="flex gap-1 mt-1">
-                                  {DAYS.map(d => {
-                                    const cur = days(draft.deliverySchedule);
-                                    const on = cur.includes(d);
-                                    return (
-                                      <button key={d} type="button"
-                                        onClick={() => setDraft(dd => dd && { ...dd, deliverySchedule: on ? cur.filter(x => x !== d).join(', ') : [...cur, d].join(', ') })}
-                                        className={`w-8 h-8 rounded-lg border text-[11px] ${on ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500'}`}>{d}</button>
-                                    );
-                                  })}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-3 text-xs">
+                                <div className="space-y-3">
+                                  <div><p className="text-[10px] uppercase tracking-wide text-gray-400">Склад поставщика</p><p className="text-gray-800 mt-0.5">{c.warehouseName || '—'}</p></div>
+                                  <div><p className="text-[10px] uppercase tracking-wide text-gray-400">Email</p><p className="text-gray-800 mt-0.5">{c.email || '—'}</p></div>
+                                  <div><p className="text-[10px] uppercase tracking-wide text-gray-400">Условия возврата товара</p><p className="text-gray-800 mt-0.5">{c.returnConditions || '—'}</p></div>
+                                </div>
+                                <div className="space-y-3">
+                                  <div><p className="text-[10px] uppercase tracking-wide text-gray-400">Представитель</p><p className="text-gray-800 mt-0.5">{c.representative || '—'}</p></div>
+                                  <div><p className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</p><p className="text-gray-800 mt-0.5">{c.deliverySchedule || '—'}</p></div>
+                                  <div>
+                                    <p className="text-[10px] uppercase tracking-wide text-gray-400">Срок поставки до выбранного города</p>
+                                    <p className="text-gray-800 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                      {String(c.orderUnloadSchedule || '').includes(TK_TEXT) && <span className="w-7 h-7 text-[10px] font-bold flex items-center justify-center rounded-lg bg-yellow-300 border border-yellow-400 text-gray-900">ТК</span>}
+                                      {c.deliveryTime || '—'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="space-y-3">
+                                  <div><p className="text-[10px] uppercase tracking-wide text-gray-400">Контакты</p><p className="text-gray-800 mt-0.5">{c.contacts || '—'}</p></div>
+                                  <div><p className="text-[10px] uppercase tracking-wide text-gray-400">Условия доставки</p><p className="text-gray-800 mt-0.5">{c.orderUnloadSchedule || '—'}</p></div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Условия доставки</label>
-                                <input className={inCls + ' w-full mt-1'} value={draft.orderUnloadSchedule || ''} onChange={e => setDraft(d => d && { ...d, orderUnloadSchedule: e.target.value })} />
+                            </>
+                          ) : (
+                            /* Редактирование — те же поля, что в карточке */
+                            <>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                <div className="space-y-2">
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Город показов</label>
+                                    <input className={inCls + ' w-full mt-1'} value={draft?.city || ''} onChange={e => setDraft(d => d && { ...d, city: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Склад отгрузки</label>
+                                    <input className={inCls + ' w-full mt-1'} value={draft?.warehouseName || ''} onChange={e => setDraft(d => d && { ...d, warehouseName: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Статус</label>
+                                    <select className={inCls + ' w-full mt-1'} value={draft?.status || 'Новое'} onChange={e => setDraft(d => d && { ...d, status: e.target.value })}>
+                                      {STATUS_FILTERS.filter(x => x !== 'Все').map(sx => <option key={sx} value={sx}>{sx}</option>)}
+                                    </select>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Срок поставки</label>
+                                    <div className="flex gap-1.5 mt-1">
+                                      <button type="button" onClick={() => setDraft(d => d && { ...d, orderUnloadSchedule: String(d.orderUnloadSchedule || '').includes(TK_TEXT) ? String(d.orderUnloadSchedule || '').replace(TK_TEXT, '').trim() : [String(d.orderUnloadSchedule || '').trim(), TK_TEXT].filter(Boolean).join(' ') })}
+                                        className={`px-2 py-1.5 rounded-lg border font-bold ${String(draft?.orderUnloadSchedule || '').includes(TK_TEXT) ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-500'}`}>ТК</button>
+                                      {['Сегодня', 'Завтра'].map(v => (
+                                        <button key={v} type="button" onClick={() => setDraft(d => d && { ...d, deliveryTime: v })}
+                                          className={`px-2 py-1.5 rounded-lg border ${(draft?.deliveryTime || '').toLowerCase() === v.toLowerCase() ? 'bg-brand-black text-white' : 'bg-white border-gray-200 text-gray-500'}`}>{v}</button>
+                                      ))}
+                                      <input className={inCls + ' flex-1'} value={draft?.deliveryTime || ''} onChange={e => setDraft(d => d && { ...d, deliveryTime: e.target.value })} placeholder="2-3 дня" />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">График доставки</label>
+                                    <div className="flex gap-1 mt-1">
+                                      {DAYS.map(d => {
+                                        const cur = days(draft?.deliverySchedule);
+                                        const on = cur.includes(d);
+                                        return (
+                                          <button key={d} type="button"
+                                            onClick={() => setDraft(dd => dd && { ...dd, deliverySchedule: on ? cur.filter(x => x !== d).join(', ') : [...cur, d].join(', ') })}
+                                            className={`w-8 h-8 rounded-lg border text-[11px] ${on ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500'}`}>{d}</button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Условия доставки</label>
+                                    <input className={inCls + ' w-full mt-1'} value={draft?.orderUnloadSchedule || ''} onChange={e => setDraft(d => d && { ...d, orderUnloadSchedule: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Возврат</label>
+                                    <input className={inCls + ' w-full mt-1'} list="return-presets" value={draft?.returnConditions || ''} onChange={e => setDraft(d => d && { ...d, returnConditions: e.target.value })} />
+                                    <datalist id="return-presets">{RETURN_PRESETS.map(r => <option key={r} value={r} />)}</datalist>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Представитель</label>
+                                    <input className={inCls + ' w-full mt-1'} value={draft?.representative || ''} onChange={e => setDraft(d => d && { ...d, representative: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Контакты</label>
+                                    <input className={inCls + ' w-full mt-1'} value={draft?.contacts || ''} onChange={e => setDraft(d => d && { ...d, contacts: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide text-gray-400">Email</label>
+                                    <input className={inCls + ' w-full mt-1'} value={draft?.email || ''} onChange={e => setDraft(d => d && { ...d, email: e.target.value })} />
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Возврат</label>
-                                <input className={inCls + ' w-full mt-1'} list="return-presets" value={draft.returnConditions || ''} onChange={e => setDraft(d => d && { ...d, returnConditions: e.target.value })} />
-                                <datalist id="return-presets">{RETURN_PRESETS.map(r => <option key={r} value={r} />)}</datalist>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <button onClick={() => saveCond(s.id, idx)} className="btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1"><Save size={13} /> Сохранить</button>
+                                <button onClick={() => setEditMode(false)} className="btn-secondary text-xs py-1.5 px-3">Отмена</button>
                               </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Представитель</label>
-                                <input className={inCls + ' w-full mt-1'} value={draft.representative || ''} onChange={e => setDraft(d => d && { ...d, representative: e.target.value })} />
-                              </div>
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Контакты</label>
-                                <input className={inCls + ' w-full mt-1'} value={draft.contacts || ''} onChange={e => setDraft(d => d && { ...d, contacts: e.target.value })} />
-                              </div>
-                              <div>
-                                <label className="text-[10px] uppercase tracking-wide text-gray-400">Email</label>
-                                <input className={inCls + ' w-full mt-1'} value={draft.email || ''} onChange={e => setDraft(d => d && { ...d, email: e.target.value })} />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <button onClick={() => saveCond(s.id, idx)} className="btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1"><Save size={13} /> Сохранить</button>
-                            <button onClick={() => deleteCond(s.id, idx)} className="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-xl px-3 py-1.5 inline-flex items-center gap-1 transition-colors"><Trash2 size={13} /> Удалить</button>
-                            <Link to={`/suppliers/${s.id}`} className="btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1 ml-auto"><Pencil size={13} /> В карточке</Link>
-                          </div>
+                            </>
+                          )}
                         </td>
                       </tr>
                     )}
