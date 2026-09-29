@@ -315,8 +315,8 @@ export default function SupplierServicePage() {
             </div>
 
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 lg:col-span-2">
+            <div className="flex flex-col gap-4"> // ТЗ v1.25.4: блоки друг за другом на всю ширину
+              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 order-2">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-base font-semibold text-gray-900">Добавить склад</h2>
                   <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
@@ -328,7 +328,7 @@ export default function SupplierServicePage() {
                   </button>
                 </div>
                 {priceHint && (
-                  <div className="absolute right-4 top-16 z-10 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2">
+                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
                     <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
                     <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
                     <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие в проценку (DBS).</p>
@@ -350,7 +350,7 @@ export default function SupplierServicePage() {
                 </div>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6 order-1">
                 <h2 className="text-base font-semibold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
                 <div className="mt-3 space-y-2 text-sm">
                   {(() => {
@@ -391,7 +391,7 @@ export default function SupplierServicePage() {
                 </button>
               </div>
               {whHint && (
-                <div className="absolute right-4 top-16 z-10 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2">
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
                   <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
                   <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
                 </div>
@@ -438,7 +438,7 @@ export default function SupplierServicePage() {
                 </div>
               </div>
               {cityHint && (
-                <div className="absolute right-4 top-16 z-10 w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-3.5 text-xs text-gray-600 leading-relaxed">
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
                   Настраивайте склад во всех городах, даже если у вас туда пока нет доставки. При заполнении условий поиска (проценки) обязательно выбирайте пункт «Условия доставки ТК». Клиенты увидят, что постоянной доставки нет, но привыкнут к вашему складу и запомнят Вашу компанию.
                 </div>
               )}
@@ -498,6 +498,9 @@ export default function SupplierServicePage() {
 
             {/* ШАГ 3: ОКНО «УСЛОВИЯ СЕРВИСА ПОИСКА» — открывается после выбора города */}
             {editorOpen && (data.warehouses || []).length > 0 && (
+              /* ТЗ v1.25.5: редактор — модальное окно: видно целиком, доскролл не нужен */
+              <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-3 sm:p-6" onClick={() => { setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }}>
+                <div className="w-full max-w-[1080px] max-h-[92vh] overflow-y-auto rounded-2xl" onClick={e => e.stopPropagation()}>
               <div className="bg-gray-50 border border-gray-200 rounded-2xl shadow-sm p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-base font-bold text-gray-900">{editingIdx !== null ? 'Условия сервиса проценки (редактирование)' : 'Условия сервиса проценки'}</h2>
@@ -650,6 +653,8 @@ export default function SupplierServicePage() {
                   </div>
                 </div>
               </div>
+                </div>
+              </div>
             )}
 
             {/* УСЛОВИЯ СЕРВИСА ПОИСКА (DBS) — таблица условий */}
@@ -671,7 +676,7 @@ export default function SupplierServicePage() {
                   </div>
                 </div>
                 {statusHint && (
-                  <div className="absolute right-4 top-16 z-10 w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-3.5 text-xs text-gray-600 leading-relaxed space-y-1.5">
+                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[520px]">
                     <p><b className="text-red-700">Новое</b> — Условие создано, но ещё не опубликовано на платформе.</p>
                     <p><b className="text-green-700">Загружено</b> — Склад и его условия поставки доступны в проценке на платформе.</p>
                     <p><b className="text-amber-700">Есть изменения</b> — Вы редактировали одно из условий, оно ждёт очереди на загрузку в платформу.</p>
