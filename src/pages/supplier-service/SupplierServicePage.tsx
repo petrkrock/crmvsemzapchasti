@@ -414,7 +414,10 @@ export default function SupplierServicePage() {
                     <span className="text-gray-400 text-xs">{Number(w.skuCount).toLocaleString('ru-RU')} SKU</span>
                     <span className={`text-xs ${st === 'Проверен' ? 'text-green-600 font-medium' : st === 'Заморожен' ? 'text-gray-400' : 'text-gray-400'}`}>{st}</span>
                     <span onClick={e => e.stopPropagation()} title={w.address ? `Адрес: ${w.address}` : 'Адрес не указан'} className="text-gray-300 hover:text-gray-500 cursor-help inline-flex"><Warehouse size={12} /></span>
-                ))}
+                    <span onClick={e => { e.stopPropagation(); setEditingWhId(w.id); setWhCity(w.city); setWhSku(String(w.skuCount || '')); setWhAddress(w.address || ''); }} className="text-gray-300 hover:text-red-600 cursor-pointer" title="Редактировать склад"><Pencil size={14} /></span>
+                  </button>
+                );
+                })}
               </div>
             </div>
 
