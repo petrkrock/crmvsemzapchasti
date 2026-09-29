@@ -23,6 +23,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { to: '/support', label: 'Поддержка', icon: HeadphonesIcon, visible: () => canAccess('support') },
   { to: '/leads', label: 'База лидов', icon: Database, visible: () => canAccess('leads') },
   { to: '/media', label: 'Медиа сервис', icon: Video, visible: () => canAccess('media') },
+  { to: '/pricing', label: 'Проценка', icon: Percent, visible: () => canAccess('pricing') },
   { to: '/planfact', label: 'План / Факт', icon: TrendingUp, visible: () => canAccess('planfact') },
   { to: '/analytics', label: 'Аналитика', icon: BarChart2, visible: () => canAccess('analytics') },
   { to: '/settings', label: 'Настройки', icon: Settings, visible: () => isAdmin() },

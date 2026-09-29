@@ -58,6 +58,12 @@ export default function SupplierServicePage() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  // ТЗ v1.23.55: тост гаснет сам через 4с
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(''), 4000);
+    return () => clearTimeout(t);
+  }, [notice]);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,8 +92,12 @@ export default function SupplierServicePage() {
   // и условия «исчезали» до следующего цикла.
   const initialLoadDone = useRef(false);
   useEffect(() => {
-    if (initialLoadDone.current || !data) return;
-    if (!pinPassed && data.hasPin) return; // ждём ввод PIN
+    if (initialLoadDone.current) return;
+    // ТЗ v1.23.55: при живой сессии грузим данные НЕМЕДЛЕННО, не дожидаясь GET-метаданных —
+    // убирает видимую задержку «условия появляются не сразу».
+    if (pinPassed) { initialLoadDone.current = true; post({}).then(err => { if (err) { initialLoadDone.current = false; setNotice(err); } }); return; }
+    if (!data) return;                    // hasPin ещё неизвестен — ждём GET
+    if (data.hasPin) return;              // ждём ввод PIN
     initialLoadDone.current = true;
     post({}).then(err => {
       if (err) { initialLoadDone.current = false; setNotice(err); return; }
@@ -341,18 +351,28 @@ export default function SupplierServicePage() {
                 <h2 className="text-base font-semibold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
                 <div className="mt-3 space-y-2 text-sm">
                   {(() => {
-                    const covered = new Set((data.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
-                    const stats = [
-                      { label: 'Доступно городов:', value: (data.availableCities || []).length, cls: 'bg-blue-50 text-blue-700' },
-                      { label: 'Условий работает:', value: (data.serviceSearch || []).filter(c => (c.status || 'Новое') !== 'Загружено').length, cls: 'bg-green-50 text-green-700' },
-                      { label: 'Охвачено:', value: covered.size, cls: 'bg-green-50 text-green-700' },
-                    ];
-                    return stats.map(s => (
-                      <div key={s.label} className="flex items-center justify-between max-w-[240px]">
-                        <span className="text-gray-500">{s.label}</span>
-                        <span className={`min-w-[28px] text-center text-xs font-bold rounded-md px-2 py-0.5 ${s.cls}`}>{s.value}</span>
-                      </div>
-                    ));
+                    const loaded = (data.serviceSearch || []).filter(c => (c.status || 'Новое') === 'Загружено').length;
+                    const chip = (v: number, cls: string) => <span className={`min-w-[28px] text-center text-xs font-bold rounded-md px-2 py-0.5 ${cls}`}>{v}</span>;
+                    return (
+                      <>
+                        <div className="flex items-center justify-between max-w-[280px]">
+                          <span className="text-gray-500">Всего городов:</span>
+                          {chip((data.availableCities || []).length, 'bg-blue-50 text-blue-700')}
+                        </div>
+                        <div className="flex items-center justify-between max-w-[280px]">
+                          <span className="text-gray-500" title="Условия сервиса проценки со статусом «Загружено»">Охвачено:</span>
+                          {chip(loaded, 'bg-green-50 text-green-700')}
+                        </div>
+                        <div className="flex items-center justify-between max-w-[280px]">
+                          <span className="text-gray-500">Мультисклад:</span>
+                          {data.multiWarehouse
+                            ? <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-green-50 text-green-700">доступен</span>
+                            : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
+                                className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                title="Нажмите для подсказки">выкл ⓘ</button>}
+                        </div>
+                      </>
+                    );
                   })()}
                 </div>
               </div>
@@ -454,7 +474,16 @@ export default function SupplierServicePage() {
             </div>
 
             {/* ТЗ v1.23.12: уведомления — всегда под блоком «Доступные города» */}
-            {notice && <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{notice}</p>}
+            {/* ТЗ v1.23.55: всплывающий тост справа сверху вместо полоски в потоке */}
+            {notice && (
+              <div className="fixed top-4 right-4 z-50 animate-fade-in">
+                <div className={`max-w-[320px] text-sm font-medium px-4 py-3 rounded-xl shadow-lg border ${notice.startsWith('✓')
+                  ? 'bg-green-600 text-white border-green-600 shadow-green-200'
+                  : 'bg-red-600 text-white border-red-600 shadow-red-200'}`}>
+                  {notice}
+                </div>
+              </div>
+            )}
 
             {/* ШАГ 3: ОКНО «УСЛОВИЯ СЕРВИСА ПОИСКА» — открывается после выбора города */}
             {editorOpen && (data.warehouses || []).length > 0 && (

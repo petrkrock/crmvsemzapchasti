@@ -523,6 +523,8 @@ export interface AppUser {
     /** База лидов (v1.21.0): отдельный раздел с собственной галочкой доступа */
     leads: boolean;
     media: boolean;
+    /** Проценка (ТЗ v1.24.0): единое управление условиями DBS всех поставщиков. */
+    pricing: boolean;
     planfact: boolean;
     analytics: boolean;
     knowledge: boolean;

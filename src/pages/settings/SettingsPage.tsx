@@ -204,12 +204,13 @@ const [tab, setTab] = useState('Статусы');
   // ── USERS (ТЗ «Управление пользователями») ──
   // Разделы, выдаваемые менеджеру. «Настройки» и «База данных» в списке нет
   // принципиально — они доступны только администратору (ТЗ п.3).
-  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: true, support: true, leads: false, media: false, planfact: false, analytics: false, knowledge: true , planfactEdit: false }; // дефолт менеджера (ТЗ v1.21.6): задачи/поддержка/база знаний — включены, медиа — нет
+  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: true, support: true, leads: false, media: false, pricing: false, planfact: false, analytics: false, knowledge: true , planfactEdit: false }; // дефолт менеджера (ТЗ v1.21.6): задачи/поддержка/база знаний — включены, медиа — нет
   const PERM_LABELS: Array<{ key: keyof AppUser['permissions']; label: string }> = [
     { key: 'dashboard', label: 'Дашборд' }, { key: 'planfact', label: 'План/Факт' },
     { key: 'suppliers', label: 'Поставщики' }, { key: 'buyers', label: 'Покупатели' },
     { key: 'tasks', label: 'Задачи' }, { key: 'support', label: 'Поддержка' },
     { key: 'leads', label: 'База лидов' }, { key: 'media', label: 'Медиа сервис' },
+    { key: 'pricing', label: 'Проценка' },
     { key: 'knowledge', label: 'База знаний' },
   ];
   const [showNewUser, setShowNewUser] = useState(false);
@@ -225,7 +226,7 @@ const [tab, setTab] = useState('Статусы');
     const role = userForm.role || 'manager';
     if (!name || !email) { toast.error('Укажите имя и email'); return; }
     const permissions: AppUser['permissions'] = role === 'admin'
-      ? { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, leads: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true }
+      ? { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, leads: true, media: true, pricing: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true }
       : { ...ALL_PERMS_FALSE, ...(userForm.permissions || {}) };
     const access: UserAccess = { ...EMPTY_ACCESS, ...(userForm.access || {}) };
     setSavingUser(true);
@@ -274,7 +275,7 @@ const [tab, setTab] = useState('Статусы');
     const role = editForm.role || 'manager';
     if (!name || !email) { toast.error('Имя и email обязательны'); return; }
     const permissions: AppUser['permissions'] = role === 'admin'
-      ? { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, leads: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true }
+      ? { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, leads: true, media: true, pricing: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true }
       : { ...ALL_PERMS_FALSE, ...(editForm.permissions || {}) };
     const access: UserAccess = { ...EMPTY_ACCESS, ...(editForm.access || {}) };
     try {
