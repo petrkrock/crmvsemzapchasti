@@ -39,7 +39,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
  */
 export const NAV_SECTIONS: Array<{ title: string; paths: string[] }> = [
   { title: 'Работа', paths: ['/dashboard', '/planfact', '/suppliers', '/buyers', '/tasks', '/support', '/leads'] },
-  { title: 'Сервисы', paths: ['/media', '/analytics', '/knowledge'] },
+  { title: 'Сервисы', paths: ['/media', '/pricing', '/analytics', '/knowledge'] }, // ТЗ v1.24.2: +Проценка
   { title: 'Система', paths: ['/settings', '/database'] },
 ];
 

@@ -476,8 +476,8 @@ export default function SupplierServicePage() {
             {/* ТЗ v1.23.12: уведомления — всегда под блоком «Доступные города» */}
             {/* ТЗ v1.23.55: всплывающий тост справа сверху вместо полоски в потоке */}
             {notice && (
-              <div className="fixed top-4 right-4 z-50 animate-fade-in">
-                <div className={`max-w-[320px] text-sm font-medium px-4 py-3 rounded-xl shadow-lg border ${notice.startsWith('✓')
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in w-[90%] max-w-[420px]">
+                <div className={`text-sm font-medium px-4 py-3 rounded-xl shadow-lg border text-center ${notice.startsWith('✓')
                   ? 'bg-green-600 text-white border-green-600 shadow-green-200'
                   : 'bg-red-600 text-white border-red-600 shadow-red-200'}`}>
                   {notice}
