@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom';
 import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
@@ -321,16 +320,15 @@ export default function SupplierServicePage() {
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
             <div className="flex flex-col gap-4">
               <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 order-2">
-                {priceHint && createPortal(
-                <div className="fixed top-20 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+                {priceHint && (
+                <div className="absolute right-4 top-14 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
                     <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
                     <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
                     <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие в проценку (DBS).</p>
                     <p>Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>.</p>
                     <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
                   
-                </div>,
-                document.body
+                </div>
               )}
                 <div className="grid grid-cols-[230px_minmax(280px,1fr)_150px_44px] gap-2">
                   <input className={fld} placeholder="Город или название склада *"
@@ -346,7 +344,7 @@ export default function SupplierServicePage() {
                 </div>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-2 sm:py-3 order-1">
+              <div className="relative bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-2 sm:py-3 order-1">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h2 className="text-base font-semibold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
                 <div className="flex items-center gap-5 flex-wrap text-sm">
@@ -383,13 +381,12 @@ export default function SupplierServicePage() {
                   <Warehouse size={16} />
                 </button>
               </div>
-              {whHint && createPortal(
-                <div className="fixed top-20 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+              {whHint && (
+                <div className="absolute right-4 top-14 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
                   <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
                   <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
                 
-                </div>,
-                document.body
+                </div>
               )}
               {(data.warehouses || []).length === 0 && (
                 <p className="text-sm text-gray-400">Шаг 1. Сначала добавьте склад – это необходимо для создания условий в поиске.</p>
@@ -432,12 +429,11 @@ export default function SupplierServicePage() {
                   </button>
                 </div>
               </div>
-              {cityHint && createPortal(
-                <div className="fixed top-20 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+              {cityHint && (
+                <div className="absolute right-4 top-14 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
                   Настраивайте склад во всех городах, даже если у вас туда пока нет доставки. При заполнении условий поиска (проценки) обязательно выбирайте пункт «Условия доставки ТК». Клиенты увидят, что постоянной доставки нет, но привыкнут к вашему складу и запомнят Вашу компанию.
                 
-                </div>,
-                document.body
+                </div>
               )}
               {(() => {
                 const list = data.serviceSearch || [];
@@ -498,8 +494,9 @@ export default function SupplierServicePage() {
             {/* ТЗ v1.23.12: уведомления — всегда под блоком «Доступные города» */}
             {/* ТЗ v1.23.55: всплывающий тост справа сверху вместо полоски в потоке */}
             {notice && (
-              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-in w-[90%] max-w-[420px]">
-                <div className={`text-sm font-medium px-4 py-3 rounded-xl shadow-lg border text-center ${notice.startsWith('✓')
+              {/* ТЗ v1.25.19: центровка через flex — анимация больше не «отбирает» transform и тост не прыгает */}
+              <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 pointer-events-none">
+                <div className={`w-full max-w-[420px] text-sm font-medium px-4 py-3 rounded-xl shadow-lg border text-center ${notice.startsWith('✓')
                   ? 'bg-green-600 text-white border-green-600 shadow-green-200'
                   : 'bg-red-600 text-white border-red-600 shadow-red-200'}`}>
                   {notice}
@@ -686,15 +683,14 @@ export default function SupplierServicePage() {
                     </button>
                   </div>
                 </div>
-                {statusHint && createPortal(
-                <div className="fixed top-20 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+                {statusHint && (
+                <div className="absolute right-4 top-14 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
                     <p><b className="text-red-700">Новое</b> — Условие создано, но ещё не опубликовано на платформе.</p>
                     <p><b className="text-green-700">Загружено</b> — Склад и его условия поставки доступны в проценке на платформе.</p>
                     <p><b className="text-amber-700">Есть изменения</b> — Вы редактировали одно из условий, оно ждёт очереди на загрузку в платформу.</p>
                     <p><b className="text-gray-600">Удаление</b> — Вы отправили запрос на удаление Вашего склада из проценки выбранного города, в течение 48 часов проценка будет удалена навсегда.</p>
                   
-                </div>,
-                document.body
+                </div>
               )}
                 <div className="hidden lg:grid grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] gap-x-4 px-4 pb-1 text-[10px] uppercase tracking-wide text-gray-400 whitespace-nowrap">
                   <span>Склад / Город</span>

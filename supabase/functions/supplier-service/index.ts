@@ -226,11 +226,12 @@ async function handlePost(req: Request) {
     // camelCase multiWarehouse или lowercase multiwarehouse — пробуем обе, какая есть).
     {
       let mk = false;
-      const fr = await client.from('suppliers').select('multiWarehouse').eq('id', supplier.id).maybeSingle();
-      if (!fr.error && fr.data) mk = !!fr.data.multiWarehouse;
+      // ТЗ v1.25.18: CRM пишет флаг в lowercase-колонку — читаем ЕЁ в первую очередь
+      const fr = await client.from('suppliers').select('multiwarehouse').eq('id', supplier.id).maybeSingle();
+      if (!fr.error && fr.data) mk = !!fr.data.multiwarehouse;
       else {
-        const fr2 = await client.from('suppliers').select('multiwarehouse').eq('id', supplier.id).maybeSingle();
-        if (!fr2.error && fr2.data) mk = !!fr2.data.multiwarehouse;
+        const fr2 = await client.from('suppliers').select('multiWarehouse').eq('id', supplier.id).maybeSingle();
+        if (!fr2.error && fr2.data) mk = !!fr2.data.multiWarehouse;
       }
       if (!mk && wh.length > 1) {
         return json({ error: 'Мультисклад не подключён. Для добавления второго склада обратитесь в поддержку.' }, 403);
