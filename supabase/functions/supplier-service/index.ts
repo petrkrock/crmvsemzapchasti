@@ -48,8 +48,10 @@ type SupplierRow = {
  *  если какой-то колонки нет в старой БД — PostgREST роняет весь SELECT (поэтому
  *  их нельзя мешать в основной запрос — иначе ЛК падал с 404). При ошибке — урезанный набор. */
 async function extraFields(client: ReturnType<typeof createClient>, id: string): Promise<Record<string, unknown>> {
-  const r1 = await client.from('suppliers').select('inn, contact_name, phone, email, contacts, multiWarehouse').eq('id', id).maybeSingle();
+  const r1 = await client.from('suppliers').select('inn, contact_name, phone, email, contacts, multiwarehouse').eq('id', id).maybeSingle(); // ТЗ v1.25.16: lowercase-first (туда пишет CRM)
   if (!r1.error && r1.data) return r1.data as Record<string, unknown>;
+  const r1b = await client.from('suppliers').select('inn, contact_name, phone, email, contacts, multiWarehouse').eq('id', id).maybeSingle();
+  if (!r1b.error && r1b.data) return r1b.data as Record<string, unknown>;
   const r2 = await client.from('suppliers').select('inn, contact_name, phone, email').eq('id', id).maybeSingle();
   if (!r2.error && r2.data) return r2.data as Record<string, unknown>;
   return {};
@@ -186,7 +188,7 @@ async function handleGet(req: Request) {
       contactName: supplier.contact_name || (Array.isArray((supplier as { contacts?: Array<{ name?: string }> }).contacts) ? ((supplier as { contacts: Array<{ name?: string }> }).contacts[0]?.name ?? '') : '') || '', // ТЗ v1.23.35: fallback — первый контакт карточки
       contactPhone: supplier.phone || (Array.isArray((supplier as { contacts?: Array<{ phone?: string }> }).contacts) ? ((supplier as { contacts: Array<{ phone?: string }> }).contacts[0]?.phone ?? '') : '') || '',
       contactEmail: supplier.email || (Array.isArray((supplier as { contacts?: Array<{ email?: string }> }).contacts) ? ((supplier as { contacts: Array<{ email?: string }> }).contacts[0]?.email ?? '') : '') || '',
-        multiWarehouse: Boolean((supplier as SupplierRow & { multi_warehouse?: boolean }).multi_warehouse),
+        multiWarehouse: Boolean((supplier as { multiwarehouse?: boolean }).multiwarehouse ?? (supplier as { multi_warehouse?: boolean }).multi_warehouse ?? (supplier as { multiWarehouse?: boolean }).multiWarehouse), // ТЗ v1.25.16
     hasPin: Boolean(supplier.service_access?.pin),
     warehouses: supplier.warehouse_locations || [],
     availableCities,
@@ -257,7 +259,7 @@ async function handlePost(req: Request) {
       contactName: supplier.contact_name || (Array.isArray((supplier as { contacts?: Array<{ name?: string }> }).contacts) ? ((supplier as { contacts: Array<{ name?: string }> }).contacts[0]?.name ?? '') : '') || '', // ТЗ v1.23.35: fallback — первый контакт карточки
       contactPhone: supplier.phone || (Array.isArray((supplier as { contacts?: Array<{ phone?: string }> }).contacts) ? ((supplier as { contacts: Array<{ phone?: string }> }).contacts[0]?.phone ?? '') : '') || '',
       contactEmail: supplier.email || (Array.isArray((supplier as { contacts?: Array<{ email?: string }> }).contacts) ? ((supplier as { contacts: Array<{ email?: string }> }).contacts[0]?.email ?? '') : '') || '',
-      multiWarehouse: Boolean((supplier as SupplierRow & { multi_warehouse?: boolean }).multi_warehouse),
+      multiWarehouse: Boolean((supplier as { multiwarehouse?: boolean }).multiwarehouse ?? (supplier as { multi_warehouse?: boolean }).multi_warehouse ?? (supplier as { multiWarehouse?: boolean }).multiWarehouse), // ТЗ v1.25.16
       warehouses: supplier.warehouse_locations || [],
       serviceSearch: supplier.service_search || [],
       availableCities: ((await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle()).data?.settings as Record<string, unknown> | undefined)?.cities || [],
@@ -294,7 +296,7 @@ async function handlePost(req: Request) {
     serviceSearch: patch.service_search ?? supplier.service_search ?? [],
     // ТЗ v1.23.34: флаг мультисклада ОБЯЗАН возвращаться — иначе после первого сохранения
     // ЛК терял его, и добавление второго склада блокировалось («обратитесь в поддержку»).
-    multiWarehouse: Boolean((supplier as { multi_warehouse?: boolean; multiWarehouse?: boolean }).multi_warehouse ?? (supplier as { multiWarehouse?: boolean }).multiWarehouse),
+    multiWarehouse: Boolean((supplier as { multiwarehouse?: boolean }).multiwarehouse ?? (supplier as { multi_warehouse?: boolean }).multi_warehouse ?? (supplier as { multiWarehouse?: boolean }).multiWarehouse), // ТЗ v1.25.16
     availableCities: (await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle()).data?.settings?.cities ?? [],
   });
 }
