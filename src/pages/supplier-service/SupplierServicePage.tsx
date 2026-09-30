@@ -301,12 +301,12 @@ export default function SupplierServicePage() {
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-5 py-3 flex items-center justify-between">
               <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[180px] h-auto" />
               <div className="flex items-center gap-4">
-                <a href="https://vsemzapchasti.ru" target="_blank" rel="noreferrer"
+                <a href="https://vsemzapchasti.ru/offersupplier" target="_blank" rel="noreferrer"
                   className="group inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-red-700 transition-all hover:border-red-600 hover:bg-red-600 hover:text-white hover:shadow-md">
                   Сервисы для доставки и продаж
                   <ArrowUpRight size={14} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
-                <a href="/forms/marketing-kit" target="_blank" rel="noreferrer"
+                <a href="https://vsemzapchasti.ru/media" target="_blank" rel="noreferrer"
                   className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
                   Продвижение
                 </a>
@@ -320,16 +320,7 @@ export default function SupplierServicePage() {
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
             <div className="flex flex-col gap-4">
               <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 order-2">
-                {priceHint && (
-                <div className="absolute right-4 top-14 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
-                    <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
-                    <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
-                    <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие в проценку (DBS).</p>
-                    <p>Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>.</p>
-                    <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
-                  
-                </div>
-              )}
+                
                 <div className="grid grid-cols-[230px_minmax(280px,1fr)_150px_44px] gap-2">
                   <input className={fld} placeholder="Город или название склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
@@ -363,7 +354,22 @@ export default function SupplierServicePage() {
                                 title="Нажмите для подсказки">выкл ⓘ</button>}
                         </span>
                         <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
-                          className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
+                          <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
+                    className="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600 flex items-center justify-center transition-colors">
+                    <HeadphonesIcon size={16} />
+                  </a>
+                  <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
+                    className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
+                  {priceHint && (
+                <div className="absolute right-4 top-14 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+                    <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
+                    <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
+                    <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие в проценку (DBS).</p>
+                    <p>Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>.</p>
+                    <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
+                  
+                </div>
+              )}
                       </>
                     );
                   })()}
@@ -548,8 +554,7 @@ export default function SupplierServicePage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-600">Срок поставки до города <span className="text-red-600">*</span></label>
-                      <label className="text-xs font-semibold text-gray-600 mt-3">Условия доставки <span className="text-red-600">*</span></label>
+                      <label className="text-xs font-semibold text-gray-600">Срок поставки и условия доставки <span className="text-red-600">*</span></label>
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         <button type="button" onClick={() => {
                           const TK_TEXT = 'Условия доставки по согласованию!';
