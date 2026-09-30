@@ -656,9 +656,11 @@ type EntityName = 'suppliers' | 'buyers' | 'tasks' | 'tickets' | 'mediaRecords';
 // service_access (PIN самообслуживания), warehouse_locations (склады из ЛК),
 // company_score/scoring (вычисляемые триггерами). Иначе CRM вечно «догонял» сервер —
 // дифф не сходился, и одна и та же запись уходила в обновление каждый цикл.
+// ТЗ v1.25.12: склады убраны из исключений — маппер ведёт warehouse_locations в ОБЕ стороны,
+// значит CRM↔ЛК зеркальны: удаление/правка SKU в любом месте доезжает до базы и отображается
+// в другом. Исключения оставлены только для НЕмапируемых серверных полей (иначе вечный цикл).
 const VOLATILE_SYNC_KEYS = new Set(['updatedAt', 'updated_at', 'history',
-  'serviceAccess', 'service_access', 'warehouseLocations', 'warehouse_locations',
-  'companyScore', 'company_score', 'scoring']);
+  'serviceAccess', 'service_access', 'companyScore', 'company_score', 'scoring']);
 
 function stableEntityJson(value: unknown): string {
   if (Array.isArray(value)) return '[' + value.map(stableEntityJson).join(',') + ']';

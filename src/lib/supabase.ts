@@ -142,7 +142,7 @@ function mapSupplier(row: Record<string, unknown>): Supplier {
     contactPref: (row.contact_pref as Supplier['contactPref']) ?? undefined,
     contactPrefs: (row.contact_prefs as string[]) || [],
     warehouseCount: (row.warehouse_count as number) ?? undefined,
-  multiWarehouse: (row.multi_warehouse as boolean) ?? undefined,
+  multiWarehouse: ((row.multiwarehouse ?? row.multi_warehouse ?? row.multiWarehouse) as boolean | undefined) ?? undefined, // ТЗ v1.25.15: читаем все варианты имени
     skuCount: (row.sku_count as number) ?? undefined,
     warehouseLocations: (row.warehouse_locations as Supplier['warehouseLocations']) || [],
     productGroups: (row.product_groups as string[]) || [],
@@ -185,7 +185,7 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.contactPref !== undefined) db.contact_pref = orNull(s.contactPref);
   if (s.contactPrefs !== undefined) db.contact_prefs = s.contactPrefs;
   if (s.warehouseCount !== undefined) db.warehouse_count = s.warehouseCount;
-  if (s.multiWarehouse !== undefined) db.multi_warehouse = s.multiWarehouse;
+  if (s.multiWarehouse !== undefined) db.multiwarehouse = s.multiWarehouse; // ТЗ v1.25.15: колонка в БД называется multiwarehouse
   if (s.skuCount !== undefined) db.sku_count = s.skuCount;
   if (s.warehouseLocations !== undefined) db.warehouse_locations = s.warehouseLocations;
   if (s.productGroups !== undefined) db.product_groups = s.productGroups;
