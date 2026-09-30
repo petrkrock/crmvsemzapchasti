@@ -47,7 +47,7 @@ export default function PricingPage() {
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const suppliers = store.suppliers.filter(s => (tab === 'archived' ? !!s.deletedAt : !s.deletedAt));
+  const suppliers = store.suppliers.filter(s => !s.deletedAt); // ТЗ v1.28.1: архива в Проценке нет
   const rows: Array<{ s: SupplierRow; c: Cond; idx: number; key: string }> = [];
   suppliers.forEach(s => (s.serviceSearch || []).forEach((c, i) => rows.push({ s, c: c as Cond, idx: i, key: `${s.id}:${i}` })));
 
@@ -105,7 +105,8 @@ export default function PricingPage() {
     closeRow();
   };
   const deleteCond = (supplierId: string, idx: number) => {
-    if (!window.confirm('Удалить условие проценки?')) return;
+    // ТЗ v1.28.1: без архива — удаляем сразу и с концами, с простым подтверждением
+    if (!window.confirm('Удалить условие проценки безвозвратно? Согласны?')) return;
     updateStore(st => ({
       ...st,
       suppliers: st.suppliers.map(s => s.id === supplierId
@@ -166,8 +167,23 @@ export default function PricingPage() {
   };
   const changeWhStatus = (supplierId: string, idx: number, w: WhLoc2, st: string) => {
     if (whStatus(w) === st) return;
-    if (!window.confirm(`Сменить статус склада «${w.city || ''}» на «${st}»?`)) return;
+    // ТЗ v1.28.1: зеркало карточки — заморозка с подтверждением и каскадом условий в «Удаление»
+    if (st === 'Заморожен') {
+      if (!window.confirm(`Заморозить склад «${w.city || ''}»? Все привязанные условия проценки получат статус «Удаление». Продолжить?`)) return;
+    } else if (!window.confirm(`Сменить статус склада «${w.city || ''}» на «${st}»?`)) return;
     patchWh(supplierId, idx, { status: st, verified: st === 'Проверен' });
+    if (st === 'Заморожен' && w.city) {
+      updateStore(st2 => ({ ...st2, suppliers: st2.suppliers.map(s => s.id === supplierId
+        ? { ...s, serviceSearch: (s.serviceSearch || []).map(c => (c.warehouseName || '') === w.city ? { ...c, status: 'Удаление' } : c) }
+        : s) }));
+    }
+  };
+  // ТЗ v1.28.1: удаление склада — только с вводом слова «удалить» (зеркало «Поставщики → Склад»)
+  const deleteWh = (supplierId: string, idx: number, city?: string) => {
+    if (window.prompt(`Удалить склад «${city || ''}» безвозвратно? Для подтверждения введите слово: удалить`) !== 'удалить') return;
+    updateStore(st => ({ ...st, suppliers: st.suppliers.map(s => s.id === supplierId
+      ? { ...s, warehouseLocations: whListOf(s).filter((_, i) => i !== idx), warehouse_locations: whListOf(s).filter((_, i) => i !== idx) }
+      : s) }));
   };
   const whAllSel = whFiltered.length > 0 && whFiltered.every(r => whSelected.has(r.key));
   const toggleWhAll = () => setWhSelected(whAllSel ? new Set() : new Set(whFiltered.map(r => r.key)));
@@ -210,9 +226,8 @@ export default function PricingPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="page-title">Проценка</h1>
         <div className="flex gap-2">
-          <button onClick={() => { setView('cond'); setTab('active'); }} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'cond' && tab === 'active' ? 'bg-gray-200' : ''}`}>Условия проценки</button>
+          <button onClick={() => setView('cond')} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'cond' ? 'bg-gray-200' : ''}`}>Условия проценки</button>
           <button onClick={() => setView('wh')} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'wh' ? 'bg-gray-200' : ''}`}>Список складов</button>
-          <button onClick={() => { setView('cond'); setTab('archived'); }} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'cond' && tab === 'archived' ? 'bg-gray-200' : ''}`}>Архив</button>
         </div>
       </div>
 
@@ -296,6 +311,14 @@ export default function PricingPage() {
       {selected.size > 0 && (
         <div className="flex items-center gap-2 text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
           <span className="text-gray-500">Выбрано: {selected.size}</span>
+          <button onClick={() => {
+            if (!selected.size) return;
+            if (!window.confirm(`Удалить выбранные условия (${selected.size}) безвозвратно? Согласны?`)) return;
+            updateStore(st => ({ ...st, suppliers: st.suppliers.map(s => ({ ...s, serviceSearch: (s.serviceSearch || []).filter((_, i) => !selected.has(`${s.id}:${i}`)) })) }));
+            setSelected(new Set());
+          }} className="bg-white border border-red-300 text-red-600 hover:bg-red-50 text-xs font-semibold rounded-lg px-3 py-1.5 inline-flex items-center gap-1 transition-colors">
+            <Trash2 size={13} /> Удалить отмеченные
+          </button>
           <button onClick={exportWord} className="btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1 ml-auto">
             <FileDown size={13} /> Выгрузить в Word
           </button>
@@ -364,11 +387,9 @@ export default function PricingPage() {
                       <td className="table-cell text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${chipCls(c.status)}`}>{c.status || 'Новое'}</span>
-                          {dateStr(c) && (
-                            <span title={`Условие создано: ${dateStr(c)}`} className="text-gray-300 hover:text-gray-500 cursor-help transition-colors inline-flex">
-                              <History size={13} />
-                            </span>
-                          )}
+                          <span title={dateStr(c) ? `Условие создано: ${dateStr(c)}` : 'Дата создания не зафиксирована'} className="text-gray-300 hover:text-gray-500 cursor-help transition-colors inline-flex">
+                            <History size={13} />
+                          </span>
                         </div>
                       </td>
                     </tr>
@@ -514,7 +535,8 @@ export default function PricingPage() {
       <div className="card-base p-4 space-y-3">
         <h3 className="text-sm font-semibold text-gray-900">Сводка по складам</h3>
         <div className="flex flex-wrap gap-3">
-          {([['Новых', whCnt('Новый')], ['Проверено', whCnt('Проверен')], ['Заморожено', whCnt('Заморожен')]] as const).map(([lb, v]) => (
+          {/* ТЗ v1.28.1: замороженные склады в статистике не участвуют (как в «Поставщики → Склад») */}
+          {([['Новых', whCnt('Новый')], ['Проверено', whCnt('Проверен')]] as const).map(([lb, v]) => (
             <div key={lb} className="bg-white border border-gray-200 rounded-xl p-4 min-w-[170px] flex-1">
               <p className="text-xs text-gray-500">{lb}</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">{v}</p>
@@ -522,7 +544,7 @@ export default function PricingPage() {
           ))}
           <div className="bg-white border border-gray-200 rounded-xl p-4 min-w-[200px] flex-1">
             <p className="text-xs text-gray-500">Всего складов</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{whRows.length}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1">{whRows.length - whCnt('Заморожен')}</p>
           </div>
         </div>
       </div>
@@ -537,10 +559,6 @@ export default function PricingPage() {
           <select className="form-input text-xs py-1.5 w-auto" value={fSupplier2} onChange={e => setFSupplier2(e.target.value)}>
             <option value="">Все поставщики</option>
             {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
-          </select>
-          <select className="form-input text-xs py-1.5 w-auto" value={fCity2} onChange={e => setFCity2(e.target.value)}>
-            <option value="">Все города</option>
-            {whCities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <select className="form-input text-xs py-1.5 w-auto" value={fType2} onChange={e => setFType2(e.target.value)}>
             <option value="">Все типы</option>
@@ -605,6 +623,10 @@ export default function PricingPage() {
                         <select className="form-input text-xs py-1 w-auto" value={whStatus(w)} onChange={e => changeWhStatus(s.id, idx, w, e.target.value)}>
                           {(['Новый', 'Проверен', 'Заморожен'] as const).map(st => <option key={st} value={st}>{st}</option>)}
                         </select>
+                        <button type="button" title="Удалить склад" onClick={e => { e.stopPropagation(); deleteWh(s.id, idx, w.city); }}
+                          className="ml-2 w-7 h-7 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 inline-flex items-center justify-center transition-colors align-middle">
+                          <Trash2 size={13} />
+                        </button>
                       </td>
                     </tr>
                     {open && whDraft && (

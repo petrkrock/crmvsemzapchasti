@@ -258,7 +258,15 @@ function pushSupplierHistory(entry: HistoryEntry) {
 
 function setWarehouseStatus(locId: string, status: WarehouseStatus) {
     if (status === 'Проверен' && !window.confirm('Вы подтверждаете, что склад проверен?')) return;
-    updateStore(s => ({ ...s, suppliers: s.suppliers.map(sup => sup.id === id ? { ...sup, warehouseLocations: (sup.warehouseLocations || []).map(w => w.id === locId ? { ...w, status, verified: status === 'Проверен' } : w), updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : sup) }));
+    // ТЗ v1.28.1: заморозка — с подтверждением и каскадом: все условия склада → «Удаление»
+    const whCity = (supplier.warehouseLocations || []).find(w => w.id === locId)?.city;
+    if (status === 'Заморожен' && !window.confirm(`Заморозить склад «${whCity || ''}»? Все привязанные условия проценки получат статус «Удаление». Продолжить?`)) return;
+    updateStore(s => ({ ...s, suppliers: s.suppliers.map(sup => sup.id === id ? {
+      ...sup,
+      warehouseLocations: (sup.warehouseLocations || []).map(w => w.id === locId ? { ...w, status, verified: status === 'Проверен' } : w),
+      serviceSearch: (status === 'Заморожен' && whCity) ? (sup.serviceSearch || []).map(c => (c.warehouseName || '') === whCity ? { ...c, status: 'Удаление' } : c) : sup.serviceSearch,
+      updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '',
+    } : sup) }));
     pushSupplierHistory(makeHistoryEntry('warehouseLocations', undefined, `Статус склада: ${status}`, 'Проверка склада', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
     forceUpdate(n => n + 1);
   }
