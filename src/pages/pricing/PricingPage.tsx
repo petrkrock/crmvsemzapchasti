@@ -29,6 +29,17 @@ export default function PricingPage() {
   const [fType, setFType] = useState('');
   const [fResp, setFResp] = useState('');
   const [fStatus, setFStatus] = useState<string>('Все');
+  // ТЗ v1.28.0: вид раздела — условия или список складов
+  const [view, setView] = useState<'cond' | 'wh'>('cond');
+  const [q2, setQ2] = useState('');
+  const [fSupplier2, setFSupplier2] = useState('');
+  const [fCity2, setFCity2] = useState('');
+  const [fType2, setFType2] = useState('');
+  const [fResp2, setFResp2] = useState('');
+  const [fWhStatus, setFWhStatus] = useState<'Все' | 'Новый' | 'Проверен' | 'Заморожен'>('Все');
+  const [whExp, setWhExp] = useState<string | null>(null);
+  const [whDraft, setWhDraft] = useState<{ city?: string; address?: string; skuCount?: number } | null>(null);
+  const [whSelected, setWhSelected] = useState<Set<string>>(new Set());
   const [fTk, setFTk] = useState<'off' | 'with' | 'without'>('off');
   const [fService, setFService] = useState<'Все' | 'DBS' | 'FBS' | 'MEDIA'>('Все'); // ТЗ v1.24.6
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -116,6 +127,65 @@ export default function PricingPage() {
   };
   const sortedList = [...list].sort((a, b) => dateOf(b.c) - dateOf(a.c));
 
+
+  // ── ТЗ v1.28.0: список складов (зеркало warehouse_locations) ──
+  type WhLoc2 = { id?: string; city?: string; address?: string; skuCount?: number; verified?: boolean; status?: string };
+  const whListOf = (s: SupplierRow): WhLoc2[] => ((s as unknown as { warehouseLocations?: WhLoc2[] }).warehouseLocations)
+    || ((s as unknown as { warehouse_locations?: WhLoc2[] }).warehouse_locations) || [];
+  const whStatus = (w: WhLoc2): string => w.status || (w.verified ? 'Проверен' : 'Новый');
+  const whRows: Array<{ s: SupplierRow; w: WhLoc2; idx: number; key: string }> = [];
+  suppliers.forEach(s => whListOf(s).forEach((w, i) => whRows.push({ s, w, idx: i, key: `${s.id}:${i}` })));
+  const whCities = Array.from(new Set(whRows.map(r => r.w.city).filter(Boolean) as string[]));
+  const whFiltered = whRows.filter(({ s, w }) => {
+    if (fSupplier2 && s.id !== fSupplier2) return false;
+    if (fCity2 && w.city !== fCity2) return false;
+    if (fType2 && s.type !== fType2) return false;
+    if (fResp2 && s.responsibleId !== fResp2) return false;
+    if (fWhStatus !== 'Все' && whStatus(w) !== fWhStatus) return false;
+    if (q2) {
+      const hay = `${s.tradeName} ${w.city} ${w.address || ''}`.toLowerCase();
+      if (!hay.includes(q2.trim().toLowerCase())) return false;
+    }
+    return true;
+  });
+  const whCnt = (st: string) => whRows.filter(r => whStatus(r.w) === st).length;
+  const patchWh = (supplierId: string, idx: number, patch: Partial<WhLoc2>) => {
+    updateStore(st => ({
+      ...st,
+      suppliers: st.suppliers.map(s => {
+        if (s.id !== supplierId) return s;
+        const src = whListOf(s);
+        const nextList = src.map((w, i) => (i === idx ? { ...w, ...patch } : w));
+        const ns = { ...s } as Record<string, unknown>;
+        if (ns['warehouseLocations']) ns['warehouseLocations'] = nextList;
+        if (ns['warehouse_locations']) ns['warehouse_locations'] = nextList;
+        if (!ns['warehouseLocations'] && !ns['warehouse_locations']) ns['warehouseLocations'] = nextList;
+        return ns as SupplierRow;
+      }),
+    }));
+  };
+  const changeWhStatus = (supplierId: string, idx: number, w: WhLoc2, st: string) => {
+    if (whStatus(w) === st) return;
+    if (!window.confirm(`Сменить статус склада «${w.city || ''}» на «${st}»?`)) return;
+    patchWh(supplierId, idx, { status: st, verified: st === 'Проверен' });
+  };
+  const whAllSel = whFiltered.length > 0 && whFiltered.every(r => whSelected.has(r.key));
+  const toggleWhAll = () => setWhSelected(whAllSel ? new Set() : new Set(whFiltered.map(r => r.key)));
+  const exportWhWord = () => {
+    const exp = whFiltered.filter(r => whSelected.has(r.key));
+    if (!exp.length) return;
+    const esc = (v?: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const html = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>table{border-collapse:collapse}td,th{border:1px solid #999;padding:4px 8px;font-size:12px}</style></head><body>
+      <h2>Список складов (проценка)</h2>
+      <table><tr><th>Поставщик</th><th>Склад</th><th>Адрес</th><th>SKU</th><th>Статус</th></tr>
+      ${exp.map(({ s, w }) => `<tr><td>${esc(s.tradeName)}</td><td>${esc(w.city)}</td><td>${esc(w.address)}</td><td>${esc(w.skuCount)}</td><td>${esc(whStatus(w))}</td></tr>`).join('')}
+      </table></body></html>`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + html], { type: 'application/msword' }));
+    a.download = 'spisok-skladov.doc';
+    a.click();
+  };
+
   const toggleSelect = (key: string) => setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
   const allSel = list.length > 0 && list.every(r => selected.has(r.key));
   const toggleAll = () => setSelected(allSel ? new Set() : new Set(list.map(r => r.key)));
@@ -140,12 +210,14 @@ export default function PricingPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="page-title">Проценка</h1>
         <div className="flex gap-2">
-          <button onClick={() => setTab('active')} className={`btn-secondary text-xs py-1.5 px-3 ${tab === 'active' ? 'bg-gray-200' : ''}`}>Условия проценки</button>
-          <button onClick={() => setTab('archived')} className={`btn-secondary text-xs py-1.5 px-3 ${tab === 'archived' ? 'bg-gray-200' : ''}`}>Архив</button>
+          <button onClick={() => { setView('cond'); setTab('active'); }} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'cond' && tab === 'active' ? 'bg-gray-200' : ''}`}>Условия проценки</button>
+          <button onClick={() => setView('wh')} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'wh' ? 'bg-gray-200' : ''}`}>Список складов</button>
+          <button onClick={() => { setView('cond'); setTab('archived'); }} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'cond' && tab === 'archived' ? 'bg-gray-200' : ''}`}>Архив</button>
         </div>
       </div>
 
-      {/* ТЗ v1.24.8: сводка в белой подложке, как «Сводка по базе лидов» */}
+      {view === 'cond' && (<>
+{/* ТЗ v1.24.8: сводка в белой подложке, как «Сводка по базе лидов» */}
       {(() => {
         const all = rows;
         const cnt = (st: string) => all.filter(r => (r.c.status || 'Новое') === st).length;
@@ -436,6 +508,131 @@ export default function PricingPage() {
         </div>
       </div>
       <p className="text-xs text-gray-400">Показано условий: {list.length} из {rows.length}</p>
+      </>)}
+      {view === 'wh' && (<>
+      {/* Сводка по складам */}
+      <div className="card-base p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-gray-900">Сводка по складам</h3>
+        <div className="flex flex-wrap gap-3">
+          {([['Новых', whCnt('Новый')], ['Проверено', whCnt('Проверен')], ['Заморожено', whCnt('Заморожен')]] as const).map(([lb, v]) => (
+            <div key={lb} className="bg-white border border-gray-200 rounded-xl p-4 min-w-[170px] flex-1">
+              <p className="text-xs text-gray-500">{lb}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{v}</p>
+            </div>
+          ))}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 min-w-[200px] flex-1">
+            <p className="text-xs text-gray-500">Всего складов</p>
+            <p className="text-3xl font-bold text-gray-900 mt-1">{whRows.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Поиск и фильтры */}
+      <div className="card-base p-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input className="form-input text-xs pl-8 w-full" placeholder="Поиск: поставщик, склад, адрес…" value={q2} onChange={e => setQ2(e.target.value)} />
+          </div>
+          <select className="form-input text-xs py-1.5 w-auto" value={fSupplier2} onChange={e => setFSupplier2(e.target.value)}>
+            <option value="">Все поставщики</option>
+            {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
+          </select>
+          <select className="form-input text-xs py-1.5 w-auto" value={fCity2} onChange={e => setFCity2(e.target.value)}>
+            <option value="">Все города</option>
+            {whCities.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select className="form-input text-xs py-1.5 w-auto" value={fType2} onChange={e => setFType2(e.target.value)}>
+            <option value="">Все типы</option>
+            {(store.settings.supplierTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select className="form-input text-xs py-1.5 w-auto" value={fResp2} onChange={e => setFResp2(e.target.value)}>
+            <option value="">Все ответственные</option>
+            {respUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {(['Все', 'Новый', 'Проверен', 'Заморожен'] as const).map(st => (
+            <button key={st} onClick={() => setFWhStatus(st)}
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${fWhStatus === st ? 'bg-brand-black text-white border-brand-black font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
+              {st === 'Новый' ? 'Новые' : st === 'Проверен' ? 'проверено' : st === 'Заморожен' ? 'заморожено' : 'Все'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {whSelected.size > 0 && (
+        <div className="flex items-center gap-2 text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+          <span className="text-gray-500">Выбрано: {whSelected.size}</span>
+          <button onClick={exportWhWord} className="btn-primary text-xs py-1.5 px-3 inline-flex items-center gap-1 ml-auto">
+            <FileDown size={13} /> Скачать в Word
+          </button>
+        </div>
+      )}
+
+      {/* Таблица складов */}
+      <div className="card-base overflow-hidden">
+        <div className="table-scroll">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-brand-gray-mid">
+                <th className="table-header w-8"><input type="checkbox" checked={whAllSel} onChange={toggleWhAll} /></th>
+                <th className="table-header">Поставщик</th>
+                <th className="table-header">Город (название) склада</th>
+                <th className="table-header">Адрес склада</th>
+                <th className="table-header">SKU</th>
+                <th className="table-header">Статус</th>
+              </tr>
+            </thead>
+            <tbody>
+              {whFiltered.length === 0 && (
+                <tr><td className="table-cell text-gray-400 text-center py-8" colSpan={6}>Склады не найдены.</td></tr>
+              )}
+              {whFiltered.map(({ s, w, idx, key }) => {
+                const open = whExp === key;
+                return (
+                  <Fragment key={key}>
+                    <tr onClick={() => { if (open) { setWhExp(null); setWhDraft(null); } else { setWhExp(key); setWhDraft({ city: w.city, address: w.address, skuCount: w.skuCount }); } }}
+                      className={`border-b border-brand-gray-mid transition-colors ${open ? 'bg-gray-50' : 'hover:bg-gray-50 cursor-pointer'}`}>
+                      <td className="table-cell" onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" checked={whSelected.has(key)} onChange={() => setWhSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; })} />
+                      </td>
+                      <td className="table-cell"><Link to={`/suppliers/${s.id}`} onClick={e => e.stopPropagation()} className="text-red-700 hover:underline font-medium">{s.tradeName}</Link></td>
+                      <td className="table-cell font-medium">{w.city || '—'}</td>
+                      <td className="table-cell text-xs text-gray-600 max-w-[260px] truncate" title={w.address}>{w.address || '—'}</td>
+                      <td className="table-cell text-xs">{Number(w.skuCount || 0).toLocaleString('ru-RU')}</td>
+                      <td className="table-cell" onClick={e => e.stopPropagation()}>
+                        <select className="form-input text-xs py-1 w-auto" value={whStatus(w)} onChange={e => changeWhStatus(s.id, idx, w, e.target.value)}>
+                          {(['Новый', 'Проверен', 'Заморожен'] as const).map(st => <option key={st} value={st}>{st}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                    {open && whDraft && (
+                      <tr className="border-b border-brand-gray-mid bg-gray-50">
+                        <td colSpan={6} className="px-4 py-3">
+                          <div className="flex flex-wrap items-end gap-2 text-xs">
+                            <div className="min-w-[180px]"><label className={lblCls}>Город (название) склада</label>
+                              <input className={inCls + ' w-full'} value={whDraft.city || ''} onChange={e => setWhDraft(d => d && { ...d, city: e.target.value })} /></div>
+                            <div className="flex-1 min-w-[260px]"><label className={lblCls}>Адрес склада</label>
+                              <input className={inCls + ' w-full'} value={whDraft.address || ''} onChange={e => setWhDraft(d => d && { ...d, address: e.target.value })} /></div>
+                            <div className="w-32"><label className={lblCls}>SKU</label>
+                              <input className={inCls + ' w-full'} type="number" min="0" value={whDraft.skuCount ?? 0} onChange={e => setWhDraft(d => d && { ...d, skuCount: parseInt(e.target.value) || 0 })} /></div>
+                            <button onClick={() => { patchWh(s.id, idx, { ...whDraft }); setWhExp(null); setWhDraft(null); }}
+                              className="bg-brand-black hover:opacity-90 text-white text-xs font-semibold rounded-xl px-4 py-2 inline-flex items-center gap-1.5 transition-opacity"><Save size={14} /> Сохранить</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p className="text-xs text-gray-400">Показано складов: {whFiltered.length} из {whRows.length}</p>
+      </>)}
+
     </div>
   );
 }

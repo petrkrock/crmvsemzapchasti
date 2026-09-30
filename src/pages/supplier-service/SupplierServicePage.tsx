@@ -493,8 +493,8 @@ export default function SupplierServicePage() {
 
             {/* ТЗ v1.23.12: уведомления — всегда под блоком «Доступные города» */}
             {/* ТЗ v1.23.55: всплывающий тост справа сверху вместо полоски в потоке */}
+            {/* ТЗ v1.25.19: центровка через flex — анимация больше не «отбирает» transform и тост не прыгает */}
             {notice && (
-              {/* ТЗ v1.25.19: центровка через flex — анимация больше не «отбирает» transform и тост не прыгает */}
               <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 pointer-events-none">
                 <div className={`w-full max-w-[420px] text-sm font-medium px-4 py-3 rounded-xl shadow-lg border text-center ${notice.startsWith('✓')
                   ? 'bg-green-600 text-white border-green-600 shadow-green-200'
