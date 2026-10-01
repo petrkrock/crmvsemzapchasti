@@ -657,7 +657,6 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                         </div>
                       </>
                     ) : (
-                      /* ТЗ v1.28.5: без PIN ссылка не активна */
                       <div className="border border-dashed border-red-300 bg-red-50/60 rounded-xl px-4 py-3 text-xs text-red-700">
                         Ссылка не активна — <b>установите PIN-код</b> (блок выше), после сохранения ссылка станет кликабельной.
                       </div>
