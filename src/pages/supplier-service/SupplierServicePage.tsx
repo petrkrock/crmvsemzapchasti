@@ -353,13 +353,12 @@ export default function SupplierServicePage() {
                                 className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                                 title="Нажмите для подсказки">выкл ⓘ</button>}
                         </span>
+                        <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
+                          className="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600 flex items-center justify-center transition-colors">
+                          <HeadphonesIcon size={16} />
+                        </a>
                         <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
-                          <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
-                    className="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600 flex items-center justify-center transition-colors">
-                    <HeadphonesIcon size={16} />
-                  </a>
-                  <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
-                    className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
+                          className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
                   {priceHint && (
                 <div className="absolute right-4 top-14 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
                     <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
