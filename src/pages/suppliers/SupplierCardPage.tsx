@@ -600,7 +600,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                 {linkOpen && (
                   <div className="px-4 pb-4 pt-3 border-t border-brand-gray-mid animate-fade-in">
                     <p className="text-xs text-gray-400 mb-3">По ссылке поставщик сам заполняет склады и условия сервиса поиска. Защита — секретный токен{sa?.pin ? ' + PIN-код' : ''}.</p>
-                    {sa?.enabled ? (sa?.pin ? (
+                    {sa?.enabled ? (
                       <>
                         <div className="flex items-stretch gap-2 mb-3">
                           <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-50 border border-brand-gray-mid rounded-lg px-3">
@@ -613,8 +613,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                         <div className="rounded-lg border border-brand-gray-mid p-3 mb-3 bg-gray-50/50">
                           <p className="text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Безопасность</p>
                           <div className="flex flex-wrap items-center gap-2">
-                            <input className={`form-input text-xs w-32 ${sa?.enabled && !sa?.pin ? '!ring-2 !ring-red-400 !border-red-400' : ''}`} placeholder="PIN (необяз.)" value={pinDraft} maxLength={6} onChange={e => setPinDraft(e.target.value.replace(/\D/g, ''))} />
-                    {sa?.enabled && !sa?.pin && <span className="text-[11px] text-red-600 font-semibold self-center">Установите PIN-код — иначе ссылка ЛК не активна</span>}
+                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={pinDraft} maxLength={6} onChange={e => setPinDraft(e.target.value.replace(/\D/g, ''))} />
                             <button onClick={() => {
                               const phrase = window.prompt('Для смены PIN введите слово: сменить');
                               if (phrase === null) return;
@@ -622,7 +621,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                               patchServiceAccess({ pin: pinDraft.trim() || undefined }, 'PIN самообслуживания обновлён');
                               toast.success('PIN сохранён');
                             }} className="btn-secondary text-xs">Сменить PIN</button>
-                            <span className="text-[10px] text-gray-400">4–6 цифр, необязательно</span>
+                            <span className="text-[10px] font-semibold text-red-600">PIN-код обязателен к заполнению · 4–6 цифр</span>
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -656,10 +655,6 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                           }} className="text-xs text-red-600 hover:underline ml-auto">Отключить доступ</button>
                         </div>
                       </>
-                    ) : (
-                      <div className="border border-dashed border-red-300 bg-red-50/60 rounded-xl px-4 py-3 text-xs text-red-700">
-                        Ссылка не активна — <b>установите PIN-код</b> (блок выше), после сохранения ссылка станет кликабельной.
-                      </div>
                     ) : (
                       <div className="text-center py-3">
                         <p className="text-xs text-gray-400 mb-3 max-w-md mx-auto">Поставщик получит персональную ссылку с секретным токеном и сможет сам заполнить склады и условия сервиса поиска.</p>

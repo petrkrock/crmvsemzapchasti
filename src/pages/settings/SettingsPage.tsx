@@ -573,19 +573,19 @@ const [tab, setTab] = useState('Статусы');
       { key: 'taskEntityTypes' as const, label: 'Типы сущностей', options: taskEntityTypes.map(et => et.key) },
     ] },
     { perm: 'media' as const, label: 'Медиа сервис', dims: [] },
-    { perm: 'pricing' as const, label: 'Проценка', dims: [] }, // ТЗ: блок как у «Медиа сервис», ниже него
+    { perm: 'pricing' as const, label: 'Проценка', dims: [] },
     { perm: 'knowledge' as const, label: 'База знаний', dims: [] },
   ];
   // Тип дашборда менеджера определяет доступные разделы (ТЗ v1.21.6): МОП — только покупательские,
   // МОЗ — только поставщические; недоступные блоки скрываем, а права на сохранении принудительно снимаем.
   const DASH_SECTIONS: Record<'mop' | 'moz', Array<keyof AppUser['permissions']>> = {
-    mop: ['dashboard', 'planfact', 'buyers', 'tasks', 'support', 'leads', 'pricing', 'knowledge'], // ТЗ: Проценка — в обоих типах
-    moz: ['dashboard', 'planfact', 'suppliers', 'tasks', 'support', 'leads', 'media', 'pricing', 'knowledge'], // ТЗ: +Проценка (МОЗ)
+    mop: ['dashboard', 'planfact', 'buyers', 'tasks', 'support', 'leads', 'knowledge'],
+    moz: ['dashboard', 'planfact', 'suppliers', 'tasks', 'support', 'leads', 'media', 'pricing', 'knowledge'],
   };
   const applyDashboardSections = (role: AppUser['role'], dashboardType: 'mop' | 'moz' | undefined, perms: AppUser['permissions']): AppUser['permissions'] => {
     if (role !== 'manager' || !dashboardType) return perms;
     const next = { ...perms };
-    (dashboardType === 'mop' ? ['suppliers', 'media'] as const : ['buyers'] as const).forEach(k => { next[k] = false; });
+    (dashboardType === 'mop' ? ['suppliers', 'media', 'pricing'] as const : ['buyers'] as const).forEach(k => { next[k] = false; });
     return next;
   };
   // Порядок блоков «Доступ к разделам» (ТЗ v1.21.0): Дашборд → План/Факт → Поставщики → Покупатели →
@@ -596,6 +596,7 @@ const [tab, setTab] = useState('Статусы');
   const ACCESS_FLOW: Array<(typeof FILTER_SECTIONS)[number] | ReturnType<typeof adminRow>> = [
     sectionByPerm('dashboard'), sectionByPerm('planfact'), sectionByPerm('suppliers'), sectionByPerm('buyers'),
     sectionByPerm('tasks'), sectionByPerm('support'), sectionByPerm('leads'), sectionByPerm('media'),
+    sectionByPerm('pricing'),
     adminRow('Аналитика'),
     sectionByPerm('knowledge'),
     adminRow('Настройки'),

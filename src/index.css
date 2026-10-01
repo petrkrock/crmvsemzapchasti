@@ -260,11 +260,3 @@
 .sync-log-mode > *:not(:first-child):not(.sync-log-panel) { display: none !important; }
 .sync-log-panel .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .sync-log-panel table { min-width: 760px; } /* боковой скролл на узких экранах */
-
-/* ТЗ: мобильная адаптация ЛК поставщика */
-@media (max-width: 640px) {
-  [class*="grid-cols-[230px"] { grid-template-columns: 1fr !important; }
-  .lk-wrap { padding-left: 0.75rem; padding-right: 0.75rem; }
-  [class*="max-w-[1080px]"] { max-width: 100% !important; }
-}
-/* lk-mobile-fix */
