@@ -600,7 +600,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                 {linkOpen && (
                   <div className="px-4 pb-4 pt-3 border-t border-brand-gray-mid animate-fade-in">
                     <p className="text-xs text-gray-400 mb-3">По ссылке поставщик сам заполняет склады и условия сервиса поиска. Защита — секретный токен{sa?.pin ? ' + PIN-код' : ''}.</p>
-                    {sa?.enabled && sa?.pin ? ( // ТЗ: ссылка активна только при установленном PIN-коде
+                    {sa?.enabled ? (
                       <>
                         <div className="flex items-stretch gap-2 mb-3">
                           <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-50 border border-brand-gray-mid rounded-lg px-3">
@@ -658,7 +658,10 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                     ) : (
                       <div className="text-center py-3">
                         <p className="text-xs text-gray-400 mb-3 max-w-md mx-auto">Поставщик получит персональную ссылку с секретным токеном и сможет сам заполнить склады и условия сервиса поиска.</p>
-                        <button onClick={() => patchServiceAccess({ enabled: true }, 'Выдана ссылка самообслуживания')} className="btn-primary text-xs flex items-center gap-1 mx-auto"><Link2 size={12} /> Выдать ссылку</button>
+                        <button onClick={() => {
+                          if (!freshSupplier.serviceAccess?.pin) { window.alert('Сначала установите PIN-код — без него вход поставщика в ЛК невозможен.'); return; }
+                          patchServiceAccess({ enabled: true }, 'Выдана ссылка самообслуживания');
+                        }} className="btn-primary text-xs flex items-center gap-1 mx-auto"><Link2 size={12} /> Выдать ссылку</button>
                       </div>
                     )}
                   </div>

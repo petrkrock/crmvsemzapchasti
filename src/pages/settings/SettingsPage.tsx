@@ -579,7 +579,7 @@ const [tab, setTab] = useState('Статусы');
   // Тип дашборда менеджера определяет доступные разделы (ТЗ v1.21.6): МОП — только покупательские,
   // МОЗ — только поставщические; недоступные блоки скрываем, а права на сохранении принудительно снимаем.
   const DASH_SECTIONS: Record<'mop' | 'moz', Array<keyof AppUser['permissions']>> = {
-    mop: ['dashboard', 'planfact', 'buyers', 'tasks', 'support', 'leads', 'knowledge'],
+    mop: ['dashboard', 'planfact', 'buyers', 'tasks', 'support', 'leads', 'pricing', 'knowledge'], // ТЗ: Проценка — в обоих типах
     moz: ['dashboard', 'planfact', 'suppliers', 'tasks', 'support', 'leads', 'media', 'pricing', 'knowledge'], // ТЗ: +Проценка (МОЗ)
   };
   const applyDashboardSections = (role: AppUser['role'], dashboardType: 'mop' | 'moz' | undefined, perms: AppUser['permissions']): AppUser['permissions'] => {
