@@ -168,7 +168,11 @@ function withStatuses(
     const CLIENT_OK = (st: string) => st === 'Новое' || st === 'Есть изменения' || st === 'Удаление';
     const changed = SS_KEYS.some((k) => String(match[k] ?? '').trim() !== c[k]);
     if (changed && prev === 'Загружено') return { ...c, status: 'Есть изменения' };
-    if (!changed) return { ...c, status: CLIENT_OK(inc) ? inc : (CLIENT_OK(prev) ? prev : 'Новое') };
+    // Косяки ч.5: условие БЕЗ изменений сохраняет свой текущий статус — «Загружено»
+    // не должно сбрасываться в «Новое» при пересохранении списка (например, когда
+    // поставщик удаляет другое условие и шлёт весь массив обратно).
+    // Legacy-условия без статуса → «Загружено» (согласно описанию функции выше).
+    if (!changed) return { ...c, status: match.status ? prev : 'Загружено' };
     return { ...c, status: CLIENT_OK(prev) ? prev : 'Новое' };
   });
 }
