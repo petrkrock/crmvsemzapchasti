@@ -528,6 +528,8 @@ export interface AppUser {
     media: boolean;
     /** Проценка (ТЗ v1.24.0): единое управление условиями DBS всех поставщиков. */
     pricing: boolean;
+    /** Доставка (ТЗ v1.29.0): сервис доставки (DBO) — единый раздел и вкладка анкеты поставщика. */
+    delivery: boolean;
     planfact: boolean;
     analytics: boolean;
     knowledge: boolean;

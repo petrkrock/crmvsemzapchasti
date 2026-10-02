@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Truck, ShoppingCart, CheckSquare,
-  BarChart2, TrendingUp, HeadphonesIcon, Settings, Database, Video, BookOpen, Server, Percent } from 'lucide-react';
+  BarChart2, TrendingUp, HeadphonesIcon, Settings, Database, Video, BookOpen, Server, Percent, Package } from 'lucide-react';
 import { canAccess, isAdmin } from '@/lib/auth';
 
 export interface NavItem {
@@ -24,6 +24,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { to: '/leads', label: 'База лидов', icon: Database, visible: () => canAccess('leads') },
   { to: '/media', label: 'Медиа сервис', icon: Video, visible: () => canAccess('media') },
   { to: '/pricing', label: 'Проценка', icon: Percent, visible: () => canAccess('pricing') },
+  { to: '/delivery', label: 'Доставка', icon: Package, visible: () => canAccess('delivery') },
   { to: '/planfact', label: 'План / Факт', icon: TrendingUp, visible: () => canAccess('planfact') },
   { to: '/analytics', label: 'Аналитика', icon: BarChart2, visible: () => canAccess('analytics') },
   { to: '/settings', label: 'Настройки', icon: Settings, visible: () => isAdmin() },
@@ -39,7 +40,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
  */
 export const NAV_SECTIONS: Array<{ title: string; paths: string[] }> = [
   { title: 'Работа', paths: ['/dashboard', '/planfact', '/suppliers', '/buyers', '/tasks', '/support', '/leads'] },
-  { title: 'Сервисы', paths: ['/media', '/pricing', '/analytics', '/knowledge'] }, // ТЗ v1.24.2: +Проценка
+  { title: 'Сервисы', paths: ['/media', '/pricing', '/delivery', '/analytics', '/knowledge'] }, // ТЗ v1.24.2: +Проценка // v1.29.0: +Доставка
   { title: 'Система', paths: ['/settings', '/database'] },
 ];
 

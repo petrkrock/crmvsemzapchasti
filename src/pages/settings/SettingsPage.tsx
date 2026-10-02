@@ -204,13 +204,14 @@ const [tab, setTab] = useState('Статусы');
   // ── USERS (ТЗ «Управление пользователями») ──
   // Разделы, выдаваемые менеджеру. «Настройки» и «База данных» в списке нет
   // принципиально — они доступны только администратору (ТЗ п.3).
-  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: true, support: true, leads: false, media: false, pricing: false, planfact: false, analytics: false, knowledge: true , planfactEdit: false }; // дефолт менеджера (ТЗ v1.21.6): задачи/поддержка/база знаний — включены, медиа — нет
+  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: true, support: true, leads: false, media: false, pricing: false, delivery: false, planfact: false, analytics: false, knowledge: true , planfactEdit: false }; // дефолт менеджера (ТЗ v1.21.6): задачи/поддержка/база знаний — включены, медиа — нет
   const PERM_LABELS: Array<{ key: keyof AppUser['permissions']; label: string }> = [
     { key: 'dashboard', label: 'Дашборд' }, { key: 'planfact', label: 'План/Факт' },
     { key: 'suppliers', label: 'Поставщики' }, { key: 'buyers', label: 'Покупатели' },
     { key: 'tasks', label: 'Задачи' }, { key: 'support', label: 'Поддержка' },
     { key: 'leads', label: 'База лидов' }, { key: 'media', label: 'Медиа сервис' },
     { key: 'pricing', label: 'Проценка' },
+    { key: 'delivery', label: 'Доставка' },
     { key: 'knowledge', label: 'База знаний' },
   ];
   const [showNewUser, setShowNewUser] = useState(false);
@@ -574,18 +575,19 @@ const [tab, setTab] = useState('Статусы');
     ] },
     { perm: 'media' as const, label: 'Медиа сервис', dims: [] },
     { perm: 'pricing' as const, label: 'Проценка', dims: [] },
+    { perm: 'delivery' as const, label: 'Доставка', dims: [] },
     { perm: 'knowledge' as const, label: 'База знаний', dims: [] },
   ];
   // Тип дашборда менеджера определяет доступные разделы (ТЗ v1.21.6): МОП — только покупательские,
   // МОЗ — только поставщические; недоступные блоки скрываем, а права на сохранении принудительно снимаем.
   const DASH_SECTIONS: Record<'mop' | 'moz', Array<keyof AppUser['permissions']>> = {
     mop: ['dashboard', 'planfact', 'buyers', 'tasks', 'support', 'leads', 'knowledge'],
-    moz: ['dashboard', 'planfact', 'suppliers', 'tasks', 'support', 'leads', 'media', 'pricing', 'knowledge'],
+    moz: ['dashboard', 'planfact', 'suppliers', 'tasks', 'support', 'leads', 'media', 'pricing', 'delivery', 'knowledge'],
   };
   const applyDashboardSections = (role: AppUser['role'], dashboardType: 'mop' | 'moz' | undefined, perms: AppUser['permissions']): AppUser['permissions'] => {
     if (role !== 'manager' || !dashboardType) return perms;
     const next = { ...perms };
-    (dashboardType === 'mop' ? ['suppliers', 'media', 'pricing'] as const : ['buyers'] as const).forEach(k => { next[k] = false; });
+    (dashboardType === 'mop' ? ['suppliers', 'media', 'pricing', 'delivery'] as const : ['buyers'] as const).forEach(k => { next[k] = false; });
     return next;
   };
   // Порядок блоков «Доступ к разделам» (ТЗ v1.21.0): Дашборд → План/Факт → Поставщики → Покупатели →
@@ -597,6 +599,7 @@ const [tab, setTab] = useState('Статусы');
     sectionByPerm('dashboard'), sectionByPerm('planfact'), sectionByPerm('suppliers'), sectionByPerm('buyers'),
     sectionByPerm('tasks'), sectionByPerm('support'), sectionByPerm('leads'), sectionByPerm('media'),
     sectionByPerm('pricing'),
+    sectionByPerm('delivery'),
     adminRow('Аналитика'),
     sectionByPerm('knowledge'),
     adminRow('Настройки'),

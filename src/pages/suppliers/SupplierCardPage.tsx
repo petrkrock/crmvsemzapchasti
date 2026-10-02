@@ -24,7 +24,7 @@ import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import { toast } from 'sonner';
 import ContactPrefIcon from '@/components/features/ContactPrefIcons';
 
-const TABS = ['Анкета', 'Склад', 'Сервис проценки (DBS)', 'Скоринг', 'Дополнительно', 'История'];
+const TABS = ['Анкета', 'Склад', 'Сервис проценки (DBS)', 'Доставка (DBO)', 'Скоринг', 'Дополнительно', 'История'];
 const SS_FIELDS: { key: keyof ServiceSearchCondition; label: string }[] = [
   { key: 'city', label: 'Город показов' }, { key: 'warehouseName', label: 'Склад поставщика' },
   { key: 'representative', label: 'Представитель' }, { key: 'contacts', label: 'Контакты' },
@@ -848,6 +848,13 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {tab === 'Доставка (DBO)' && (
+            <div className="card-base p-8 text-center">
+              <p className="text-sm font-semibold text-gray-700">Доставка (DBO)</p>
+              <p className="text-xs text-gray-400 mt-2">Функционал вкладки появится в следующих обновлениях.</p>
             </div>
           )}
 

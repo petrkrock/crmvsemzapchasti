@@ -20,6 +20,7 @@ const EntityExportPage = lazy(() => import('@/pages/EntityExportPage'));
 const TicketCardPage = lazy(() => import('@/pages/support/TicketCardPage'));
 const MediaPage = lazy(() => import('@/pages/media/MediaPage'));
 const PricingPage = lazy(() => import('@/pages/pricing/PricingPage'));
+const DeliveryPage = lazy(() => import('@/pages/delivery/DeliveryPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const DatabasePage = lazy(() => import('@/pages/database/DatabasePage'));
 const ServerPage = lazy(() => import('@/pages/server/ServerPage'));
@@ -179,6 +180,7 @@ export default function App() {
           <Route path="support/:id" element={<RequireAccess section="support"><TicketGuard><TicketCardPage /></TicketGuard></RequireAccess>} />
           <Route path="media" element={<RequireAccess section="media"><MediaPage /></RequireAccess>} />
         <Route path="pricing" element={<RequireAccess section="pricing"><PricingPage /></RequireAccess>} />
+          <Route path="delivery" element={<RequireAccess section="delivery"><DeliveryPage /></RequireAccess>} />
           <Route path="planfact" element={<RequireAccess section="planfact"><PlanFactPage /></RequireAccess>} />
           <Route path="analytics" element={<RequireAccess section="analytics"><AnalyticsPage /></RequireAccess>} />
           <Route path="dashboard-preview/:type" element={<RequireAuth><DashboardPreviewRoute /></RequireAuth>} />

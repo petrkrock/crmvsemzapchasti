@@ -86,7 +86,7 @@ function defaultAdmin(): AppUser {
     id: 'admin-1', name: 'Администратор', email: 'admin@vz.tech', password: 'admin123',
     role: 'admin',
     // Администратору все разделы доступны всегда — permissions/access для него не используются
-    permissions: { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true },
+    permissions: { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, pricing: true, delivery: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true },
     access: { ...EMPTY_ACCESS },
     note: '',
     status: 'active',
@@ -510,7 +510,7 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     });
 
     // Migrate user permissions
-    settings.users = settings.users.map(u => ({ ...u, permissions: { media: true, ...u.permissions } }));
+    settings.users = settings.users.map(u => ({ ...u, permissions: { delivery: u.role === 'admin', media: true, ...u.permissions } }));
 
     // Migrate media records: ensure new fields exist
     parsed.mediaRecords = (parsed.mediaRecords || []).map(r => ({
