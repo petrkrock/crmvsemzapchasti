@@ -339,6 +339,7 @@ export default function PricingPage() {
                 <th className="table-header">Срок поставки</th>
                 <th className="table-header">Условия доставки</th>
                 <th className="table-header">Статус</th>
+                <th className="table-header w-10 text-right"></th>
               </tr>
             </thead>
             <tbody>
@@ -604,7 +605,7 @@ export default function PricingPage() {
             </thead>
             <tbody>
               {whFiltered.length === 0 && (
-                <tr><td className="table-cell text-gray-400 text-center py-8" colSpan={6}>Склады не найдены.</td></tr>
+                <tr><td className="table-cell text-gray-400 text-center py-8" colSpan={7}>Склады не найдены.</td></tr>
               )}
               {whFiltered.map(({ s, w, idx, key }) => {
                 const open = whExp === key;
@@ -623,15 +624,17 @@ export default function PricingPage() {
                         <select className="form-input text-xs py-1 w-auto" value={whStatus(w)} onChange={e => changeWhStatus(s.id, idx, w, e.target.value)}>
                           {(['Новый', 'Проверен', 'Заморожен'] as const).map(st => <option key={st} value={st}>{st}</option>)}
                         </select>
+                      </td>
+                      <td className="table-cell text-right" onClick={e => e.stopPropagation()}>
                         <button type="button" title="Удалить склад" onClick={e => { e.stopPropagation(); deleteWh(s.id, idx, w.city); }}
-                          className="ml-2 w-7 h-7 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 inline-flex items-center justify-center transition-colors align-middle">
+                          className="w-7 h-7 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 inline-flex items-center justify-center transition-colors align-middle">
                           <Trash2 size={13} />
                         </button>
                       </td>
                     </tr>
                     {open && whDraft && (
                       <tr className="border-b border-brand-gray-mid bg-gray-50">
-                        <td colSpan={6} className="px-4 py-3">
+                        <td colSpan={7} className="px-4 py-3">
                           <div className="flex flex-wrap items-end gap-2 text-xs">
                             <div className="min-w-[180px]"><label className={lblCls}>Город (название) склада</label>
                               <input className={inCls + ' w-full'} value={whDraft.city || ''} onChange={e => setWhDraft(d => d && { ...d, city: e.target.value })} /></div>

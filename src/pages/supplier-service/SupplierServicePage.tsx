@@ -96,7 +96,7 @@ export default function SupplierServicePage() {
     if (initialLoadDone.current) return;
     // ТЗ v1.23.55: при живой сессии грузим данные НЕМЕДЛЕННО, не дожидаясь GET-метаданных —
     // убирает видимую задержку «условия появляются не сразу».
-    if (pinPassed) { initialLoadDone.current = true; post({}).then(err => { if (err) { initialLoadDone.current = false; setNotice(err); } }); return; }
+    if (pinPassed) { initialLoadDone.current = true; post({}).then(err => { if (err) { initialLoadDone.current = false; setNotice(err); sessionStorage.removeItem('dbs_pin_ok'); sessionStorage.removeItem('dbs_pin'); setPinPassed(false); } }); return; }
     if (!data) return;                    // hasPin ещё неизвестен — ждём GET
     if (data.hasPin) return;              // ждём ввод PIN
     initialLoadDone.current = true;
@@ -163,7 +163,11 @@ export default function SupplierServicePage() {
     setPinError('');
     const err = await post({}); // пустой PATCH — сервер проверит PIN (403 при неверном)
     if (err) { setPinError(err); setPin(''); }
-    else { sessionStorage.setItem('dbs_pin_ok','1'); sessionStorage.setItem('dbs_pin', pin); } setPinPassed(true);
+    else {
+      sessionStorage.setItem('dbs_pin_ok','1');
+      sessionStorage.setItem('dbs_pin', pin);
+      setPinPassed(true);
+    }
   }
 
   async function addWarehouse() {
