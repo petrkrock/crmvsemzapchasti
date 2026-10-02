@@ -94,6 +94,8 @@ export default function SupplierCardPage() {
   const [whEditForm, setWhEditForm] = useState({ city: '', skuCount: 0, address: '' }); // ТЗ v1.25.0: +адрес
   const [ssFilterCity, setSsFilterCity] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
+  const [deliveryLinkOpen, setDeliveryLinkOpen] = useState(false);
+  const [deliveryPinDraft, setDeliveryPinDraft] = useState('');
   const form: Supplier = formState || (freshSupplier ? { ...freshSupplier } : {} as Supplier);
   const setForm = (updater: Supplier | ((prev: Supplier) => Supplier)) => {
     setFormState(prev => {
@@ -300,6 +302,15 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
     const next = { ...current, ...patch };
     updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, serviceAccess: next, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
     pushSupplierHistory(makeHistoryEntry('serviceAccess', JSON.stringify(freshSupplier.serviceAccess || null), JSON.stringify(next), comment, getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
+    forceUpdate(n => n + 1);
+  }
+
+  // v1.29.0: доступ к ЛК доставки (DBO) — свои настройки, с DBS не связан
+  function patchDeliveryAccess(patch: Partial<NonNullable<Supplier['deliveryAccess']>>, comment: string) {
+    const current: NonNullable<Supplier['deliveryAccess']> = freshSupplier.deliveryAccess || { token: genToken(), enabled: true, createdAt: new Date().toISOString() };
+    const next = { ...current, ...patch };
+    updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, deliveryAccess: next, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
+    pushSupplierHistory(makeHistoryEntry('deliveryAccess', JSON.stringify(freshSupplier.deliveryAccess || null), JSON.stringify(next), comment, getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
     forceUpdate(n => n + 1);
   }
 
@@ -852,9 +863,31 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
           )}
 
           {tab === 'Доставка (DBO)' && (
-            <div className="card-base p-8 text-center">
-              <p className="text-sm font-semibold text-gray-700">Доставка (DBO)</p>
-              <p className="text-xs text-gray-400 mt-2">Функционал вкладки появится в следующих обновлениях.</p>
+            <div className="card-base p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="section-title">ЛК - Сервис доставки</h3>
+                {freshSupplier.deliveryAccess?.token ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button type="button" onClick={() => { const url = `${window.location.origin}/d/${freshSupplier.deliveryAccess!.token}`; navigator.clipboard?.writeText(url); toast.success('Ссылка скопирована'); }} className="btn-secondary text-xs">Копировать ссылку</button>
+                    <button type="button" onClick={() => patchDeliveryAccess({}, 'Ссылка ЛК доставки перевыпущена')} className="btn-secondary text-xs">Перевыпустить ссылку</button>
+                    <button type="button" onClick={() => { if (!window.confirm('Отключить доступ поставщика к ЛК доставки?')) return; patchDeliveryAccess({ enabled: false }, 'Доступ к ЛК доставки отключён'); toast.success('Доступ к ЛК доставки отключён'); }} className="btn-secondary text-xs !text-red-600">Отключить доступ</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => patchDeliveryAccess({}, 'Выдан доступ к ЛК доставки')} className="btn-primary text-xs">Выдать ссылку</button>
+                )}
+              </div>
+              {freshSupplier.deliveryAccess?.token && (
+                <div className="space-y-2 text-xs">
+                  <p><span className="text-gray-400">Ссылка:</span> <button type="button" onClick={() => setDeliveryLinkOpen(v => !v)} className="text-blue-600 underline break-all">{deliveryLinkOpen ? `${window.location.origin}/d/${freshSupplier.deliveryAccess.token}` : '••• нажмите, чтобы показать'}</button></p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-gray-400">PIN:</span>
+                    <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft} maxLength={6} onChange={e => setDeliveryPinDraft(e.target.value.replace(/\D/g, ''))} />
+                    <button type="button" onClick={() => { if (!deliveryPinDraft || deliveryPinDraft.length < 4) { toast.error('PIN от 4 до 6 цифр'); return; } patchDeliveryAccess({ pin: deliveryPinDraft }, 'PIN ЛК доставки изменён'); setDeliveryPinDraft(''); }} className="btn-secondary text-xs">Сохранить PIN</button>
+                    <span className="text-[10px] font-semibold text-red-600">PIN-код обязателен к заполнению · 4–6 цифр</span>
+                  </div>
+                  <p><span className="text-gray-400">Статус:</span> {freshSupplier.deliveryAccess.enabled ? <span className="text-green-600 font-medium">активен</span> : <span className="text-gray-500">отключён</span>}</p>
+                </div>
+              )}
             </div>
           )}
 

@@ -10,7 +10,8 @@ import './index.css';
 // просто не запрашивается.
 const isPublicRoute =
   window.location.pathname.startsWith('/forms/') ||
-  window.location.pathname.startsWith('/s/');
+  window.location.pathname.startsWith('/s/') ||
+  window.location.pathname.startsWith('/d/'); // v1.29.0: ЛК доставки (DBO)
 
 async function bootstrap() {
   const rootEl = document.getElementById('root')!;

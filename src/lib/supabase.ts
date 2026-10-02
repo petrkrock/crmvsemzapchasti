@@ -156,6 +156,7 @@ function mapSupplier(row: Record<string, unknown>): Supplier {
     requisites: (row.requisites as Supplier['requisites']) ?? undefined,
     serviceSearch: (row.service_search as Supplier['serviceSearch']) || [],
     serviceAccess: (row.service_access as Supplier['serviceAccess']) ?? undefined,
+    deliveryAccess: (row.delivery_access as Supplier['deliveryAccess']) ?? undefined,
     history: (row.history as Supplier['history']) || [],
     additionalContacts: (row.additional_contacts as string) ?? undefined,
     additionalComment: (row.additional_comment as string) ?? undefined,
@@ -201,6 +202,7 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.requisites !== undefined) db.requisites = s.requisites;
   if (s.serviceSearch !== undefined) db.service_search = s.serviceSearch;
   if (s.serviceAccess !== undefined) db.service_access = s.serviceAccess;
+  if (s.deliveryAccess !== undefined) db.delivery_access = s.deliveryAccess;
   if (s.history !== undefined) db.history = s.history;
   if (s.additionalContacts !== undefined) db.additional_contacts = orNull(s.additionalContacts);
   if (s.additionalComment !== undefined) db.additional_comment = orNull(s.additionalComment);

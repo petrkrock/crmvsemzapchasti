@@ -310,6 +310,8 @@ export interface Supplier {
   serviceSearch?: ServiceSearchCondition[];
   /** Доступ к самообслуживанию: поставщик сам заполняет склады и условия сервиса поиска по ссылке /s/<token> */
   serviceAccess?: { token: string; pin?: string; enabled: boolean; createdAt: string };
+  /** v1.29.0: Доставка (DBO) — доступ к ЛК доставки по ссылке /d/<token>. СВОЯ настройка, с DBS не связана. */
+  deliveryAccess?: { token: string; pin?: string; enabled: boolean; createdAt: string };
   history: HistoryEntry[];
   additionalContacts?: string;
   additionalComment?: string;
