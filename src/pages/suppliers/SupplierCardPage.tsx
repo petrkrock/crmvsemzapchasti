@@ -629,7 +629,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                             const phrase = window.prompt('Перевыпуск убьёт текущую ссылку. Введите слово: перевыпустить');
                             if (phrase === null) return;
                             if (phrase.trim().toLowerCase() !== 'перевыпустить') { toast.error('Фраза не совпала — ссылка не перевыпущена'); return; }
-                            patchServiceAccess({ token: genToken() }, 'Ссылка самообслуживания перевыпущена');
+                            patchServiceAccess({ token: genToken(), enabled: true }, 'Ссылка самообслуживания перевыпущена');
                             toast.success('Ссылка перевыпущена, старая недействительна');
                           }} className="btn-secondary text-xs flex items-center gap-1"><RotateCcw size={12} /> Перевыпустить ссылку</button>
                   <button onClick={() => {
@@ -651,7 +651,12 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                             if (phrase === null) return;
                             if (phrase.trim().toLowerCase() !== 'отключить') { toast.error('Фраза не совпала — доступ НЕ отключён'); return; }
                             patchServiceAccess({ enabled: false }, 'Доступ поставщика отключён');
-                            toast.success('Доступ отключён');
+                            // Косяки ч.3: при отключении ЛК удаляем связанные склады и условия проценки
+                            updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, warehouseLocations: [], serviceSearch: [], warehouseCount: 0, skuCount: 0, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
+                            pushSupplierHistory(makeHistoryEntry('warehouseLocations', JSON.stringify(freshSupplier.warehouseLocations || []), '[]', 'Удаление складов при отключении доступа', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
+                            pushSupplierHistory(makeHistoryEntry('serviceSearch', JSON.stringify(freshSupplier.serviceSearch || []), '[]', 'Удаление условий сервиса проценки при отключении доступа', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
+                            forceUpdate(n => n + 1);
+                            toast.success('Доступ отключён, склады и условия удалены');
                           }} className="text-xs text-red-600 hover:underline ml-auto">Отключить доступ</button>
                         </div>
                       </>
