@@ -42,6 +42,8 @@ CREATE TABLE public.suppliers (
   multiWarehouse      BOOLEAN NOT NULL DEFAULT FALSE,
   service_search      JSONB NOT NULL DEFAULT '[]'::jsonb,
   service_access      JSONB,
+  -- v1.29.0: Доставка (DBO) — чистый ЛК поставщика по ссылке /d/<token> (токен/PIN). С DBS не связан.
+  delivery_access     JSONB,
   history             JSONB NOT NULL DEFAULT '[]'::jsonb,
   additional_contacts TEXT,
   additional_comment  TEXT,
