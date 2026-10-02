@@ -207,7 +207,7 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.fromApi !== undefined) db.from_api = s.fromApi;
   if (s.responsibleId !== undefined) db.responsible_id = orNull(s.responsibleId);
   if (s.responsibleName !== undefined) db.responsible_name = orNull(s.responsibleName);
-  if (s.deletedAt !== undefined) db.deleted_at = orNull(s.deletedAt);
+  db.deleted_at = orNull(s.deletedAt);
   return db;
 }
 
@@ -277,7 +277,7 @@ function mapBuyerToDb(b: Partial<Buyer>): Record<string, unknown> {
   if (b.fromApi !== undefined) db.from_api = b.fromApi;
   if (b.responsibleId !== undefined) db.responsible_id = orNull(b.responsibleId);
   if (b.responsibleName !== undefined) db.responsible_name = orNull(b.responsibleName);
-  if (b.deletedAt !== undefined) db.deleted_at = orNull(b.deletedAt);
+  db.deleted_at = orNull(b.deletedAt);
   return db;
 }
 
@@ -315,7 +315,7 @@ function mapTaskToDb(t: Partial<Task>): Record<string, unknown> {
   if (t.taskStatus !== undefined) db.task_status = t.taskStatus;
   if (t.completed !== undefined) db.completed = t.completed;
   if (t.resolvedAt !== undefined) db.resolved_at = orNull(t.resolvedAt);
-  if (t.deletedAt !== undefined) db.deleted_at = orNull(t.deletedAt);
+  db.deleted_at = orNull(t.deletedAt);
   if (t.history !== undefined) db.history = t.history;
   if (t.priority !== undefined) db.priority = t.priority;
   if (t.responsibleId !== undefined) db.responsible_id = orNull(t.responsibleId);
@@ -372,7 +372,7 @@ function mapTicketToDb(t: Partial<Ticket>): Record<string, unknown> {
   if (t.fromApi !== undefined) db.from_api = t.fromApi;
   if (t.responsibleId !== undefined) db.responsible_id = orNull(t.responsibleId);
   if (t.responsibleName !== undefined) db.responsible_name = orNull(t.responsibleName);
-  if (t.deletedAt !== undefined) db.deleted_at = orNull(t.deletedAt);
+  db.deleted_at = orNull(t.deletedAt);
   return db;
 }
 
@@ -417,7 +417,7 @@ function mapMediaRecordToDb(r: Partial<MediaRecord>): Record<string, unknown> {
   if (r.expandedNotes !== undefined) db.expanded_notes = orNull(r.expandedNotes);
   if (r.responsibleId !== undefined) db.responsible_id = orNull(r.responsibleId);
   if (r.responsibleName !== undefined) db.responsible_name = orNull(r.responsibleName);
-  if (r.deletedAt !== undefined) db.deleted_at = orNull(r.deletedAt);
+  db.deleted_at = orNull(r.deletedAt);
   return db;
 }
 

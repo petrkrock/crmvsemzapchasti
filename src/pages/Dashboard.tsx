@@ -32,13 +32,19 @@ export default function Dashboard() {
   const okSupport = canAccess('support');
   const okMedia = canAccess('media');
   // Сервис поиска: условия, ожидающие обработки менеджером (всё, что не «Загружено»)
-  const ssItems = (okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : []).flatMap(sup =>
-    (sup.serviceSearch || [])
+  const ssItems = (okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : []).flatMap(sup => [
+    ...(sup.serviceSearch || [])
       .filter(c => (c.status || 'Новое') !== 'Загружено')
-      .map(c => ({ supplierId: sup.id, supplierName: sup.tradeName, city: c.city, status: c.status || 'Новое' })).filter(c => canSeeDashboardCity(c.city))
-  );
+      .map(c => ({ supplierId: sup.id, supplierName: sup.tradeName, city: c.city, status: c.status || 'Новое' })).filter(c => canSeeDashboardCity(c.city)),
+    // Косяки ч.4: в общую ленту добавляем склады в статусе «Новый»
+    ...(sup.warehouseLocations || [])
+      .filter(w => (w.status || (w.verified ? 'Проверен' : 'Новый')) === 'Новый')
+      .map(w => ({ supplierId: sup.id, supplierName: sup.tradeName, city: w.city, status: 'Новый' as const }))
+      .filter(w => canSeeDashboardCity(w.city)),
+  ]);
   const ssNew = ssItems.filter(i => i.status === 'Новое').length;
-  const ssChanged = ssItems.length - ssNew;
+  const ssWh = ssItems.filter(i => i.status === 'Новый').length;
+  const ssChanged = ssItems.length - ssNew - ssWh;
 
   const activeSuppliers = okSup ? store.suppliers.filter(s => !s.deletedAt && canSeeSupplier(s)) : [];
   const activeBuyers = okBuy ? store.buyers.filter(b => !b.deletedAt && canSeeBuyer(b)) : [];
@@ -318,21 +324,21 @@ export default function Dashboard() {
             <div className="card-base p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-brand-black">Сервис проценки: требует внимания</h3>
-          <span className="text-xs text-gray-400">Новое: <b className="text-brand-black">{ssNew}</b> · Изменения: <b className="text-brand-black">{ssChanged}</b></span>
+          <span className="text-xs text-gray-400">Новое: <b className="text-brand-black">{ssNew}</b> · Склады: <b className="text-brand-black">{ssWh}</b> · Изменения: <b className="text-brand-black">{ssChanged}</b></span>
         </div>
         {ssItems.length === 0 ? (
           <p className="text-sm text-gray-400">Все условия загружены на платформу</p>
         ) : (
-          <div className="space-y-2">
-            {ssItems.slice(0, 5).map((item, i) => (
+          <div className="space-y-1.5">
+            {ssItems.slice(0, 10).map((item, i) => (
               <button key={i} onClick={() => navigate(`/suppliers/${item.supplierId}`)}
-                className="w-full flex items-center gap-3 text-left px-3 py-2 rounded-xl hover:bg-brand-gray transition-colors">
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${item.status === 'Новое' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{item.status}</span>
+                className="w-full flex items-center gap-2 text-left px-3 py-1.5 rounded-xl hover:bg-brand-gray transition-colors">
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${item.status === 'Новое' ? 'bg-red-50 text-red-700 border border-red-200' : item.status === 'Новый' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>{item.status}</span>
                 <span className="text-sm text-brand-black font-medium truncate">{item.supplierName}</span>
                 <span className="text-xs text-gray-400 ml-auto flex-shrink-0">{item.city}</span>
               </button>
             ))}
-            {ssItems.length > 6 && <p className="text-xs text-gray-400 text-center">и ещё {ssItems.length - 6}…</p>}
+            {ssItems.length > 10 && <p className="text-xs text-gray-400 text-center">и ещё {ssItems.length - 10}…</p>}
           </div>
         )}
       </div>
