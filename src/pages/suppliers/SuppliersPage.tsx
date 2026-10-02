@@ -65,8 +65,7 @@ export default function SuppliersPage() {
   const [filterStatus, setFilterStatus] = useState(urlParams.get('status') || ''); // v_1.9: ?status= из дашборда
   const [filterService, setFilterService] = useState('');
   const [filterCity, setFilterCity] = useState('');
-  const [filterSs, setFilterSs] = useState('');
-  const [filterResponsible, setFilterResponsible] = useState('');
+    const [filterResponsible, setFilterResponsible] = useState('');
   const [filterType, setFilterType] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [filterStm, setFilterStm] = useState(false);
@@ -129,8 +128,7 @@ export default function SuppliersPage() {
     // ТЗ 1.8: сервисы — мультивыбор; поставщик проходит, если есть хотя бы один выбранный сервис
     if (servicesSel.length) list = list.filter(s => (s.services || []).some(x => servicesSel.includes(x)));
     if (filterCity) list = list.filter(s => s.city === filterCity);
-    if (filterSs) list = list.filter(s => (s.serviceSearch || []).some(c => (c.status || 'Новое') === filterSs));
-    if (filterType) list = list.filter(s => s.type === filterType);
+        if (filterType) list = list.filter(s => s.type === filterType);
     if (filterResponsible === '__none__') list = list.filter(s => !s.responsibleId);
     else if (filterResponsible) list = list.filter(s => s.responsibleId === filterResponsible);
 
@@ -140,7 +138,7 @@ export default function SuppliersPage() {
     else list = list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return { list, statusCounts };
-  }, [store.suppliers, search, filterStatus, filterCity, filterSs, filterType, showArchived, filterStm, whFilter, smFilter, sortScore, sortDate, filterResponsible, noScoringOnly, catSel, servicesSel]);
+  }, [store.suppliers, search, filterStatus, filterCity, filterType, showArchived, filterStm, whFilter, smFilter, sortScore, sortDate, filterResponsible, noScoringOnly, catSel, servicesSel]);
   useEffect(() => { setListShown(listLimit); }, [suppliers]); // сброс подгрузки при смене фильтров/поиска
 
 
@@ -448,12 +446,6 @@ function handleMassStatus() {
           <select className="form-input py-1.5 text-xs w-auto" value={filterCity} onChange={e => setFilterCity(e.target.value)}><option value="">Все города</option>{cities.map(c => <option key={c}>{c}</option>)}</select>
           <select className="form-input py-1.5 text-xs w-auto" value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)}><option value="">Все ответственные</option>
             <option value="__none__">Без ответственного</option>{store.settings.users.filter(u => u.status === 'active').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
-          <select className="form-input py-1.5 text-xs w-auto" value={filterSs} onChange={e => setFilterSs(e.target.value)}>
-            <option value="">DBS: все</option>
-            <option>Новое</option>
-            <option>Загружено</option>
-            <option>Есть изменения</option>
-          </select>
           <button onClick={() => setFilterStm(v => !v)} className={`btn-secondary text-xs py-1.5 ${filterStm ? 'bg-gray-200' : ''}`}>{filterStm ? 'СТМ ✓' : 'СТМ'}</button>
           <button onClick={() => setSmFilter(v => (v + 1) % 3)} className={`btn-secondary text-xs py-1.5 flex items-center gap-1.5 ${smFilter === 1 ? 'border-red-500 text-red-600' : smFilter === 2 ? 'border-green-500 text-green-600' : ''}`}>ЛК <span className="inline-block w-2 h-2 rounded-full bg-blue-500" title="1-й клик — без ссылки, 2-й — со ссылкой, 3-й — сброс" /></button>
           <button onClick={() => setWhFilter(v => (v + 1) % 3)} className={`btn-secondary text-xs py-1.5 flex items-center gap-1.5 ${whFilter === 1 ? 'border-red-500 text-red-600' : whFilter === 2 ? 'border-green-500 text-green-600' : ''}`}>СКЛАД <span className="inline-block w-2 h-2 rounded-full bg-red-500" title="1-й клик — без складов, 2-й — со складами, 3-й — сброс" /></button>

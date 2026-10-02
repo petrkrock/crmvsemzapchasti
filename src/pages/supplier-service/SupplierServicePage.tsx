@@ -352,6 +352,7 @@ export default function SupplierServicePage() {
                                 className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                                 title="Нажмите для подсказки">выкл ⓘ</button>}
                         </span>
+                        <div className="flex items-center gap-[0.6rem]">
                         <div className="relative">
                           <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
                             className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
@@ -369,6 +370,7 @@ export default function SupplierServicePage() {
                           className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-700 shadow-md flex items-center justify-center transition-colors">
                           <Headset size={17} />
                         </a>
+                        </div>
                       </>
                     );
                   })()}
@@ -707,7 +709,7 @@ export default function SupplierServicePage() {
                 {(() => {
                   const list = data.serviceSearch || [];
                   const filtered = list.filter(c => (statusFilter === 'all' || (c.status || 'Новое') === statusFilter) && (!selectedWh || c.warehouseName === selectedWh) && (!pendingCity || c.city === pendingCity)); // ТЗ v1.23.23: фильтр склад+город
-                  if (!filtered.length) return <p className="text-xs text-gray-400">По выбранным фильтрам (склад/город/статус) условий нет.</p>;
+                  if (!filtered.length) return <p className="text-xs text-gray-400">Выберите склад и создайте условия для проценки в данном городе.</p>;
                   const cell = (label: string, value: React.ReactNode) => (
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">{label}</p>
