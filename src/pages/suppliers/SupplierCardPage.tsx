@@ -594,8 +594,80 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                 <div className="stat-card text-center"><p className="text-xs text-gray-500">Всего SKU</p><p className="text-2xl font-bold text-brand-black">{totalSKU.toLocaleString('ru')}</p></div>
               </div>
               <div>
-                {(() => { const sa = freshSupplier.serviceAccess; return (
-              <div className="card-base mb-4 overflow-hidden">
+                
+            <div className="flex items-center justify-between mb-2">
+                  <h3 className="section-title">Склады по городам</h3>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none mr-1" title="Включает возможность добавлять несколько складов">
+                      <input type="checkbox" className="toggle" checked={Boolean(freshSupplier.multiWarehouse)} onChange={e => {
+                        updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, multiWarehouse: e.target.checked, updatedAt: new Date().toISOString() } : x) }));
+                        forceUpdate(n => n + 1);
+                      }} />
+                      Мультисклад
+                    </label>
+                    <button onClick={() => setNewWarehouse(v => !v)} className="btn-primary text-xs"><Plus size={13} /> Добавить склад</button>
+                  </div>
+                </div>
+                {newWarehouse && (
+                  <div className="card-base p-3 bg-blue-50 border-blue-200 mb-3 animate-fade-in">
+                    <div className="flex gap-3 flex-wrap items-end">
+                      <div className="flex-1 min-w-[140px]"><label className="form-label">Город (название) склада *</label><input className="form-input" placeholder="Город (название) склада" value={whForm.city} onChange={e => setWhForm(f => ({ ...f, city: e.target.value }))} /></div>
+                      <div className="flex-[2] min-w-[220px]"><label className="form-label">Адрес склада</label><input className="form-input" placeholder="Адрес склада" value={whForm.address || ''} onChange={e => setWhForm(f => ({ ...f, address: e.target.value }))} /></div>
+                      <div className="w-32"><label className="form-label">SKU</label><input type="number" min="0" className="form-input" value={whForm.skuCount} onChange={e => setWhForm(f => ({ ...f, skuCount: parseInt(e.target.value) || 0 }))} /></div>
+                      
+                      <div className="flex gap-2"><button onClick={addWarehouseLocation} className="btn-primary text-xs"><Plus size={12} /> Добавить</button><button onClick={() => setNewWarehouse(false)} className="btn-secondary text-xs">Отмена</button></div>
+                    </div>
+                  </div>
+                )}
+                <div className="overflow-hidden rounded-lg border border-brand-gray-mid">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-brand-gray-mid bg-brand-gray"><th className="table-header text-left">Город (название) склада</th>
+                    <th className="table-header text-left">Адрес склада</th><th className="table-header text-right">SKU</th><th className="table-header">Склад подтвержден</th><th className="table-header w-10"></th></tr></thead>
+                    <tbody>
+                      {warehouseLocations.length === 0 && <tr><td colSpan={5} className="text-center py-6 text-gray-400 text-xs">Нет складов. Добавьте первый.</td></tr>}
+                      {warehouseLocations.map(wl => (
+                        <tr key={wl.id} className={`border-b border-brand-gray-mid last:border-0 hover:bg-brand-gray ${wl.status === 'Заморожен' ? 'opacity-50 bg-gray-50' : ''}`}>
+                          {editingWhId === wl.id ? (<>
+                            <td className="table-cell"><input className="form-input text-xs" value={whEditForm.city} onChange={e => setWhEditForm(f => ({ ...f, city: e.target.value }))} /></td>
+                            <td className="table-cell"><input className="form-input text-xs w-56" placeholder="Адрес склада" value={whEditForm.address} onChange={e => setWhEditForm(f => ({ ...f, address: e.target.value }))} /></td>
+                            <td className="table-cell text-right"><input type="number" min="0" className="form-input text-xs w-24 text-right" value={whEditForm.skuCount} onChange={e => setWhEditForm(f => ({ ...f, skuCount: parseInt(e.target.value) || 0 }))} /></td>
+                          </>) : (<>
+                            <td className="table-cell font-medium">{wl.city}</td>
+                            <td className="table-cell text-xs text-gray-600">{wl.address || '—'}</td>
+                            <td className="table-cell text-right text-xs text-gray-600">{wl.skuCount.toLocaleString('ru')}</td>
+                          </>)}
+                          <td className="table-cell">
+                            <span className={`text-xs font-medium mr-2 ${wl.status === 'Проверен' ? 'text-green-600' : 'text-gray-400'}`}>{wl.status === 'Проверен' ? 'Да' : 'Нет'}</span>
+                            <select className="form-input text-xs w-32" value={wl.status || 'Новый'} onChange={e => setWarehouseStatus(wl.id, e.target.value as WarehouseStatus)}>
+                              <option value="Новый">Новый</option><option value="Проверен">Проверен</option><option value="Заморожен">Заморожен</option>
+                            </select>
+                          </td>
+                          <td className="table-cell">
+                            <span className="flex gap-1 justify-end">
+                              {editingWhId === wl.id ? (<>
+                                <button onClick={() => saveWarehouseEdit(wl.id)} className="p-1 text-green-600" title="Сохранить"><Save size={13} /></button>
+                                <button onClick={() => setEditingWhId(null)} className="p-1 text-gray-300 hover:text-gray-500"><X size={13} /></button>
+                              </>) : (
+                                <button onClick={() => startEditWarehouse(wl)} className="p-1 text-gray-300 hover:text-blue-600" title="Редактировать"><Pencil size={13} /></button>
+                              )}
+                              <button onClick={() => removeWarehouseLocation(wl.id, wl.city)} className="p-1 text-gray-300 hover:text-brand-red"><Trash2 size={13} /></button>
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'Скоринг' && <ScoringTab scoring={freshSupplier.scoring || {}} inn={freshSupplier.inn} onSave={saveScoring} onRescore={() => runScoring(true)} />}
+
+          {tab === 'Сервис проценки (DBS)' && (
+            <div className="space-y-4">
+              {(() => { const sa = freshSupplier.serviceAccess; return (
+<div className="card-base mb-4 overflow-hidden">
                 <button onClick={() => setLinkOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors">
                   <span className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
                     <Link2 size={17} className="text-brand-red" />
@@ -680,78 +752,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   </div>
                 )}
               </div>
-            ); })()}
-            <div className="flex items-center justify-between mb-2">
-                  <h3 className="section-title">Склады по городам</h3>
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none mr-1" title="Включает возможность добавлять несколько складов">
-                      <input type="checkbox" className="toggle" checked={Boolean(freshSupplier.multiWarehouse)} onChange={e => {
-                        updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, multiWarehouse: e.target.checked, updatedAt: new Date().toISOString() } : x) }));
-                        forceUpdate(n => n + 1);
-                      }} />
-                      Мультисклад
-                    </label>
-                    <button onClick={() => setNewWarehouse(v => !v)} className="btn-primary text-xs"><Plus size={13} /> Добавить склад</button>
-                  </div>
-                </div>
-                {newWarehouse && (
-                  <div className="card-base p-3 bg-blue-50 border-blue-200 mb-3 animate-fade-in">
-                    <div className="flex gap-3 flex-wrap items-end">
-                      <div className="flex-1 min-w-[140px]"><label className="form-label">Город (название) склада *</label><input className="form-input" placeholder="Город (название) склада" value={whForm.city} onChange={e => setWhForm(f => ({ ...f, city: e.target.value }))} /></div>
-                      <div className="flex-[2] min-w-[220px]"><label className="form-label">Адрес склада</label><input className="form-input" placeholder="Адрес склада" value={whForm.address || ''} onChange={e => setWhForm(f => ({ ...f, address: e.target.value }))} /></div>
-                      <div className="w-32"><label className="form-label">SKU</label><input type="number" min="0" className="form-input" value={whForm.skuCount} onChange={e => setWhForm(f => ({ ...f, skuCount: parseInt(e.target.value) || 0 }))} /></div>
-                      
-                      <div className="flex gap-2"><button onClick={addWarehouseLocation} className="btn-primary text-xs"><Plus size={12} /> Добавить</button><button onClick={() => setNewWarehouse(false)} className="btn-secondary text-xs">Отмена</button></div>
-                    </div>
-                  </div>
-                )}
-                <div className="overflow-hidden rounded-lg border border-brand-gray-mid">
-                  <table className="w-full text-sm">
-                    <thead><tr className="border-b border-brand-gray-mid bg-brand-gray"><th className="table-header text-left">Город (название) склада</th>
-                    <th className="table-header text-left">Адрес склада</th><th className="table-header text-right">SKU</th><th className="table-header">Склад подтвержден</th><th className="table-header w-10"></th></tr></thead>
-                    <tbody>
-                      {warehouseLocations.length === 0 && <tr><td colSpan={5} className="text-center py-6 text-gray-400 text-xs">Нет складов. Добавьте первый.</td></tr>}
-                      {warehouseLocations.map(wl => (
-                        <tr key={wl.id} className={`border-b border-brand-gray-mid last:border-0 hover:bg-brand-gray ${wl.status === 'Заморожен' ? 'opacity-50 bg-gray-50' : ''}`}>
-                          {editingWhId === wl.id ? (<>
-                            <td className="table-cell"><input className="form-input text-xs" value={whEditForm.city} onChange={e => setWhEditForm(f => ({ ...f, city: e.target.value }))} /></td>
-                            <td className="table-cell"><input className="form-input text-xs w-56" placeholder="Адрес склада" value={whEditForm.address} onChange={e => setWhEditForm(f => ({ ...f, address: e.target.value }))} /></td>
-                            <td className="table-cell text-right"><input type="number" min="0" className="form-input text-xs w-24 text-right" value={whEditForm.skuCount} onChange={e => setWhEditForm(f => ({ ...f, skuCount: parseInt(e.target.value) || 0 }))} /></td>
-                          </>) : (<>
-                            <td className="table-cell font-medium">{wl.city}</td>
-                            <td className="table-cell text-xs text-gray-600">{wl.address || '—'}</td>
-                            <td className="table-cell text-right text-xs text-gray-600">{wl.skuCount.toLocaleString('ru')}</td>
-                          </>)}
-                          <td className="table-cell">
-                            <span className={`text-xs font-medium mr-2 ${wl.status === 'Проверен' ? 'text-green-600' : 'text-gray-400'}`}>{wl.status === 'Проверен' ? 'Да' : 'Нет'}</span>
-                            <select className="form-input text-xs w-32" value={wl.status || 'Новый'} onChange={e => setWarehouseStatus(wl.id, e.target.value as WarehouseStatus)}>
-                              <option value="Новый">Новый</option><option value="Проверен">Проверен</option><option value="Заморожен">Заморожен</option>
-                            </select>
-                          </td>
-                          <td className="table-cell">
-                            <span className="flex gap-1 justify-end">
-                              {editingWhId === wl.id ? (<>
-                                <button onClick={() => saveWarehouseEdit(wl.id)} className="p-1 text-green-600" title="Сохранить"><Save size={13} /></button>
-                                <button onClick={() => setEditingWhId(null)} className="p-1 text-gray-300 hover:text-gray-500"><X size={13} /></button>
-                              </>) : (
-                                <button onClick={() => startEditWarehouse(wl)} className="p-1 text-gray-300 hover:text-blue-600" title="Редактировать"><Pencil size={13} /></button>
-                              )}
-                              <button onClick={() => removeWarehouseLocation(wl.id, wl.city)} className="p-1 text-gray-300 hover:text-brand-red"><Trash2 size={13} /></button>
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {tab === 'Скоринг' && <ScoringTab scoring={freshSupplier.scoring || {}} inn={freshSupplier.inn} onSave={saveScoring} onRescore={() => runScoring(true)} />}
-
-          {tab === 'Сервис проценки (DBS)' && (
-            <div className="space-y-4">
+              ); })()}
             {(() => {
               const covered = new Set((freshSupplier.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
               return (
@@ -863,31 +864,89 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
           )}
 
           {tab === 'Доставка (DBO)' && (
-            <div className="card-base p-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="section-title">ЛК - Сервис доставки</h3>
-                {freshSupplier.deliveryAccess?.token ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button type="button" onClick={() => { const url = `${window.location.origin}/d/${freshSupplier.deliveryAccess!.token}`; navigator.clipboard?.writeText(url); toast.success('Ссылка скопирована'); }} className="btn-secondary text-xs">Копировать ссылку</button>
-                    <button type="button" onClick={() => patchDeliveryAccess({}, 'Ссылка ЛК доставки перевыпущена')} className="btn-secondary text-xs">Перевыпустить ссылку</button>
-                    <button type="button" onClick={() => { if (!window.confirm('Отключить доступ поставщика к ЛК доставки?')) return; patchDeliveryAccess({ enabled: false }, 'Доступ к ЛК доставки отключён'); toast.success('Доступ к ЛК доставки отключён'); }} className="btn-secondary text-xs !text-red-600">Отключить доступ</button>
+            <div className="space-y-4">
+              {(() => { const da = freshSupplier.deliveryAccess; return (
+<div className="card-base mb-4 overflow-hidden">
+                <button onClick={() => setLinkOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors">
+                  <span className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <Link2 size={17} className="text-brand-red" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="section-title block">ЛК - Сервис доставки</span>
+                    <span className="text-[11px] text-gray-400 block truncate">
+                      {da?.enabled ? `Самообслуживание активно${da?.pin ? ' · PIN-код установлен' : ''}` : 'Доступ не выдан — поставщик не может заполнять данные самостоятельно'}
+                    </span>
+                  </span>
+                  <span className={`text-gray-400 transition-transform duration-200 ${deliveryLinkOpen ? 'rotate-180' : ''}`}><ChevronDown size={16} /></span>
+                </button>
+                {deliveryLinkOpen && (
+                  <div className="px-4 pb-4 pt-3 border-t border-brand-gray-mid animate-fade-in">
+                    <p className="text-xs text-gray-400 mb-3">По ссылке поставщик сам заполняет склады и условия сервиса поиска. Защита — секретный токен{da?.pin ? ' + PIN-код' : ''}.</p>
+                    {da?.enabled ? (
+                      <>
+                        <div className="flex items-stretch gap-2 mb-3">
+                          <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-50 border border-brand-gray-mid rounded-lg px-3">
+                            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" title="Доступ активен" />
+                            <input readOnly className="w-full bg-transparent text-xs py-2.5 outline-none text-brand-black truncate" value={`${window.location.origin}/d/${da.token}`} onFocus={e => (e.target as HTMLInputElement).select()} />
+                          </div>
+                          <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/d/${da.token}`); toast.success('Ссылка скопирована'); }} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap"><Copy size={12} /> Копировать</button>
+                          <a href={`/d/${da.token}`} target="_blank" rel="noreferrer" className="btn-primary text-xs flex items-center whitespace-nowrap">Открыть</a>
+                        </div>
+                        <div className="rounded-lg border border-brand-gray-mid p-3 mb-3 bg-gray-50/50">
+                          <p className="text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Безопасность</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft} maxLength={6} onChange={e => setPinDraft(e.target.value.replace(/\D/g, ''))} />
+                            <button onClick={() => {
+                              const phrase = window.prompt('Для смены PIN введите слово: сменить');
+                              if (phrase === null) return;
+                              if (phrase.trim().toLowerCase() !== 'сменить') { toast.error('Фраза не совпала — PIN не изменён'); return; }
+                              patchDeliveryAccess({ pin: deliveryPinDraft.trim() || undefined }, 'PIN самообслуживания доставки обновлён');
+                              toast.success('PIN сохранён');
+                            }} className="btn-secondary text-xs">Сменить PIN</button>
+                            <span className="text-[10px] font-semibold text-red-600">PIN-код обязателен к заполнению · 4–6 цифр</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button onClick={() => {
+                            const phrase = window.prompt('Перевыпуск убьёт текущую ссылку. Введите слово: перевыпустить');
+                            if (phrase === null) return;
+                            if (phrase.trim().toLowerCase() !== 'перевыпустить') { toast.error('Фраза не совпала — ссылка не перевыпущена'); return; }
+                            patchDeliveryAccess({ token: genToken(), enabled: true }, 'Ссылка ЛК доставки перевыпущена');
+                            toast.success('Ссылка перевыпущена, старая недействительна');
+                          }} className="btn-secondary text-xs flex items-center gap-1"><RotateCcw size={12} /> Перевыпустить ссылку</button>
+                  <button onClick={() => {
+                    const link = `${window.location.origin}/d/${freshSupplier.deliveryAccess?.token || ''}`;
+                    const pin = freshSupplier.deliveryAccess?.pin || '—';
+                    const tpl = getStore().settings.greetings?.supplier || DEFAULT_SUPPLIER_GREETING;
+                    const text = tpl.replace('{tradeName}', freshSupplier.tradeName || '').replace('{link}', link).replace('{pin}', pin);
+                    navigator.clipboard.writeText(text).then(() => {
+                      toast.success('Приветствие скопировано');
+                      if (freshSupplier.status !== 'Приветствие' && window.confirm('Сменить статус поставщика на «Приветствие»?')) {
+                        updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, status: 'Приветствие', updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
+                        pushSupplierHistory(makeHistoryEntry('status', freshSupplier.status, 'Приветствие', 'Смена статуса после копирования приветствия', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
+                        forceUpdate(n => n + 1);
+                      }
+                    });
+                  }} className="btn-secondary text-xs">Копировать приветствие</button>
+                          <button onClick={() => {
+                            const phrase = window.prompt('Для отключения доступа введите слово: отключить');
+                            if (phrase === null) return;
+                            if (phrase.trim().toLowerCase() !== 'отключить') { toast.error('Фраза не совпала — доступ НЕ отключён'); return; }
+                            patchDeliveryAccess({ enabled: false }, 'Доступ к ЛК доставки отключён');
+                            toast.success('Доступ к ЛК доставки отключён');
+                          }} className="text-xs text-red-600 hover:underline ml-auto">Отключить доступ</button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-3">
+                        <p className="text-xs text-gray-400 mb-3 max-w-md mx-auto">Поставщик получит персональную ссылку с секретным токеном для входа в ЛК сервиса доставки.</p>
+                        <button onClick={() => patchDeliveryAccess({ enabled: true }, 'Выдана ссылка самообслуживания')} className="btn-primary text-xs flex items-center gap-1 mx-auto"><Link2 size={12} /> Выдать ссылку</button>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <button type="button" onClick={() => patchDeliveryAccess({}, 'Выдан доступ к ЛК доставки')} className="btn-primary text-xs">Выдать ссылку</button>
                 )}
               </div>
-              {freshSupplier.deliveryAccess?.token && (
-                <div className="space-y-2 text-xs">
-                  <p><span className="text-gray-400">Ссылка:</span> <button type="button" onClick={() => setDeliveryLinkOpen(v => !v)} className="text-blue-600 underline break-all">{deliveryLinkOpen ? `${window.location.origin}/d/${freshSupplier.deliveryAccess.token}` : '••• нажмите, чтобы показать'}</button></p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-gray-400">PIN:</span>
-                    <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft} maxLength={6} onChange={e => setDeliveryPinDraft(e.target.value.replace(/\D/g, ''))} />
-                    <button type="button" onClick={() => { if (!deliveryPinDraft || deliveryPinDraft.length < 4) { toast.error('PIN от 4 до 6 цифр'); return; } patchDeliveryAccess({ pin: deliveryPinDraft }, 'PIN ЛК доставки изменён'); setDeliveryPinDraft(''); }} className="btn-secondary text-xs">Сохранить PIN</button>
-                    <span className="text-[10px] font-semibold text-red-600">PIN-код обязателен к заполнению · 4–6 цифр</span>
-                  </div>
-                  <p><span className="text-gray-400">Статус:</span> {freshSupplier.deliveryAccess.enabled ? <span className="text-green-600 font-medium">активен</span> : <span className="text-gray-500">отключён</span>}</p>
-                </div>
-              )}
+              ); })()}
             </div>
           )}
 

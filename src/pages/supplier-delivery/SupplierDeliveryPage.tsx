@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { getFunctionsUrl, getAnonKeyHeaders } from '@/lib/functions-api';
+import { APP_VERSION } from '@/constants';
 
 /** v1.29.0: ЧИСТЫЙ ЛК сервиса доставки (DBO). Вход по ссылке /d/<token> + PIN. Функционал появится позже. */
 
@@ -10,21 +11,23 @@ type Meta = { companyName: string; hasPin: boolean };
 export default function SupplierDeliveryPage() {
   const { token = '' } = useParams<{ token: string }>();
   const [meta, setMeta] = useState<Meta | null>(null);
+  const [loading, setLoading] = useState(true);
   const [fatal, setFatal] = useState('');
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
   const [pinPassed, setPinPassed] = useState(sessionStorage.getItem('dbo_pin_ok') === '1');
-  const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch(`${getFunctionsUrl('supplier-delivery')}?token=${encodeURIComponent(token)}`, { headers: getAnonKeyHeaders() })
       .then(r => r.json().then(d => ({ ok: r.ok, d })))
       .then(({ ok, d }) => { if (!ok) setFatal(d?.error || 'Ссылка недействительна'); else setMeta(d); })
-      .catch(() => setFatal('Не удалось загрузить данные'));
+      .catch(() => setFatal('Не удалось загрузить данные'))
+      .finally(() => setLoading(false));
   }, [token]);
 
   async function submitPin() {
-    setBusy(true);
+    setSaving(true);
     setPinError('');
     try {
       const r = await fetch(getFunctionsUrl('supplier-delivery'), {
@@ -39,56 +42,68 @@ export default function SupplierDeliveryPage() {
         sessionStorage.setItem('dbo_pin', pin);
         setPinPassed(true);
       }
-    } finally { setBusy(false); }
-  }
-
-  const centered = (children: React.ReactNode) => (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 w-full max-w-md text-center space-y-4">
-        <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[150px] h-auto mx-auto" />
-        {children}
-      </div>
-    </div>
-  );
-
-  if (fatal) return centered(<p className="text-sm text-red-600">{fatal}</p>);
-  if (!meta) return centered(<><Loader2 className="animate-spin mx-auto text-gray-400" size={28} /><p className="text-sm text-gray-500">Сервис доставки (DBO) загружается, пожалуйста подождите.</p></>);
-
-  if (meta.hasPin && !pinPassed) {
-    return centered(
-      <>
-        <p className="text-sm font-normal text-gray-900 tracking-wide">СЕРВИС ДОСТАВКИ (DBO)</p>
-        <p className="text-xs text-gray-500">Введите PIN-код для входа в личный кабинет{meta.companyName ? ` «${meta.companyName}»` : ''}.</p>
-        <input
-          className="form-input text-center text-lg tracking-[0.5em] w-40 mx-auto"
-          placeholder="PIN"
-          value={pin}
-          maxLength={6}
-          inputMode="numeric"
-          autoFocus
-          onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-          onKeyDown={e => { if (e.key === 'Enter' && pin.length >= 4 && !busy) submitPin(); }}
-        />
-        {pinError && <p className="text-xs text-red-600">{pinError}</p>}
-        <button type="button" disabled={pin.length < 4 || busy} onClick={submitPin}
-          className="btn-primary w-full disabled:opacity-50">
-          {busy ? 'Проверка…' : 'Войти'}
-        </button>
-      </>
-    );
+    } finally { setSaving(false); }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-3xl mx-auto space-y-4">
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 py-3">
-          <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
-        </div>
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center space-y-3">
-          <p className="text-sm font-semibold text-gray-900 tracking-wide">СЕРВИС ДОСТАВКИ (DBO)</p>
-          {meta.companyName && <p className="text-xs text-gray-500">{meta.companyName}</p>}
-          <p className="text-xs text-gray-400">Функционал личного кабинета появится в следующих обновлениях.</p>
-        </div>
+    <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center p-3 sm:p-6 md:p-10">
+      <div className={`w-full ${pinPassed ? 'max-w-[1160px]' : 'max-w-xl'} py-2`}>
+
+        {loading && (
+          <div className="bg-white border border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-4 py-16 px-6">
+            <div className="w-11 h-11 rounded-full border-4 border-red-100 border-t-red-600 animate-spin" aria-hidden="true" />
+            <p className="text-sm text-gray-500 text-center">Сервис доставки (DBO) загружается, пожалуйста подождите.</p>
+          </div>
+        )}
+
+        {!loading && fatal && (
+          <div className="bg-white border border-gray-200 rounded-2xl flex flex-col items-center text-center py-12 gap-3">
+            <AlertCircle className="text-gray-300" size={34} />
+            <p className="text-sm text-gray-400">{fatal}</p>
+          </div>
+        )}
+
+        {!loading && !fatal && !pinPassed && (
+          <>
+            <div className="flex flex-col items-center" style={{ marginBottom: '4.5rem' }}>
+              <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[333px] h-auto mb-3" />
+              <p className="text-sm font-normal text-gray-900 tracking-wide text-center">СЕРВИС ДОСТАВКИ (DBO)</p>
+              <p className="text-[10px] text-gray-300 text-center mt-1">v{APP_VERSION}</p>
+            </div>
+            {meta && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
+                <p className="text-sm text-gray-500 mt-1.5">{meta.companyName}</p>
+                <hr className="border-gray-100 my-5" />
+                <div className="text-center">
+                  <p className="text-sm text-gray-700 mb-4">Введите PIN-код из сообщения от менеджера</p>
+                  <input inputMode="numeric" maxLength={6} value={pin} autoFocus
+                    onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+                    onKeyDown={e => e.key === 'Enter' && submitPin()}
+                    className="w-40 text-center text-xl tracking-[0.4em] border border-gray-200 rounded-xl py-2.5 outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-400" />
+                  {pinError && <p className="text-xs text-red-600 mt-3">{pinError}</p>}
+                  <button onClick={submitPin} disabled={saving || pin.length < 4}
+                    className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-xl py-3 transition-colors disabled:opacity-60">
+                    Продолжить
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {!loading && !fatal && pinPassed && meta && (
+          <div className="space-y-4">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 py-3">
+              <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
+            </div>
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+              <p className="text-sm font-semibold text-gray-900 tracking-wide">СЕРВИС ДОСТАВКИ (DBO)</p>
+              <p className="text-xs text-gray-500">{meta.companyName}</p>
+              <p className="text-xs text-gray-400">Функционал личного кабинета появится в следующих обновлениях.</p>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
