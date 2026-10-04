@@ -432,6 +432,25 @@ const [tab, setTab] = useState('Статусы');
 
   // v1.29.0: города доставки (DBO) — вкладка Доставка
   const [newDeliveryCity, setNewDeliveryCity] = useState('');
+  // v1.29.0: под-вкладки Доставки + форма оператора
+  const [deliveryTab, setDeliveryTab] = useState<'cities' | 'operators'>('cities');
+  const [opName, setOpName] = useState('');
+  const [opPhone, setOpPhone] = useState('');
+  const [opMax, setOpMax] = useState('10');
+  const [opAvatar, setOpAvatar] = useState('');
+  const [opUserId, setOpUserId] = useState('');
+  function addOperator() {
+    if (!opName.trim()) { toast.error('Укажите ФИО оператора'); return; }
+    if (!opUserId) { toast.error('Выберите пользователя (роль)'); return; }
+    const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), max: Math.max(0, parseInt(opMax, 10) || 0), avatar: opAvatar.trim() || undefined, userId: opUserId, createdAt: new Date().toISOString() };
+    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryOperators: [...(s.settings.deliveryOperators || []), op] } }));
+    setOpName(''); setOpPhone(''); setOpMax('10'); setOpAvatar(''); setOpUserId('');
+    forceUpdate(n => n + 1); toast.success('Оператор создан');
+  }
+  function removeOperator(id: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryOperators: (s.settings.deliveryOperators || []).filter(o => o.id !== id) } }));
+    forceUpdate(n => n + 1); toast.success('Оператор удалён');
+  }
   function addDeliveryCity() {
     const v = newDeliveryCity.trim();
     if (!v) return;
@@ -1303,7 +1322,48 @@ const [tab, setTab] = useState('Статусы');
 
           {/* ── MEDIA SERVICE SETTINGS ── */}
           {tab === 'Доставка' && (
-          <div className="card-base p-5 space-y-4">
+          <div className="space-y-4">
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => setDeliveryTab('cities')} className={`btn-secondary text-xs ${deliveryTab === 'cities' ? '!border-red-600 !text-red-600' : ''}`}>Города</button>
+              <button onClick={() => setDeliveryTab('operators')} className={`btn-secondary text-xs ${deliveryTab === 'operators' ? '!border-red-600 !text-red-600' : ''}`}>Операторы</button>
+            </div>
+            {deliveryTab === 'operators' && (
+            <div className="card-base p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">Операторы</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input className="form-input" placeholder="ФИО *" value={opName} onChange={e => setOpName(e.target.value)} />
+                <input className="form-input" placeholder="Телефон" value={opPhone} onChange={e => setOpPhone(e.target.value)} />
+                <input className="form-input" placeholder="MAX" inputMode="numeric" value={opMax} onChange={e => setOpMax(e.target.value.replace(/\D/g, ''))} />
+                <input className="form-input" placeholder="Аватар (URL изображения)" value={opAvatar} onChange={e => setOpAvatar(e.target.value)} />
+                <select className="form-input" value={opUserId} onChange={e => setOpUserId(e.target.value)}>
+                  <option value="">Роль * (выберите пользователя)</option>
+                  {(store.settings.users || []).map(u => <option key={u.id} value={u.id}>{u.name}{u.role === 'admin' ? ' · Администратор' : ' · Менеджер'}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-3">
+                {opAvatar.trim() && <img src={opAvatar.trim()} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} />}
+                <button onClick={addOperator} className="btn-primary text-xs">Создать оператора</button>
+              </div>
+              <div className="space-y-2">
+                {(store.settings.deliveryOperators || []).map(op => {
+                  const linked = (store.settings.users || []).find(u => u.id === op.userId);
+                  return (
+                    <div key={op.id} className="flex items-center gap-3 border border-gray-200 rounded-xl px-3 py-2.5 flex-wrap">
+                      {op.avatar ? <img src={op.avatar} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} /> : <span className="w-9 h-9 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">{(op.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                      <span className="text-sm font-medium text-gray-800">{op.name}</span>
+                      <span className="text-xs text-gray-500">{op.phone || '—'}</span>
+                      <span className="text-xs text-gray-500">MAX: <b className="text-gray-800">{op.max}</b></span>
+                      <span className="text-xs text-gray-400">Роль: {linked?.name || '—'}</span>
+                      <button onClick={() => removeOperator(op.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
+                    </div>
+                  );
+                })}
+                {!(store.settings.deliveryOperators || []).length && <p className="text-xs text-gray-400">Операторы не созданы.</p>}
+              </div>
+            </div>
+            )}
+            {deliveryTab === 'cities' && (
+            <div className="card-base p-5 space-y-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-800 mb-1">Города (для сервиса доставки DBO)</h3>
               <p className="text-xs text-gray-400 mb-3">Список городов, доступных к доставке.</p>
@@ -1316,6 +1376,8 @@ const [tab, setTab] = useState('Статусы');
                 {!(store.settings.deliveryCities || []).length && <p className="text-xs text-gray-400">Города не добавлены.</p>}
               </div>
             </div>
+            </div>
+            )}
           </div>
         )}
 

@@ -337,6 +337,7 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!settings.cities || !Array.isArray(settings.cities)) settings.cities = [...DEFAULT_CITIES];
     // v1.29.0: города доставки (DBO) — по умолчанию ПУСТО (независимый список, с городами CRM не связан)
     if (!Array.isArray(settings.deliveryCities)) settings.deliveryCities = [];
+    if (!Array.isArray(settings.deliveryOperators)) settings.deliveryOperators = [];
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)
     if (!settings.quickLinks || typeof settings.quickLinks !== 'object') {

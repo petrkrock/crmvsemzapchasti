@@ -597,6 +597,19 @@ export interface FormConfig {
   updatedAt: string;
 }
 
+/** v1.29.0: Оператор доставки (DBO) */
+export interface DeliveryOperator {
+  id: string;
+  name: string;
+  phone: string;
+  /** MAX — максимальная загрузка оператора */
+  max: number;
+  avatar?: string;
+  /** Связанный пользователь CRM (выбор из существующих) */
+  userId: string;
+  createdAt: string;
+}
+
 export interface AppSettings {
   statuses: StatusConfig[];
   buyerCategoryComment?: { A: string; B: string; C: string }; // этап 1.8 — комментарии оборота категорий покупателей
@@ -612,6 +625,8 @@ export interface AppSettings {
   cities: string[];
   /** Города, доступные для доставки (DBO) — ТЗ v1.29.0, вкладка Настройки → Доставка */
   deliveryCities?: string[];
+  /** Операторы доставки (DBO) — ТЗ v1.29.0, данные показываются в ЛК доставки */
+  deliveryOperators?: DeliveryOperator[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];
