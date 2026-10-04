@@ -672,7 +672,7 @@ type EntityName = 'suppliers' | 'buyers' | 'tasks' | 'tickets' | 'mediaRecords';
 // значит CRM↔ЛК зеркальны: удаление/правка SKU в любом месте доезжает до базы и отображается
 // в другом. Исключения оставлены только для НЕмапируемых серверных полей (иначе вечный цикл).
 const VOLATILE_SYNC_KEYS = new Set(['updatedAt', 'updated_at', 'history',
-  'serviceAccess', 'service_access', 'deliveryAccess', 'companyScore', 'company_score', 'scoring']);
+  'serviceAccess', 'service_access', 'companyScore', 'company_score', 'scoring']); // v1.29.0: deliveryAccess убран — иначе токен/PIN ЛК доставки не доезжали до БД (404 «Недействительная ссылка»)
 
 function stableEntityJson(value: unknown): string {
   if (Array.isArray(value)) return '[' + value.map(stableEntityJson).join(',') + ']';
