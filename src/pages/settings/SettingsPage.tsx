@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getStore, updateStore, useStoreVersion, SYSTEM_CONTACT_PREFS } from '@/lib/store';
 import { generateId } from '@/lib/utils';
 import { isAdmin, getCurrentUser } from '@/lib/auth';
-import { createManagerAccount, updateManagerAccount, isSupabaseConfigured } from '@/lib/supabase';
+import { createManagerAccount, updateManagerAccount, isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
 import type { AppUser, UserAccess, UserStatus, ProductGroup, Source, PlanCity, TaskEntityType, StatusConfig, SupplierService, MediaAdType, MediaDurationOption, MediaStatus, PublicFormEntityType, FormFieldConfig, FormConfig } from '@/types';
 import { EMPTY_ACCESS } from '@/types';
@@ -436,16 +436,31 @@ const [tab, setTab] = useState('Статусы');
   const [deliveryTab, setDeliveryTab] = useState<'cities' | 'operators'>('cities');
   const [opName, setOpName] = useState('');
   const [opPhone, setOpPhone] = useState('');
+  const [opEmail, setOpEmail] = useState('');
+  const [opAvatarBusy, setOpAvatarBusy] = useState(false);
   const [opMax, setOpMax] = useState('10');
   const [opAvatar, setOpAvatar] = useState('');
   const [opUserId, setOpUserId] = useState('');
   function addOperator() {
     if (!opName.trim()) { toast.error('Укажите ФИО оператора'); return; }
     if (!opUserId) { toast.error('Выберите пользователя (роль)'); return; }
-    const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), max: Math.max(0, parseInt(opMax, 10) || 0), avatar: opAvatar.trim() || undefined, userId: opUserId, createdAt: new Date().toISOString() };
+    const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, max: Math.max(0, parseInt(opMax, 10) || 0), avatar: opAvatar.trim() || undefined, userId: opUserId, createdAt: new Date().toISOString() };
     updateStore(s => ({ ...s, settings: { ...s.settings, deliveryOperators: [...(s.settings.deliveryOperators || []), op] } }));
-    setOpName(''); setOpPhone(''); setOpMax('10'); setOpAvatar(''); setOpUserId('');
+    setOpName(''); setOpPhone(''); setOpEmail(''); setOpMax('10'); setOpAvatar(''); setOpUserId('');
     forceUpdate(n => n + 1); toast.success('Оператор создан');
+  }
+  async function uploadOperatorAvatar(file: File) {
+    if (!isSupabaseConfigured()) { toast.error('Supabase не настроен'); return; }
+    setOpAvatarBusy(true);
+    try {
+      const fileName = `dbo-avatar-${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
+      const { error } = await supabase.storage.from('knowledge').upload(`files/${fileName}`, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('knowledge').getPublicUrl(`files/${fileName}`);
+      setOpAvatar(data.publicUrl);
+      toast.success('Аватар загружен');
+    } catch (e) { toast.error('Не удалось загрузить аватар'); }
+    finally { setOpAvatarBusy(false); }
   }
   function removeOperator(id: string) {
     updateStore(s => ({ ...s, settings: { ...s.settings, deliveryOperators: (s.settings.deliveryOperators || []).filter(o => o.id !== id) } }));
@@ -1333,8 +1348,12 @@ const [tab, setTab] = useState('Статусы');
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input className="form-input" placeholder="ФИО *" value={opName} onChange={e => setOpName(e.target.value)} />
                 <input className="form-input" placeholder="Телефон" value={opPhone} onChange={e => setOpPhone(e.target.value)} />
+                <input className="form-input" placeholder="Email" value={opEmail} onChange={e => setOpEmail(e.target.value)} />
                 <input className="form-input" placeholder="MAX" inputMode="numeric" value={opMax} onChange={e => setOpMax(e.target.value.replace(/\D/g, ''))} />
-                <input className="form-input" placeholder="Аватар (URL изображения)" value={opAvatar} onChange={e => setOpAvatar(e.target.value)} />
+                <label className="form-input flex items-center gap-2 cursor-pointer text-xs text-gray-500">
+                  {opAvatarBusy ? 'Загрузка…' : 'Аватар: загрузить изображение'}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadOperatorAvatar(f); e.target.value = ''; }} />
+                </label>
                 <select className="form-input" value={opUserId} onChange={e => setOpUserId(e.target.value)}>
                   <option value="">Роль * (выберите пользователя)</option>
                   {(store.settings.users || []).map(u => <option key={u.id} value={u.id}>{u.name}{u.role === 'admin' ? ' · Администратор' : ' · Менеджер'}</option>)}
@@ -1352,6 +1371,7 @@ const [tab, setTab] = useState('Статусы');
                       {op.avatar ? <img src={op.avatar} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} /> : <span className="w-9 h-9 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">{(op.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
                       <span className="text-sm font-medium text-gray-800">{op.name}</span>
                       <span className="text-xs text-gray-500">{op.phone || '—'}</span>
+                      {op.email && <span className="text-xs text-gray-500">{op.email}</span>}
                       <span className="text-xs text-gray-500">MAX: <b className="text-gray-800">{op.max}</b></span>
                       <span className="text-xs text-gray-400">Роль: {linked?.name || '—'}</span>
                       <button onClick={() => removeOperator(op.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>

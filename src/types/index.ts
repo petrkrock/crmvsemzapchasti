@@ -602,6 +602,7 @@ export interface DeliveryOperator {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   /** MAX — максимальная загрузка оператора */
   max: number;
   avatar?: string;
