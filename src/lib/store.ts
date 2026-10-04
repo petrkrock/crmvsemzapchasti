@@ -338,6 +338,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     // v1.29.0: города доставки (DBO) — по умолчанию ПУСТО (независимый список, с городами CRM не связан)
     if (!Array.isArray(settings.deliveryCities)) settings.deliveryCities = [];
     if (!Array.isArray(settings.deliveryOperators)) settings.deliveryOperators = [];
+    // v1.29.0: системные статусы договоров доставки
+    if (!Array.isArray(settings.deliveryContractStatuses)) settings.deliveryContractStatuses = ['Ждёт активации', 'Активный', 'Аннулирован'];
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)
     if (!settings.quickLinks || typeof settings.quickLinks !== 'object') {

@@ -628,6 +628,8 @@ export interface AppSettings {
   deliveryCities?: string[];
   /** Операторы доставки (DBO) — ТЗ v1.29.0, данные показываются в ЛК доставки */
   deliveryOperators?: DeliveryOperator[];
+  /** Статусы договоров доставки (DBO) — системные, ТЗ v1.29.0 */
+  deliveryContractStatuses?: string[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

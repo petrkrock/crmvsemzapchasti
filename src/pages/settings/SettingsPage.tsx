@@ -433,7 +433,7 @@ const [tab, setTab] = useState('Статусы');
   // v1.29.0: города доставки (DBO) — вкладка Доставка
   const [newDeliveryCity, setNewDeliveryCity] = useState('');
   // v1.29.0: под-вкладки Доставки + форма оператора
-  const [deliveryTab, setDeliveryTab] = useState<'cities' | 'operators'>('cities');
+  const [deliveryTab, setDeliveryTab] = useState<'cities' | 'operators' | 'statuses'>('cities');
   const [opName, setOpName] = useState('');
   const [opPhone, setOpPhone] = useState('');
   const [opEmail, setOpEmail] = useState('');
@@ -1341,7 +1341,21 @@ const [tab, setTab] = useState('Статусы');
             <div className="flex gap-2 flex-wrap">
               <button onClick={() => setDeliveryTab('cities')} className={`btn-secondary text-xs ${deliveryTab === 'cities' ? '!border-red-600 !text-red-600' : ''}`}>Города</button>
               <button onClick={() => setDeliveryTab('operators')} className={`btn-secondary text-xs ${deliveryTab === 'operators' ? '!border-red-600 !text-red-600' : ''}`}>Операторы</button>
+              <button onClick={() => setDeliveryTab('statuses')} className={`btn-secondary text-xs ${deliveryTab === 'statuses' ? '!border-red-600 !text-red-600' : ''}`}>Статусы</button>
             </div>
+            {deliveryTab === 'statuses' && (
+            <div className="card-base p-5 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800 mb-1">Статусы договоров</h3>
+                <p className="text-xs text-gray-400">Системные статусы договоров доставки (DBO). Удаление недоступно.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(store.settings.deliveryContractStatuses || []).map(c => (
+                  <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span></span>
+                ))}
+              </div>
+            </div>
+            )}
             {deliveryTab === 'operators' && (
             <div className="card-base p-5 space-y-4">
               <h3 className="text-sm font-semibold text-gray-800 mb-1">Операторы</h3>
