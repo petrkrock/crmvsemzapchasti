@@ -60,9 +60,11 @@ Deno.serve(async (req) => {
     const access = supplier.delivery_access || {};
     const hasPin = Boolean(access.pin);
 
-    // GET — мета-данные кабинета (без защищённых данных)
+    // GET — мета-данные кабинета + города доставки из настроек CRM (Настройки → Доставка)
     if (req.method === 'GET') {
-      return json({ companyName: supplier.trade_name, hasPin });
+      const { data: settingsRow } = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
+      const availableCities = ((settingsRow?.settings as Record<string, unknown> | undefined)?.deliveryCities as string[]) || [];
+      return json({ companyName: supplier.trade_name, hasPin, availableCities });
     }
 
     // POST — проверка PIN (пустое тело = ping)
