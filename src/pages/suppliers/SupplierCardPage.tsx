@@ -867,7 +867,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
             <div className="space-y-4">
               {(() => { const da = freshSupplier.deliveryAccess; return (
 <div className="card-base mb-4 overflow-hidden">
-                <button onClick={() => setLinkOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors">
+                <button onClick={() => setDeliveryLinkOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors">
                   <span className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
                     <Link2 size={17} className="text-brand-red" />
                   </span>
@@ -895,7 +895,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                         <div className="rounded-lg border border-brand-gray-mid p-3 mb-3 bg-gray-50/50">
                           <p className="text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Безопасность</p>
                           <div className="flex flex-wrap items-center gap-2">
-                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft} maxLength={6} onChange={e => setPinDraft(e.target.value.replace(/\D/g, ''))} />
+                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft} maxLength={6} onChange={e => setDeliveryPinDraft(e.target.value.replace(/\D/g, ''))} />
                             <button onClick={() => {
                               const phrase = window.prompt('Для смены PIN введите слово: сменить');
                               if (phrase === null) return;
