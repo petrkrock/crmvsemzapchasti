@@ -145,6 +145,8 @@ export interface SupplierService {
   id: string;
   name: string;
   createdAt: string;
+  /** Системный сервис (ТЗ v1.29.0): нельзя удалить, только переименовать. */
+  system?: boolean;
 }
 
 // ── MEDIA SERVICE ──────────────────────────────────────────

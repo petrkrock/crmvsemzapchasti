@@ -868,7 +868,7 @@ const [tab, setTab] = useState('Статусы');
           {/* ── SUPPLIER SERVICES ── */}
           {tab === 'Сервисы продаж' && (
             <div className="space-y-4">
-              <h3 className="section-title flex items-center gap-2"><Tag size={16} className="text-brand-red" /> Сервисы продаж (DBS, FBS, MEDIA и др.)</h3>
+              <h3 className="section-title flex items-center gap-2"><Tag size={16} className="text-brand-red" /> Сервисы продаж (DBS, DBO, FBS, MEDIA и др.)</h3>
               <div className="flex gap-2">
                 <input className="form-input flex-1" placeholder="Новый сервис..." value={newServiceName} onChange={e => setNewServiceName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addService()} />
                 <button onClick={addService} className="btn-primary text-xs"><Plus size={14} /> Добавить</button>
@@ -881,8 +881,8 @@ const [tab, setTab] = useState('Статусы');
                       <div className="flex gap-2"><input className="form-input flex-1" value={editServiceName} onChange={e => setEditServiceName(e.target.value)} /><button onClick={saveEditService} className="btn-primary text-xs"><Save size={12} /></button><button onClick={() => setEditingServiceId(null)} className="btn-secondary text-xs">Отмена</button></div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-semibold">{svc.name}</span>
-                        <div className="flex gap-1"><button onClick={() => { setEditingServiceId(svc.id); setEditServiceName(svc.name); }} className="p-1.5 text-gray-400 hover:text-brand-black rounded"><Edit2 size={14} /></button><GuardedDelete inUse={itemInUse('service', svc.name)} onClick={() => deleteService(svc.id)} title={svc.name} /></div>
+                        <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-semibold">{svc.name}</span>{svc.system && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">Системный</span>}
+                        <div className="flex gap-1"><button onClick={() => { setEditingServiceId(svc.id); setEditServiceName(svc.name); }} className="p-1.5 text-gray-400 hover:text-brand-black rounded"><Edit2 size={14} /></button>{!svc.system && <GuardedDelete inUse={itemInUse('service', svc.name)} onClick={() => deleteService(svc.id)} title={svc.name} />}</div>
                       </div>
                     )}
                   </div>

@@ -117,9 +117,10 @@ const DEFAULT_SOURCES: Source[] = [
 ];
 
 const DEFAULT_SUPPLIER_SERVICES: SupplierService[] = [
-  { id: 'svc-1', name: 'DBS',   createdAt: new Date().toISOString() },
-  { id: 'svc-2', name: 'FBS',   createdAt: new Date().toISOString() },
-  { id: 'svc-4', name: 'MEDIA', createdAt: new Date().toISOString() },
+  { id: 'svc-1',  name: 'DBS',   createdAt: new Date().toISOString(), system: true },
+  { id: 'svc-2',  name: 'FBS',   createdAt: new Date().toISOString(), system: true },
+  { id: 'svc-3',  name: 'DBO',   createdAt: new Date().toISOString(), system: true }, // v1.29.0: системный сервис доставки
+  { id: 'svc-4',  name: 'MEDIA', createdAt: new Date().toISOString(), system: true },
 ];
 
 // Типы обращений — дефолтный список, редактируется в Настройки → Типы и города
@@ -248,6 +249,16 @@ export function getStore(): CRMStore {
     if (!settings.supplierServices) {
       const oldTags = ps['supplierTags'] as Array<{ id: string; name: string; createdAt: string }> | undefined;
       settings.supplierServices = (oldTags && Array.isArray(oldTags) && oldTags.length > 0) ? oldTags : DEFAULT_SUPPLIER_SERVICES;
+  // v1.29.0: системные сервисы продаж — выставляем флаг system и гарантируем наличие DBO
+  {
+    const SYS_SVC = ['DBS', 'FBS', 'DBO', 'MEDIA'];
+    if (!Array.isArray(settings.supplierServices)) settings.supplierServices = [];
+    SYS_SVC.forEach(name => {
+      const existing = settings.supplierServices.find(s => s.name === name);
+      if (existing) existing.system = true;
+      else settings.supplierServices.push({ id: `svc-${name.toLowerCase()}`, name, createdAt: new Date().toISOString(), system: true });
+    });
+  }
     }
 
     // Migrate mediaAdTypes: ensure durationOptions exist
