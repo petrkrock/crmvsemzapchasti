@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, FileText, Home, LogOut, MapPin, Truck, Undo2, Wallet } from 'lucide-react';
+import { AlertCircle, FileText, Headset, Home, LogOut, MapPin, Truck, Undo2, Wallet } from 'lucide-react';
 import { getFunctionsUrl, getAnonKeyHeaders } from '@/lib/functions-api';
 import { APP_VERSION } from '@/constants';
 
@@ -10,7 +10,7 @@ type Meta = { companyName: string; hasPin: boolean; availableCities?: string[] }
 type MenuKey = 'home' | 'deliveries' | 'returns' | 'documents' | 'finance';
 
 const MENU: { key: MenuKey; label: string; icon: typeof Truck }[] = [
-  { key: 'home', label: 'Главная', icon: Home },
+  { key: 'home', label: 'Дашборд', icon: Home },
   { key: 'deliveries', label: 'Доставки', icon: Truck },
   { key: 'returns', label: 'Возвраты', icon: Undo2 },
   { key: 'documents', label: 'Документы', icon: FileText },
@@ -27,6 +27,8 @@ export default function SupplierDeliveryPage() {
   const [pinPassed, setPinPassed] = useState(sessionStorage.getItem('dbo_pin_ok') === '1');
   const [saving, setSaving] = useState(false);
   const [menu, setMenu] = useState<MenuKey>('home');
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpOpen2, setHelpOpen2] = useState(false);
 
   useEffect(() => {
     fetch(`${getFunctionsUrl('supplier-delivery')}?token=${encodeURIComponent(token)}`, { headers: getAnonKeyHeaders() })
@@ -125,6 +127,21 @@ export default function SupplierDeliveryPage() {
                     <m.icon size={15} /> {m.label}
                   </button>
                 ))}
+                <div className="flex items-center gap-[0.6rem] pl-1">
+                  <div className="relative">
+                    <button type="button" onClick={() => setHelpOpen(v => !v)} title="Помощь"
+                      className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
+                    {helpOpen && (
+                      <div className="absolute right-0 top-full mt-2 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+                        <p>Подсказки по разделам кабинета появятся в следующих обновлениях.</p>
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => setHelpOpen2(true)} title="Оператор доставки"
+                    className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-700 shadow-md flex items-center justify-center transition-colors">
+                    <Headset size={17} />
+                  </button>
+                </div>
                 <button type="button" onClick={logout}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap">
                   <LogOut size={15} /> Выход
@@ -138,8 +155,24 @@ export default function SupplierDeliveryPage() {
                 <p className="text-[11px] text-gray-400">Поставщик</p>
                 <h2 className="text-sm font-semibold text-gray-900">{meta?.companyName}</h2>
               </div>
+              <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
+                <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span> <b className="text-gray-900">{(meta?.availableCities || []).length}</b></span>
+                <span className="flex items-center gap-2"><span className="text-gray-500">В доставке:</span> <b className="text-gray-900">0</b></span>
+                <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">—</b></span>
+                <button type="button" onClick={() => setHelpOpen2(true)} title="Активировать доставку"
+                  className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold transition-colors shadow-md">
+                  Активировать
+                </button>
+              </div>
             </div>
             {menu === 'home' ? (
+              <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+                <div>
+                  <h3 className="section-title">Мои города доставки</h3>
+                  <p className="text-xs text-gray-400 mt-1">Города, в которых вы доставляете заказы.</p>
+                </div>
+                <p className="text-xs text-gray-400">Города не добавлены.</p>
+              </div>
               <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>

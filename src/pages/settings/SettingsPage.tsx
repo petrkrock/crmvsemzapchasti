@@ -1312,7 +1312,7 @@ const [tab, setTab] = useState('Статусы');
                 <button onClick={addDeliveryCity} className="btn-primary text-xs whitespace-nowrap">Добавить</button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(store.settings.deliveryCities || []).map(c => <ChipDelete key={c} label={c} onClick={() => removeDeliveryCity(c)} />)}
+                {(store.settings.deliveryCities || []).map(c => <span key={c} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<ChipDelete inUse={false} onClick={() => removeDeliveryCity(c)} /></span>)}
                 {!(store.settings.deliveryCities || []).length && <p className="text-xs text-gray-400">Города не добавлены.</p>}
               </div>
             </div>
