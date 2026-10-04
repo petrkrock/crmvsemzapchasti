@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, ArrowUpRight, FileText, Headset, LogOut, Truck, Undo2, Wallet } from 'lucide-react';
+import { AlertCircle, FileText, Headset, LogOut, Truck, Undo2, Wallet } from 'lucide-react';
 import { getFunctionsUrl, getAnonKeyHeaders } from '@/lib/functions-api';
 import { APP_VERSION } from '@/constants';
 
@@ -117,16 +117,6 @@ export default function SupplierDeliveryPage() {
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 sm:px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
               <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
               <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-                <a href="https://vsemzapchasti.ru/offersupplier" target="_blank" rel="noreferrer"
-                  className="group inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-red-700 transition-all hover:border-red-600 hover:bg-red-600 hover:text-white hover:shadow-md">
-                  Сервисы для доставки и продаж
-                  <ArrowUpRight size={13} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </a>
-                <a href="https://vsemzapchasti.ru/media" target="_blank" rel="noreferrer"
-                  className="group inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-red-700 transition-all hover:border-red-600 hover:bg-red-600 hover:text-white hover:shadow-md">
-                  Продвижение
-                  <ArrowUpRight size={13} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </a>
                 <div className="flex items-center gap-[0.6rem]">
                   <div className="relative">
                     <button type="button" onClick={() => setHelpOpen(v => !v)} title="Помощь"

@@ -249,16 +249,17 @@ export function getStore(): CRMStore {
     if (!settings.supplierServices) {
       const oldTags = ps['supplierTags'] as Array<{ id: string; name: string; createdAt: string }> | undefined;
       settings.supplierServices = (oldTags && Array.isArray(oldTags) && oldTags.length > 0) ? oldTags : DEFAULT_SUPPLIER_SERVICES;
-  // v1.29.0: системные сервисы продаж — выставляем флаг system и гарантируем наличие DBO
-  {
-    const SYS_SVC = ['DBS', 'FBS', 'DBO', 'MEDIA'];
-    if (!Array.isArray(settings.supplierServices)) settings.supplierServices = [];
-    SYS_SVC.forEach(name => {
-      const existing = settings.supplierServices.find(s => s.name === name);
-      if (existing) existing.system = true;
-      else settings.supplierServices.push({ id: `svc-${name.toLowerCase()}`, name, createdAt: new Date().toISOString(), system: true });
-    });
-  }
+    }
+    // v1.29.0: системные сервисы продаж — ВНЕ гейта (иначе существующие базы не получают DBO).
+    // Выставляем флаг system и гарантируем наличие DBO в настройках и План/Факт.
+    {
+      const SYS_SVC = ['DBS', 'FBS', 'DBO', 'MEDIA'];
+      if (!Array.isArray(settings.supplierServices)) settings.supplierServices = [];
+      SYS_SVC.forEach(name => {
+        const existing = settings.supplierServices.find(s => s.name === name);
+        if (existing) existing.system = true;
+        else settings.supplierServices.push({ id: `svc-${name.toLowerCase()}`, name, createdAt: new Date().toISOString(), system: true });
+      });
     }
 
     // Migrate mediaAdTypes: ensure durationOptions exist
