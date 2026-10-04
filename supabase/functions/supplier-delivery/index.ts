@@ -44,6 +44,10 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     // Токен: GET — из query, POST — из тела запроса (как в ЛК проценки)
     let token = url.searchParams.get('token') || '';
+    let body: Record<string, unknown> = {};
+    if (req.method === 'POST') body = await req.json().catch(() => ({}));
+    token = token || (body?.token as string) || '';
+    if (!token) return json({ error: 'Недействительная ссылка' }, 404);
 
     const client = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: supplier, error } = await client.from('suppliers')
@@ -63,11 +67,8 @@ Deno.serve(async (req) => {
 
     // POST — проверка PIN (пустое тело = ping)
     if (req.method === 'POST') {
-      const body = await req.json().catch(() => ({}));
-      token = token || body?.token || '';
-      if (!token) return json({ error: 'Недействительная ссылка' }, 404);
       if (bruteBlocked(token)) return json({ error: 'Слишком много попыток. Попробуйте позже.' }, 429);
-      if (!pinOk(access.pin, body?.pin)) { registerFail(token); return json({ error: 'Неверный PIN-код' }, 403); }
+      if (!pinOk(access.pin, body?.pin as string | undefined)) { registerFail(token); return json({ error: 'Неверный PIN-код' }, 403); }
       attempts.delete(token);
       return json({ ok: true, companyName: supplier.trade_name });
     }
