@@ -166,6 +166,7 @@ export default function SupplierDeliveryPage() {
               </div>
             </div>
             {menu === 'home' ? (
+              <>
               <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
                 <div>
                   <h3 className="section-title">Мои города доставки</h3>
@@ -193,6 +194,7 @@ export default function SupplierDeliveryPage() {
                   <p className="text-xs text-gray-400">Список городов появится после настройки (Настройки → Доставка).</p>
                 )}
               </div>
+              </>
             ) : (
               <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
                 <activeItem.icon size={28} className="mx-auto text-gray-300" />
