@@ -335,6 +335,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!settings.ticketTypes || !Array.isArray(settings.ticketTypes)) settings.ticketTypes = [...DEFAULT_TICKET_TYPES];
     // Города для карточек поставщиков/покупателей
     if (!settings.cities || !Array.isArray(settings.cities)) settings.cities = [...DEFAULT_CITIES];
+    // v1.29.0: города доставки (DBO) — по умолчанию копируем список городов CRM
+    if (!Array.isArray(settings.deliveryCities)) settings.deliveryCities = [...(settings.cities || [])];
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)
     if (!settings.quickLinks || typeof settings.quickLinks !== 'object') {

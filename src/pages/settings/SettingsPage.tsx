@@ -13,7 +13,7 @@ const ALL_SYSTEM_STATUSES = ['Активный', 'Новый с сайта', 'Л
 import { Plus, Save, Trash2, X, Edit2,  Users, CheckCircle2, XCircle, Settings2, Package, Megaphone, MapPin, List, Tag, Video, FileEdit, Copy, ExternalLink , Pencil, Check, Ban, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SETTINGS_TABS = ['Статусы', 'Сервисы продаж', 'Пользователи', 'Уведомления', 'Типы и города', 'Быстрые кнопки', 'Группы товаров', 'Источники', 'Типы задач', 'Медиа сервис', 'Формы', 'Приветствия', 'API'];
+const SETTINGS_TABS = ['Статусы', 'Сервисы', 'Пользователи', 'Уведомления', 'Типы и города', 'Кнопки', 'Товары', 'Источники', 'Задачи', 'Доставка', 'Медиа', 'Формы', 'Приветствия', 'API']; // v1.29.0: переименование вкладок + Доставка (перед Медиа)
 
 const STATUS_SECTIONS = [
   { key: 'supplier', label: 'Поставщики' },
@@ -427,6 +427,20 @@ const [tab, setTab] = useState('Статусы');
   }
   function removeCity(v: string) {
     updateStore(s => ({ ...s, settings: { ...s.settings, cities: (s.settings.cities || []).filter(c => c !== v) } }));
+    forceUpdate(n => n + 1);
+  }
+
+  // v1.29.0: города доставки (DBO) — вкладка Доставка
+  const [newDeliveryCity, setNewDeliveryCity] = useState('');
+  function addDeliveryCity() {
+    const v = newDeliveryCity.trim();
+    if (!v) return;
+    if ((store.settings.deliveryCities || []).some(c => c.toLowerCase() === v.toLowerCase())) { toast.error('Город уже есть в списке'); return; }
+    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCities: [...(s.settings.deliveryCities || []), v].sort((a, b) => a.localeCompare(b, 'ru')) } }));
+    setNewDeliveryCity(''); forceUpdate(n => n + 1);
+  }
+  function removeDeliveryCity(v: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCities: (s.settings.deliveryCities || []).filter(c => c !== v) } }));
     forceUpdate(n => n + 1);
   }
 
@@ -866,7 +880,7 @@ const [tab, setTab] = useState('Статусы');
           )}
 
           {/* ── SUPPLIER SERVICES ── */}
-          {tab === 'Сервисы продаж' && (
+          {tab === 'Сервисы' && (
             <div className="space-y-4">
               <h3 className="section-title flex items-center gap-2"><Tag size={16} className="text-brand-red" /> Сервисы продаж (DBS, DBO, FBS, MEDIA и др.)</h3>
               <div className="flex gap-2">
@@ -1105,7 +1119,7 @@ const [tab, setTab] = useState('Статусы');
           )}
 
           {/* ── PRODUCT GROUPS ── */}
-          {tab === 'Быстрые кнопки' && (
+          {tab === 'Кнопки' && (
             <div className="max-w-2xl space-y-4">
               <div className="card-base p-4">
                 <h3 className="section-title mb-1">Быстрые кнопки в шапке</h3>
@@ -1126,7 +1140,7 @@ const [tab, setTab] = useState('Статусы');
             </div>
           )}
 
-          {tab === 'Группы товаров' && (
+          {tab === 'Товары' && (
             <div className="space-y-4">
               <h3 className="section-title flex items-center gap-2"><Package size={16} className="text-brand-red" /> Группы товаров</h3>
               <div className="flex gap-2"><input className="form-input flex-1" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} placeholder="Название группы..." /><button onClick={addProductGroup} className="btn-primary text-xs"><Plus size={14} /> Добавить</button></div>
@@ -1269,7 +1283,7 @@ const [tab, setTab] = useState('Статусы');
           )}
 
           {/* ── TASK ENTITY TYPES ── */}
-          {tab === 'Типы задач' && (
+          {tab === 'Задачи' && (
             <div className="space-y-4">
               <h3 className="section-title flex items-center gap-2"><List size={16} className="text-brand-red" /> Типы сущностей задач</h3>
               <div className="card-base p-4 bg-blue-50 border-blue-200">
@@ -1288,7 +1302,24 @@ const [tab, setTab] = useState('Статусы');
           )}
 
           {/* ── MEDIA SERVICE SETTINGS ── */}
-          {tab === 'Медиа сервис' && (
+          {tab === 'Доставка' && (
+          <div className="card-base p-5 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">Города (для сервиса доставки DBO)</h3>
+              <p className="text-xs text-gray-400 mb-3">Список городов, доступных к доставке.</p>
+              <div className="flex gap-2 mb-3">
+                <input className="form-input flex-1" placeholder="Новый город..." value={newDeliveryCity} onChange={e => setNewDeliveryCity(e.target.value)} onKeyDown={e => e.key === 'Enter' && addDeliveryCity()} />
+                <button onClick={addDeliveryCity} className="btn-primary text-xs whitespace-nowrap">Добавить</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(store.settings.deliveryCities || []).map(c => <ChipDelete key={c} label={c} onClick={() => removeDeliveryCity(c)} />)}
+                {!(store.settings.deliveryCities || []).length && <p className="text-xs text-gray-400">Города не добавлены.</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'Медиа' && (
             <div className="space-y-4">
               <h3 className="section-title flex items-center gap-2"><Video size={16} className="text-brand-red" /> Настройки медиа сервиса</h3>
               <div className="flex flex-wrap gap-2">

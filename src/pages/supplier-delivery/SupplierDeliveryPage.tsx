@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, FileText, Headset, LogOut, Truck, Undo2, Wallet } from 'lucide-react';
+import { AlertCircle, FileText, LogOut, Truck, Undo2, Wallet } from 'lucide-react';
 import { getFunctionsUrl, getAnonKeyHeaders } from '@/lib/functions-api';
 import { APP_VERSION } from '@/constants';
 
-/** v1.29.0: ЛК сервиса доставки (DBO). Шаг 4 — вход по PIN + шапка (дизайн ЛК проценки) и меню разделов. */
+/** v1.29.0: ЛК сервиса доставки (DBO). Шапка с меню справа, блоки контента во всю ширину. */
 
 type Meta = { companyName: string; hasPin: boolean };
 type MenuKey = 'deliveries' | 'returns' | 'documents' | 'finance';
@@ -26,7 +26,6 @@ export default function SupplierDeliveryPage() {
   const [pinPassed, setPinPassed] = useState(sessionStorage.getItem('dbo_pin_ok') === '1');
   const [saving, setSaving] = useState(false);
   const [menu, setMenu] = useState<MenuKey>('deliveries');
-  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${getFunctionsUrl('supplier-delivery')}?token=${encodeURIComponent(token)}`, { headers: getAnonKeyHeaders() })
@@ -113,55 +112,32 @@ export default function SupplierDeliveryPage() {
 
         {!loading && !fatal && pinPassed && (
           <div className="space-y-4">
-            {/* ШАПКА — дизайн копия ЛК сервиса проценки */}
+            {/* ШАПКА: логотип слева, меню справа */}
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 sm:px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
               <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
-              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-                <div className="flex items-center gap-[0.6rem]">
-                  <div className="relative">
-                    <button type="button" onClick={() => setHelpOpen(v => !v)} title="Помощь"
-                      className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
-                    {helpOpen && (
-                      <div className="absolute right-0 top-full mt-2 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
-                        <p>Подсказки по разделам кабинета появятся в следующих обновлениях.</p>
-                      </div>
-                    )}
-                  </div>
-                  <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
-                    className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-700 shadow-md flex items-center justify-center transition-colors">
-                    <Headset size={17} />
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* МЕНЮ + КОНТЕНТ */}
-            <div className="flex flex-col lg:flex-row gap-4 items-start">
-              <aside className="bg-white border border-gray-200 rounded-2xl shadow-sm p-3 flex lg:flex-col gap-1 w-full lg:w-64 overflow-x-auto">
+              <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto">
                 {MENU.map(m => (
                   <button key={m.key} type="button" onClick={() => setMenu(m.key)}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap text-left w-full ${menu === m.key ? 'bg-red-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}>
-                    <m.icon size={16} /> {m.label}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${menu === m.key ? 'bg-red-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}>
+                    <m.icon size={15} /> {m.label}
                   </button>
                 ))}
-                <div className="hidden lg:block flex-1" />
                 <button type="button" onClick={logout}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap text-left w-full">
-                  <LogOut size={16} /> Выход
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap">
+                  <LogOut size={15} /> Выход
                 </button>
-              </aside>
+              </nav>
+            </div>
 
-              <main className="flex-1 min-w-0 space-y-4 w-full">
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 py-3">
-                  <p className="text-xs text-gray-400">СЕРВИС ДОСТАВКИ (DBO) · {meta?.companyName}</p>
-                  <h2 className="text-sm font-semibold text-gray-900 mt-1">{activeItem.label}</h2>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                  <activeItem.icon size={28} className="mx-auto text-gray-300" />
-                  <p className="text-sm font-semibold text-gray-700">{activeItem.label}</p>
-                  <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
-                </div>
-              </main>
+            {/* КОНТЕНТ — во всю ширину */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 py-3">
+              <p className="text-xs text-gray-400">СЕРВИС ДОСТАВКИ (DBO) · {meta?.companyName}</p>
+              <h2 className="text-sm font-semibold text-gray-900 mt-1">{activeItem.label}</h2>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+              <activeItem.icon size={28} className="mx-auto text-gray-300" />
+              <p className="text-sm font-semibold text-gray-700">{activeItem.label}</p>
+              <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
             </div>
           </div>
         )}

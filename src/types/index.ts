@@ -610,6 +610,8 @@ export interface AppSettings {
   buyerTypes: string[];
   ticketTypes: string[];
   cities: string[];
+  /** Города, доступные для доставки (DBO) — ТЗ v1.29.0, вкладка Настройки → Доставка */
+  deliveryCities?: string[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

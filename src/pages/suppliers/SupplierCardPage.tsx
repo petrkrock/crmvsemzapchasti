@@ -894,6 +894,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                         </div>
                         <div className="rounded-lg border border-brand-gray-mid p-3 mb-3 bg-gray-50/50">
                           <p className="text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Безопасность</p>
+                          <p className="text-[11px] text-gray-500 mb-2">Текущий PIN: <b className="text-gray-800">{da?.pin || 'не задан'}</b></p>
                           <div className="flex flex-wrap items-center gap-2">
                             <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft} maxLength={6} onChange={e => setDeliveryPinDraft(e.target.value.replace(/\D/g, ''))} />
                             <button onClick={() => {
