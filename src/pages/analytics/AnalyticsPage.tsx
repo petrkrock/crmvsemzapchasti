@@ -301,7 +301,7 @@ export default function AnalyticsPage() {
   }, [store.settings.mediaAdTypes, mediaRecords]);
 
   // ── SERVICES STATS ───────────────────────────────────────
-  const BASE_SERVICES = ['DBS', 'FBS', 'MEDIA'];
+  const BASE_SERVICES = ['DBS', 'DBO', 'FBS', 'MEDIA']; // v1.29.0: +DBO — системный сервис доставки
   const allServices = useMemo(() => {
     const fromSettings = (store.settings.supplierServices || []).map(s => s.name);
     return [...new Set([...BASE_SERVICES, ...fromSettings])];
