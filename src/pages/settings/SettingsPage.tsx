@@ -6,7 +6,7 @@ import { createManagerAccount, updateManagerAccount, isSupabaseConfigured } from
 import { useNavigate, Link } from 'react-router-dom';
 import type { AppUser, UserAccess, UserStatus, ProductGroup, Source, PlanCity, TaskEntityType, StatusConfig, SupplierService, MediaAdType, MediaDurationOption, MediaStatus, PublicFormEntityType, FormFieldConfig, FormConfig } from '@/types';
 import { EMPTY_ACCESS } from '@/types';
-import { MEDIA_SYSTEM_STATUSES, DEFAULT_STATUSES, FORM_FIELD_DEFINITIONS, DEFAULT_FORM_CONSENT, SYSTEM_TASK_TYPE, SYSTEM_SUPPLIER_STATUSES, SYSTEM_TASK_STATUSES, SYSTEM_TASK_TYPES, SYSTEM_TICKET_TYPES, SYSTEM_LEAD_STATUSES, TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_SUPPLIER_GREETING, TICKET_STATUSES, TICKET_STATUS_COLORS } from '@/constants';
+import { MEDIA_SYSTEM_STATUSES, DEFAULT_STATUSES, FORM_FIELD_DEFINITIONS, DEFAULT_FORM_CONSENT, SYSTEM_TASK_TYPE, SYSTEM_SUPPLIER_STATUSES, SYSTEM_TASK_STATUSES, SYSTEM_TASK_TYPES, SYSTEM_TICKET_TYPES, SYSTEM_LEAD_STATUSES, TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_SUPPLIER_GREETING, DEFAULT_DELIVERY_GREETING, TICKET_STATUSES, TICKET_STATUS_COLORS } from '@/constants';
 
 // ТЗ 1.8: полный список системных статусов (редактирование/удаление запрещены)
 const ALL_SYSTEM_STATUSES = ['Активный', 'Новый с сайта', 'Лид CRM', 'Переговоры', 'Приветствие', 'Проблемный', 'Настройка прайса', 'Архив дублей', 'АРХИВ', 'Лид'];
@@ -1503,6 +1503,12 @@ const [tab, setTab] = useState('Статусы');
                 <p className="text-xs text-gray-400">Текст для кнопки «Копировать данные» в карточке поставщика (Склад → Самообслуживание). Плейсхолдеры: {'{tradeName}'} — название, {'{link}'} — ссылка, {'{pin}'} — PIN-код.</p>
                 <textarea className="form-input min-h-[160px]" value={freshStore.settings.greetings?.supplier || ''} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, supplier: e.target.value } } })); forceUpdate(n => n + 1); }} />
                 <button onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, supplier: DEFAULT_SUPPLIER_GREETING } } })); forceUpdate(n => n + 1); toast.success('Возвращён текст по умолчанию'); }} className="btn-secondary text-xs">Сбросить по умолчанию</button>
+              </div>
+              <div className="card-base p-4 space-y-3">
+                <h3 className="section-title">Доставка (DBO)</h3>
+                <p className="text-xs text-gray-400">Текст для кнопки «Копировать приветствие» в карточке поставщика (Доставка (DBO) → ЛК - Сервис доставки). Плейсхолдеры: {'{tradeName}'} — название, {'{link}'} — ссылка, {'{pin}'} — PIN-код.</p>
+                <textarea className="form-input min-h-[160px]" value={freshStore.settings.greetings?.delivery || ''} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, delivery: e.target.value } } })); forceUpdate(n => n + 1); }} />
+                <button onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, delivery: DEFAULT_DELIVERY_GREETING } } })); forceUpdate(n => n + 1); toast.success('Возвращён текст по умолчанию'); }} className="btn-secondary text-xs">Сбросить по умолчанию</button>
               </div>
             </div>
           )}

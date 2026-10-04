@@ -627,7 +627,7 @@ export interface AppSettings {
   /** Роли контактов (ТЗ v1.22.30): справочник Настройки → Источники → «Роль». Директор, Менеджер, Собственник, РОП, ТП — названия редактируемые. */
   roleTypes?: string[];
   /** Шаблоны приветствий (Настройки → Приветствия) */
-  greetings?: { supplier?: string };
+  greetings?: { supplier?: string; delivery?: string };
   mediaAdTypes: MediaAdType[];
   mediaTariffs?: MediaTariff[];  // legacy
   mediaStatuses: MediaStatus[];

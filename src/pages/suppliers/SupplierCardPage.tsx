@@ -18,7 +18,7 @@ import RequisitesTab from '@/components/features/RequisitesTab';
 import TagInput from '@/components/features/TagInput';
 import CitySelect from '@/components/features/CitySelect';
 import type { Supplier, ServiceSearchCondition, ScoreData, RequisitesData, Task, WarehouseLocation, WarehouseStatus, HistoryEntry } from '@/types';
-import { ROLE_TYPES, CONTACT_PREFS, SYSTEM_TASK_TYPE, DEFAULT_SUPPLIER_GREETING, DEFAULT_TASK_TYPES } from '@/constants';
+import { ROLE_TYPES, CONTACT_PREFS, SYSTEM_TASK_TYPE, DEFAULT_SUPPLIER_GREETING, DEFAULT_TASK_TYPES, DEFAULT_DELIVERY_GREETING } from '@/constants';
 import { ArrowLeft, Save, Edit2, X, Plus, Trash2, Calendar, CheckCircle, Link2, Copy, RotateCcw, Pencil, ChevronDown } from 'lucide-react';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import { toast } from 'sonner';
@@ -894,9 +894,8 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                         </div>
                         <div className="rounded-lg border border-brand-gray-mid p-3 mb-3 bg-gray-50/50">
                           <p className="text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Безопасность</p>
-                          <p className="text-[11px] text-gray-500 mb-2">Текущий PIN: <b className="text-gray-800">{da?.pin || 'не задан'}</b></p>
                           <div className="flex flex-wrap items-center gap-2">
-                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft} maxLength={6} onChange={e => setDeliveryPinDraft(e.target.value.replace(/\D/g, ''))} />
+                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft || da?.pin || ''} onFocus={e => e.target.select()} maxLength={6} onChange={e => setDeliveryPinDraft(e.target.value.replace(/\D/g, ''))} />
                             <button onClick={() => {
                               const phrase = window.prompt('Для смены PIN введите слово: сменить');
                               if (phrase === null) return;
@@ -918,7 +917,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   <button onClick={() => {
                     const link = `${window.location.origin}/d/${freshSupplier.deliveryAccess?.token || ''}`;
                     const pin = freshSupplier.deliveryAccess?.pin || '—';
-                    const tpl = getStore().settings.greetings?.supplier || DEFAULT_SUPPLIER_GREETING;
+                    const tpl = getStore().settings.greetings?.delivery || DEFAULT_DELIVERY_GREETING;
                     const text = tpl.replace('{tradeName}', freshSupplier.tradeName || '').replace('{link}', link).replace('{pin}', pin);
                     navigator.clipboard.writeText(text).then(() => {
                       toast.success('Приветствие скопировано');

@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, FileText, LogOut, Truck, Undo2, Wallet } from 'lucide-react';
+import { AlertCircle, FileText, Home, LogOut, MapPin, Truck, Undo2, Wallet } from 'lucide-react';
 import { getFunctionsUrl, getAnonKeyHeaders } from '@/lib/functions-api';
 import { APP_VERSION } from '@/constants';
 
 /** v1.29.0: ЛК сервиса доставки (DBO). Шапка с меню справа, блоки контента во всю ширину. */
 
-type Meta = { companyName: string; hasPin: boolean };
-type MenuKey = 'deliveries' | 'returns' | 'documents' | 'finance';
+type Meta = { companyName: string; hasPin: boolean; availableCities?: string[] };
+type MenuKey = 'home' | 'deliveries' | 'returns' | 'documents' | 'finance';
 
 const MENU: { key: MenuKey; label: string; icon: typeof Truck }[] = [
+  { key: 'home', label: 'Главная', icon: Home },
   { key: 'deliveries', label: 'Доставки', icon: Truck },
   { key: 'returns', label: 'Возвраты', icon: Undo2 },
   { key: 'documents', label: 'Документы', icon: FileText },
@@ -25,7 +26,7 @@ export default function SupplierDeliveryPage() {
   const [pinError, setPinError] = useState('');
   const [pinPassed, setPinPassed] = useState(sessionStorage.getItem('dbo_pin_ok') === '1');
   const [saving, setSaving] = useState(false);
-  const [menu, setMenu] = useState<MenuKey>('deliveries');
+  const [menu, setMenu] = useState<MenuKey>('home');
 
   useEffect(() => {
     fetch(`${getFunctionsUrl('supplier-delivery')}?token=${encodeURIComponent(token)}`, { headers: getAnonKeyHeaders() })
@@ -59,13 +60,13 @@ export default function SupplierDeliveryPage() {
     sessionStorage.removeItem('dbo_pin');
     setPinPassed(false);
     setPin('');
-    setMenu('deliveries');
+    setMenu('home');
   }
 
   const activeItem = MENU.find(m => m.key === menu)!;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center p-3 sm:p-6 md:p-10">
+    <div className={`min-h-screen bg-[#f5f5f5] flex ${pinPassed ? 'items-start pt-6' : 'items-center'} justify-center p-3 sm:p-6 md:p-10`}>
       <div className={`w-full ${pinPassed ? 'max-w-[1160px]' : 'max-w-xl'} py-2`}>
 
         {loading && (
@@ -114,7 +115,9 @@ export default function SupplierDeliveryPage() {
           <div className="space-y-4">
             {/* ШАПКА: логотип слева, меню справа */}
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 sm:px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-              <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
+              <button type="button" onClick={() => setMenu('home')} title="На главную" className="shrink-0">
+                <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
+              </button>
               <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto">
                 {MENU.map(m => (
                   <button key={m.key} type="button" onClick={() => setMenu(m.key)}
@@ -130,15 +133,40 @@ export default function SupplierDeliveryPage() {
             </div>
 
             {/* КОНТЕНТ — во всю ширину */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 py-3">
-              <p className="text-xs text-gray-400">СЕРВИС ДОСТАВКИ (DBO) · {meta?.companyName}</p>
-              <h2 className="text-sm font-semibold text-gray-900 mt-1">{activeItem.label}</h2>
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+              <div>
+                <p className="text-[11px] text-gray-400">Поставщик</p>
+                <h2 className="text-sm font-semibold text-gray-900">{meta?.companyName}</h2>
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-              <activeItem.icon size={28} className="mx-auto text-gray-300" />
-              <p className="text-sm font-semibold text-gray-700">{activeItem.label}</p>
-              <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
-            </div>
+            {menu === 'home' ? (
+              <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <h3 className="section-title">Доступные города доставки</h3>
+                    <p className="text-xs text-gray-400 mt-1">Города, в которых доступна доставка.</p>
+                  </div>
+                </div>
+                {(meta?.availableCities || []).length ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {(meta?.availableCities || []).map(c => (
+                      <div key={c} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-red-300 transition-colors">
+                        <MapPin size={14} className="text-red-500 shrink-0" />
+                        <span className="text-sm text-gray-800 truncate">{c}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">Список городов появится после настройки (Настройки → Доставка).</p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+                <activeItem.icon size={28} className="mx-auto text-gray-300" />
+                <p className="text-sm font-semibold text-gray-700">{activeItem.label}</p>
+                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+              </div>
+            )}
           </div>
         )}
 
