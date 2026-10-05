@@ -7,6 +7,7 @@ import { APP_VERSION } from '@/constants';
 /** v1.29.0: ЛК сервиса доставки (DBO). Шапка с меню справа, блоки контента во всю ширину. */
 
 type Meta = { companyName: string; hasPin: boolean; availableCities?: string[] };
+type Cabinet = { route: string; schedule: string; warehouse: string; citiesCount: number; operatorName: string; operatorAvatar: string; operatorPhone: string; status: string };
 type MenuKey = 'home' | 'deliveries' | 'returns' | 'documents' | 'finance';
 
 const MENU: { key: MenuKey; label: string; icon: typeof Truck }[] = [
@@ -28,9 +29,11 @@ export default function SupplierDeliveryPage() {
   const [saving, setSaving] = useState(false);
   const [menu, setMenu] = useState<MenuKey>('home');
   const [helpOpen, setHelpOpen] = useState(false);
+  const [cabinet, setCabinet] = useState<Cabinet | null>(null);
   const [helpOpen2, setHelpOpen2] = useState(false);
 
   useEffect(() => {
+    if (pinPassed) loadCabinet(sessionStorage.getItem('dbo_pin') || '');
     fetch(`${getFunctionsUrl('supplier-delivery')}?token=${encodeURIComponent(token)}`, { headers: getAnonKeyHeaders() })
       .then(r => r.json().then(d => ({ ok: r.ok, d })))
       .then(({ ok, d }) => { if (!ok) setFatal(d?.error || 'Ссылка недействительна'); else setMeta(d); })
@@ -53,8 +56,21 @@ export default function SupplierDeliveryPage() {
         sessionStorage.setItem('dbo_pin_ok', '1');
         sessionStorage.setItem('dbo_pin', pin);
         setPinPassed(true);
+        loadCabinet(pin);
       }
     } finally { setSaving(false); }
+  }
+
+  async function loadCabinet(pinCode: string) {
+    try {
+      const r = await fetch(getFunctionsUrl('supplier-delivery'), {
+        method: 'POST',
+        headers: { ...getAnonKeyHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin: pinCode }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.contract) setCabinet(d.contract);
+    } catch { /* кабинет останется null — блоки покажут «—» */ }
   }
 
   function logout() {
@@ -140,8 +156,35 @@ export default function SupplierDeliveryPage() {
                 <p className="text-[11px] text-gray-400">Поставщик</p>
                 <h2 className="text-sm font-semibold text-gray-900">{meta?.companyName}</h2>
               </div>
+              <div>
+                <p className="text-[11px] text-gray-400">Оператор</p>
+                {cabinet?.operatorName ? (
+                  <span className="flex items-center gap-1.5">
+                    {cabinet.operatorAvatar
+                      ? <img src={cabinet.operatorAvatar} alt="" className="w-5 h-5 rounded-full object-cover border border-gray-200" onError={ev => (ev.currentTarget.style.display = 'none')} />
+                      : <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-[9px] font-bold">{(cabinet.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                    <span className="text-sm font-semibold text-gray-900">{cabinet.operatorName}</span>
+                  </span>
+                ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400">Маршрут</p>
+                <h2 className="text-sm font-semibold text-gray-900">{cabinet?.route || '—'}</h2>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400">График и время</p>
+                <h2 className="text-sm font-semibold text-gray-900">{cabinet?.schedule || '—'}</h2>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400">Склад</p>
+                <h2 className="text-sm font-semibold text-gray-900 max-w-[220px] truncate" title={cabinet?.warehouse || ''}>{cabinet?.warehouse || '—'}</h2>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-400">Активных городов</p>
+                <h2 className="text-sm font-semibold text-gray-900">{cabinet ? cabinet.citiesCount : '—'}</h2>
+              </div>
               <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
-                <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">—</b></span>
+                <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">{cabinet?.status || '—'}</b></span>
                 <button type="button" onClick={() => setHelpOpen2(true)} title="Активировать доставку"
                   className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold transition-colors shadow-md">
                   Активировать
