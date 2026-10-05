@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
 
     const client = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: supplier, error } = await client.from('suppliers')
-      .select('id, trade_name, delivery_access')
+      .select('id, trade_name, delivery_access, delivery_contract, warehouse_locations')
       .eq('delivery_access->>token', token)
       .eq('delivery_access->>enabled', 'true')
       .maybeSingle();
@@ -72,7 +72,30 @@ Deno.serve(async (req) => {
       if (bruteBlocked(token)) return json({ error: 'Слишком много попыток. Попробуйте позже.' }, 429);
       if (!pinOk(access.pin, body?.pin as string | undefined)) { registerFail(token); return json({ error: 'Неверный PIN-код' }, 403); }
       attempts.delete(token);
-      return json({ ok: true, companyName: supplier.trade_name });
+
+      // Данные договора доставки (DBO) — только после проверки PIN
+      const dc = (supplier.delivery_contract || {}) as Record<string, unknown>;
+      const whs = (supplier.warehouse_locations || []) as Array<Record<string, unknown>>;
+      const wh = whs.find(w => String(w.id || '') === String(dc.warehouseId || '')) || whs[0];
+      const { data: settingsRow2 } = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
+      const operators = (((settingsRow2?.settings as Record<string, unknown> | undefined)?.deliveryOperators) as Array<Record<string, unknown>>) || [];
+      const op = operators.find(o => String(o.id) === String(dc.operatorId || ''));
+      const days = ((dc.scheduleDays as string[]) || []).join(' ');
+      const time = dc.scheduleFrom && dc.scheduleTo ? `${dc.scheduleFrom}–${dc.scheduleTo}` : '';
+      return json({
+        ok: true,
+        companyName: supplier.trade_name,
+        contract: {
+          route: dc.route || '',
+          schedule: [days, time].filter(Boolean).join(' · '),
+          warehouse: wh ? `${wh.city || ''}${wh.city && wh.address ? ', ' : ''}${wh.address || ''}` : '',
+          citiesCount: ((dc.cities as string[]) || []).length,
+          operatorName: (op?.name as string) || '',
+          operatorAvatar: (op?.avatar as string) || '',
+          operatorPhone: (op?.phone as string) || '',
+          status: (dc.status as string) || '',
+        },
+      });
     }
 
     return json({ error: 'Method not allowed' }, 405);
