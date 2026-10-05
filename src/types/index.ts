@@ -609,9 +609,36 @@ export interface DeliveryContract {
   cities?: string[];
   operatorId?: string;
   status?: string;
+  /** Номер договора — обязателен при активации */
+  contractNumber?: string;
+  /** Дата договора — обязательна при активации */
+  contractDate?: string;
   serviceTariff?: string;
   cityTariff?: string;
   comment?: string;
+}
+
+/** v1.29.0: Остановка маршрута самовывоза (DBO) */
+export interface RouteStop {
+  supplierId: string;
+  /** Диапазон времени — вручную от и до */
+  from: string;
+  to: string;
+}
+
+/** v1.29.0: Маршрут самовывоза (DBO) */
+export interface DeliveryRoute {
+  id: string;
+  /** Номер маршрута */
+  number: string;
+  /** Время выезда с ЦС */
+  departureTime: string;
+  /** График: ПН..ВС */
+  scheduleDays: string[];
+  stops: RouteStop[];
+  /** Время прибытия на ЦС */
+  arrivalTime: string;
+  createdAt: string;
 }
 
 /** v1.29.0: Тариф доставки (DBO) — Тариф сервиса / Тариф за Город */
@@ -660,6 +687,8 @@ export interface AppSettings {
   deliveryServiceTariffs?: DeliveryTariff[];
   /** Тарифы за Город (DBO) */
   deliveryCityTariffs?: DeliveryTariff[];
+  /** Маршруты самовывоза (DBO) */
+  deliveryRoutes?: DeliveryRoute[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

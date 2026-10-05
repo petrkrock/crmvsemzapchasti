@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle, FileText, Home, LogOut, MapPin, Truck, Undo2, UserRound, Wallet } from 'lucide-react';
+import { AlertCircle, FileText, Home, LogOut, MapPin, Truck, Undo2, UserRound, Warehouse, Wallet } from 'lucide-react';
 import { getFunctionsUrl, getAnonKeyHeaders } from '@/lib/functions-api';
 import { APP_VERSION } from '@/constants';
 
@@ -157,17 +157,6 @@ export default function SupplierDeliveryPage() {
                 <h2 className="text-sm font-semibold text-gray-900">{meta?.companyName}</h2>
               </div>
               <div>
-                <p className="text-[11px] text-gray-400">Оператор</p>
-                {cabinet?.operatorName ? (
-                  <span className="flex items-center gap-1.5">
-                    {cabinet.operatorAvatar
-                      ? <img src={cabinet.operatorAvatar} alt="" className="w-5 h-5 rounded-full object-cover border border-gray-200" onError={ev => (ev.currentTarget.style.display = 'none')} />
-                      : <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-[9px] font-bold">{(cabinet.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
-                    <span className="text-sm font-semibold text-gray-900">{cabinet.operatorName}</span>
-                  </span>
-                ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
-              </div>
-              <div>
                 <p className="text-[11px] text-gray-400">Маршрут</p>
                 <h2 className="text-sm font-semibold text-gray-900">{cabinet?.route || '—'}</h2>
               </div>
@@ -177,7 +166,9 @@ export default function SupplierDeliveryPage() {
               </div>
               <div>
                 <p className="text-[11px] text-gray-400">Склад</p>
-                <h2 className="text-sm font-semibold text-gray-900 max-w-[220px] truncate" title={cabinet?.warehouse || ''}>{cabinet?.warehouse || '—'}</h2>
+                {cabinet?.warehouse ? (
+                  <span title={cabinet.warehouse} className="inline-flex text-gray-700 mt-0.5"><Warehouse size={17} /></span>
+                ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
               </div>
               <div>
                 <p className="text-[11px] text-gray-400">Активных городов</p>
@@ -199,8 +190,16 @@ export default function SupplierDeliveryPage() {
                       </div>
                     )}
                   </div>
+                  {cabinet?.operatorName && (
+                    <span className="flex items-center gap-1.5 pr-1" title={cabinet.operatorName}>
+                      {cabinet.operatorAvatar
+                        ? <img src={cabinet.operatorAvatar} alt="" className="w-7 h-7 rounded-full object-cover border border-gray-200" onError={ev => (ev.currentTarget.style.display = 'none')} />
+                        : <span className="w-7 h-7 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-[10px] font-bold">{(cabinet.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                      <span className="text-xs font-semibold text-gray-800 max-w-[120px] truncate">{cabinet.operatorName}</span>
+                    </span>
+                  )}
                   <button type="button" onClick={() => setHelpOpen2(true)} title="Оператор"
-                    className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-700 shadow-md flex items-center justify-center transition-colors">
+                    className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-700 shadow-md flex items-center justify-center transition-colors shrink-0">
                     <UserRound size={17} />
                   </button>
                 </div>

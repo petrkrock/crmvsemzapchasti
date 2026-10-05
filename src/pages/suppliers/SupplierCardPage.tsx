@@ -944,15 +944,11 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                         <p className="text-xs text-gray-400 mb-3 max-w-md mx-auto">Поставщик получит персональную ссылку с секретным токеном для входа в ЛК сервиса доставки.</p>
                         <button onClick={() => {
                           patchDeliveryAccess({ enabled: true }, 'Выдана ссылка самообслуживания');
-                          // v1.29.0: при выдаче ссылки автоматически включаем системный сервис DBO в сервисы продаж поставщика
-                          if (!(freshSupplier.services || []).includes('DBO')) {
-                            const nextServices = [...(freshSupplier.services || []), 'DBO'];
-                            updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, services: nextServices, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
-                            pushSupplierHistory(makeHistoryEntry('services', JSON.stringify(freshSupplier.services || []), JSON.stringify(nextServices), 'Автовключение системного сервиса DBO при выдаче ссылки ЛК доставки', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
-                            toast.success('Ссылка выдана, сервис DBO включён в сервисы продаж поставщика');
-                          } else {
-                            toast.success('Ссылка выдана');
-                          }
+                          // v1.29.0: поставщик попадает в раздел Доставка → Поставщики со статусом ЛИД
+                          const dcNext = { ...freshSupplier.deliveryContract, status: 'ЛИД' };
+                          updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, deliveryContract: dcNext, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
+                          pushSupplierHistory(makeHistoryEntry('deliveryContract', JSON.stringify(freshSupplier.deliveryContract || null), JSON.stringify(dcNext), 'Установлен статус ЛИД при выдаче ссылки ЛК доставки', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
+                          toast.success('Ссылка выдана, статус договора: ЛИД');
                         }} className="btn-primary text-xs flex items-center gap-1 mx-auto"><Link2 size={12} /> Выдать ссылку</button>
                       </div>
                     )}
