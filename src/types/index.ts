@@ -626,6 +626,15 @@ export interface RouteStop {
   to: string;
 }
 
+/** v1.30.0: Новость платформы для ЛК поставщика */
+export interface LkNews {
+  id: string;
+  title: string;
+  date: string;
+  text: string;
+  createdAt: string;
+}
+
 /** v1.29.0: Маршрут самовывоза (DBO) */
 export interface DeliveryRoute {
   id: string;
@@ -689,6 +698,12 @@ export interface AppSettings {
   deliveryCityTariffs?: DeliveryTariff[];
   /** Маршруты самовывоза (DBO) */
   deliveryRoutes?: DeliveryRoute[];
+  /** v1.30.0: Дашборд ЛК поставщика (счётчики: manual/database) */
+  lkDashboard?: { countersMode: 'manual' | 'database'; buyersCount: number; suppliersCount: number };
+  /** v1.30.0: Баннер дашборда ЛК (изображение + ссылка) */
+  lkBanner?: { image: string; link: string };
+  /** v1.30.0: Новости платформы для ЛК (показываем последние 3) */
+  lkNews?: LkNews[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

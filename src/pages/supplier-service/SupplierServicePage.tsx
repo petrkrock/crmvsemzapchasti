@@ -66,6 +66,7 @@ export default function SupplierServicePage() {
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock'>('dashboard');
   const [deliveryInfo, setDeliveryInfo] = useState<Record<string, unknown> | null>(null);
   const [dlCities, setDlCities] = useState<string[]>([]);
+  const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
   const [dlTab, setDlTab] = useState<'mycities' | 'deliveries' | 'returns' | 'documents' | 'finance'>('mycities'); // ТЗ v1.23.8: подсказка прайс-листа
   const [cityHint, setCityHint] = useState(false); // ТЗ v1.23.9: совет по городам
   const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
@@ -157,6 +158,7 @@ export default function SupplierServicePage() {
       });
       const d = await r.json().catch(() => ({}));
       if (r.ok && d?.delivery) { setDeliveryInfo(d.delivery); setDlCities(d.deliveryCities || []); }
+      if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
     } catch { /* останется null — покажем «—» */ }
   }
 
@@ -357,12 +359,92 @@ export default function SupplierServicePage() {
             </div>
 
             {/* МЕНЮ КАБИНЕТА */}
-            {lkTab === 'dashboard' && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Дашборд</p>
-                <p className="text-xs text-gray-400">Главная страница кабинета появится в следующих обновлениях.</p>
-              </div>
-            )}
+            {lkTab === 'dashboard' && (() => {
+              const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
+              const news = (dash?.news as Array<Record<string, string>>) || [];
+              const counters = (dash?.counters as Record<string, unknown>) || {};
+              const manual = counters.countersMode !== 'database';
+              const cntBuyers = manual ? Number(counters.buyersCount ?? 500) : Number(dash?.dbBuyers ?? 0);
+              const cntSuppliers = manual ? Number(counters.suppliersCount ?? 500) : Number(dash?.dbSuppliers ?? 0);
+              const covered = new Set((data?.serviceSearch || []).map((c: { city: string }) => c.city).filter(Boolean)).size;
+              return (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    {/* БАННЕР */}
+                    <div className="lg:col-span-5">
+                      {banner.image ? (
+                        <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
+                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden h-[260px]">
+                          <img src={banner.image} alt="Баннер" className="w-full h-full object-cover" />
+                        </a>
+                      ) : (
+                        <div className="bg-white border border-gray-200 rounded-2xl h-[260px] flex items-center justify-center">
+                          <p className="text-gray-300 font-bold text-4xl tracking-widest select-none">БАННЕР</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* VZ ЧАТ */}
+                    <div className="lg:col-span-3">
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full">
+                        <h3 className="text-base font-bold text-gray-900">VZ Чат</h3>
+                        <div className="space-y-1.5 text-sm text-gray-700">
+                          <p>Непрочитанные: <b>0</b></p>
+                          <p>Новые контакты: <b>0</b></p>
+                        </div>
+                        <button type="button"
+                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-3 transition-colors">
+                          Открыть ЧАТ
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* СВОДКА ПО ПОСТАВЩИКУ */}
+                    <div className="lg:col-span-4">
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full relative">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-base font-bold text-gray-900">{data?.companyName}{data?.phone ? ` (${String(data.phone)})` : ''}</h3>
+                          <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
+                            className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center transition-colors shrink-0">?</button>
+                        </div>
+                        <div className="grid grid-cols-[92px_1fr] gap-x-4 gap-y-1.5 text-sm">
+                          <span className="font-semibold text-gray-800">Проценка:</span>
+                          <span className="text-gray-600">Доступно городов: <b className="text-gray-900">{(data?.availableCities || []).length}</b><br />Охвачено: <b className="text-gray-900">{covered}</b><br />Мультисклад: <b className="text-gray-900">{data?.multiWarehouse ? 'включён' : 'выключен'}</b></span>
+                          <span className="font-semibold text-gray-800">Доставка:</span>
+                          <span className="text-gray-600">Доступно городов: <b className="text-gray-900">{dlCities.length}</b><br />В доставке: <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b></span>
+                          <span className="font-semibold text-gray-800">Кроссдок:</span>
+                          <span className="text-gray-600">Не подключен</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* СЧЁТЧИКИ */}
+                  <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 flex flex-wrap items-center gap-x-10 gap-y-2 text-sm">
+                    <span className="text-gray-600">Магазинов и СТО: <b className="text-gray-900">{cntBuyers}</b></span>
+                    <span className="text-gray-600">Поставщиков: <b className="text-gray-900">{cntSuppliers}</b></span>
+                  </div>
+
+                  {/* НОВОСТИ */}
+                  <div className="space-y-3">
+                    <h3 className="text-base font-bold text-gray-900">Новости платформы</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {news.map(n => (
+                        <div key={n.id} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-semibold text-blue-600">Новая функция</span>
+                            <span className="text-[11px] text-gray-400">{n.date}</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
+                          <p className="text-xs text-gray-500 leading-relaxed">{n.text}</p>
+                        </div>
+                      ))}
+                      {!news.length && <p className="text-xs text-gray-400 md:col-span-3">Новости появятся после публикации (Настройки → ЛК Поставщик → Новости).</p>}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {lkTab === 'crossdock' && (
               <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
@@ -374,10 +456,10 @@ export default function SupplierServicePage() {
             {lkTab === 'delivery' && (
               <>
                 {/* ПОДМЕНЮ ДОСТАВКИ (второй уровень) */}
-                <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
                   {DL_MENU.map(m => (
                     <button key={m.key} type="button" onClick={() => setDlTab(m.key)}
-                      className={`w-full flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white border ${dlTab === m.key ? 'border-red-600 text-red-600 shadow-md' : 'border-gray-200 text-gray-700 hover:shadow-md'}`}>
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white border ${dlTab === m.key ? 'border-red-600 text-red-600 shadow-md' : 'border-gray-200 text-gray-700 hover:shadow-md'}`}>
                       <m.icon size={15} /> {m.label}
                     </button>
                   ))}

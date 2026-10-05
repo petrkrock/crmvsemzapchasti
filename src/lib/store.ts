@@ -344,6 +344,10 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.deliveryServiceTariffs)) settings.deliveryServiceTariffs = [];
     if (!Array.isArray(settings.deliveryCityTariffs)) settings.deliveryCityTariffs = [];
     if (!Array.isArray(settings.deliveryRoutes)) settings.deliveryRoutes = [];
+    // v1.30.0: дашборд ЛК поставщика
+    if (!settings.lkDashboard) settings.lkDashboard = { countersMode: 'manual', buyersCount: 500, suppliersCount: 500 };
+    if (!settings.lkBanner) settings.lkBanner = { image: '', link: '' };
+    if (!Array.isArray(settings.lkNews)) settings.lkNews = [];
     // v1.29.0 (ресофт): единый ЛК поставщика — если есть только доставочный доступ, переносим токен/PIN в serviceAccess
     if (Array.isArray(ps.suppliers)) ps.suppliers = ps.suppliers.map((sp: Supplier) => {
       if (!sp.serviceAccess?.token && sp.deliveryAccess?.token) return { ...sp, serviceAccess: sp.deliveryAccess };

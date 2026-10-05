@@ -13,7 +13,7 @@ const ALL_SYSTEM_STATUSES = ['Активный', 'Новый с сайта', 'Л
 import { Plus, Save, Trash2, X, Edit2,  Users, CheckCircle2, XCircle, Settings2, Package, Megaphone, MapPin, List, Tag, Video, FileEdit, Copy, ExternalLink , Pencil, Check, Ban, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SETTINGS_TABS = ['Статусы', 'Сервисы', 'Пользователи', 'Уведомления', 'Типы и города', 'Кнопки', 'Товары', 'Источники', 'Задачи', 'Доставка', 'Медиа', 'Формы', 'Приветствия', 'API']; // v1.29.0: переименование вкладок + Доставка (перед Медиа)
+const SETTINGS_TABS = ['Статусы', 'Сервисы', 'Пользователи', 'Уведомления', 'Типы и города', 'Кнопки', 'Товары', 'Источники', 'Задачи', 'Доставка', 'Медиа', 'Формы', 'ЛК Поставщик', 'API']; // v1.29.0: переименование вкладок + Доставка (перед Медиа)
 
 const STATUS_SECTIONS = [
   { key: 'supplier', label: 'Поставщики' },
@@ -434,6 +434,34 @@ const [tab, setTab] = useState('Статусы');
   const [newDeliveryCity, setNewDeliveryCity] = useState('');
   // v1.29.0: под-вкладки Доставки + форма оператора
   const [deliveryTab, setDeliveryTab] = useState<'cities' | 'operators' | 'statuses' | 'serviceTariffs' | 'cityTariffs'>('cities');
+  // v1.30.0: подвкладки «ЛК Поставщик»
+  const [lkTab, setLkTab] = useState<'dashboard' | 'banner' | 'news' | 'greeting'>('dashboard');
+  const [lkBannerImg, setLkBannerImg] = useState('');
+  const [lkBannerLink, setLkBannerLink] = useState('');
+  const [lkNewsTitle, setLkNewsTitle] = useState('');
+  const [lkNewsText, setLkNewsText] = useState('');
+  function addLkNews() {
+    if (!lkNewsTitle.trim() || !lkNewsText.trim()) { toast.error('Заполните заголовок и текст новости'); return; }
+    const item = { id: `ln-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString() };
+    updateStore(s => ({ ...s, settings: { ...s.settings, lkNews: [...(s.settings.lkNews || []), item] } }));
+    setLkNewsTitle(''); setLkNewsText('');
+    forceUpdate(n => n + 1); toast.success('Новость создана');
+  }
+  function removeLkNews(id: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, lkNews: (s.settings.lkNews || []).filter(x => x.id !== id) } }));
+    forceUpdate(n => n + 1); toast.success('Новость удалена');
+  }
+  async function uploadLkBanner(file: File) {
+    if (!isSupabaseConfigured()) { toast.error('Supabase не настроен'); return; }
+    try {
+      const fileName = `lk-banner-${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
+      const { error } = await supabase.storage.from('knowledge').upload(`files/${fileName}`, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('knowledge').getPublicUrl(`files/${fileName}`);
+      updateStore(s => ({ ...s, settings: { ...s.settings, lkBanner: { image: data.publicUrl, link: s.settings.lkBanner?.link || '' } } }));
+      forceUpdate(n => n + 1); toast.success('Баннер загружен');
+    } catch { toast.error('Не удалось загрузить баннер'); }
+  }
   const [opName, setOpName] = useState('');
   const [opPhone, setOpPhone] = useState('');
   const [opEmail, setOpEmail] = useState('');
@@ -1631,20 +1659,89 @@ const [tab, setTab] = useState('Статусы');
             </div>
           )}
 
-{tab === 'Приветствия' && (
+{tab === 'ЛК Поставщик' && (
             <div className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                {[['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия']].map(([k, l]) => (
+                  <button key={k} onClick={() => setLkTab(k as typeof lkTab)} className={`btn-secondary text-xs ${lkTab === k ? '!border-red-600 !text-red-600' : ''}`}>{l}</button>
+                ))}
+              </div>
+
+              {lkTab === 'dashboard' && (
+                <div className="card-base p-5 space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">Счётчики дашборда</h3>
+                  <div className="flex items-center gap-4 flex-wrap text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" checked={freshStore.settings.lkDashboard?.countersMode !== 'database'} onChange={() => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'manual', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500 } } })); forceUpdate(n => n + 1); }} />
+                      Вручную
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" checked={freshStore.settings.lkDashboard?.countersMode === 'database'} onChange={() => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'database', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500 } } })); forceUpdate(n => n + 1); }} />
+                      Из базы данных
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Магазинов и СТО</label>
+                      <input className="form-input text-xs mt-1" inputMode="numeric" disabled={freshStore.settings.lkDashboard?.countersMode === 'database'} value={freshStore.settings.lkDashboard?.buyersCount ?? 500} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'manual', buyersCount: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0), suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500 } } })); forceUpdate(n => n + 1); }} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600">Поставщиков</label>
+                      <input className="form-input text-xs mt-1" inputMode="numeric" disabled={freshStore.settings.lkDashboard?.countersMode === 'database'} value={freshStore.settings.lkDashboard?.suppliersCount ?? 500} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'manual', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0) } } })); forceUpdate(n => n + 1); }} />
+                    </div>
+                  </div>
+                  {freshStore.settings.lkDashboard?.countersMode === 'database' && <p className="text-[11px] text-gray-400">Значения считаются автоматически из базы (покупатели / поставщики CRM).</p>}
+                </div>
+              )}
+
+              {lkTab === 'banner' && (
+                <div className="card-base p-5 space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">Баннер дашборда</h3>
+                  <p className="text-[11px] text-gray-400">Рекомендуемый размер баннера: <b>1200 × 600 px</b> (соотношение 2:1, горизонтальный).</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <label className="btn-secondary text-xs cursor-pointer">
+                      Загрузить баннер
+                      <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadLkBanner(f); e.target.value = ''; }} />
+                    </label>
+                    {freshStore.settings.lkBanner?.image && <button onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, lkBanner: { image: '', link: '' } } })); forceUpdate(n => n + 1); }} className="btn-secondary text-xs !text-red-600">Удалить баннер</button>}
+                  </div>
+                  {freshStore.settings.lkBanner?.image && <img src={freshStore.settings.lkBanner.image} alt="Баннер" className="max-h-40 rounded-xl border border-gray-200 object-cover" />}
+                  <input className="form-input text-xs" placeholder="Ссылка при клике на баннер (https://...)" value={freshStore.settings.lkBanner?.link || ''} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkBanner: { image: s.settings.lkBanner?.image || '', link: e.target.value } } })); forceUpdate(n => n + 1); }} />
+                </div>
+              )}
+
+              {lkTab === 'news' && (
+                <div className="card-base p-5 space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">Новости платформы</h3>
+                  <div className="space-y-2">
+                    <input className="form-input text-xs" placeholder="Заголовок новости" value={lkNewsTitle} onChange={e => setLkNewsTitle(e.target.value)} />
+                    <textarea className="form-input text-xs min-h-[80px]" placeholder="Текст новости" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
+                    <button onClick={addLkNews} className="btn-primary text-xs">Создать новость</button>
+                  </div>
+                  <div className="space-y-2">
+                    {(freshStore.settings.lkNews || []).map(item => (
+                      <div key={item.id} className="border border-gray-200 rounded-xl px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-800 flex-1">{item.title}</span>
+                          <span className="text-[11px] text-gray-400">{item.date}</span>
+                          <button onClick={() => removeLkNews(item.id)} className="text-xs text-red-600 hover:underline">Удалить</button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{item.text}</p>
+                      </div>
+                    ))}
+                    {!(freshStore.settings.lkNews || []).length && <p className="text-xs text-gray-400">Новости не созданы.</p>}
+                  </div>
+                </div>
+              )}
+
+              {lkTab === 'greeting' && (
               <div className="card-base p-4 space-y-3">
                 <h3 className="section-title">Поставщик</h3>
-                <p className="text-xs text-gray-400">Текст для кнопки «Копировать данные» в карточке поставщика (Склад → Самообслуживание). Плейсхолдеры: {'{tradeName}'} — название, {'{link}'} — ссылка, {'{pin}'} — PIN-код.</p>
+                <p className="text-xs text-gray-400">Текст для кнопки «Копировать приветствие» в карточке поставщика (Анкета → ЛК поставщика). Плейсхолдеры: {'{tradeName}'} — название, {'{link}'} — ссылка, {'{pin}'} — PIN-код.</p>
                 <textarea className="form-input min-h-[160px]" value={freshStore.settings.greetings?.supplier || ''} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, supplier: e.target.value } } })); forceUpdate(n => n + 1); }} />
                 <button onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, supplier: DEFAULT_SUPPLIER_GREETING } } })); forceUpdate(n => n + 1); toast.success('Возвращён текст по умолчанию'); }} className="btn-secondary text-xs">Сбросить по умолчанию</button>
               </div>
-              <div className="card-base p-4 space-y-3">
-                <h3 className="section-title">Доставка (DBO)</h3>
-                <p className="text-xs text-gray-400">Текст для кнопки «Копировать приветствие» в карточке поставщика (Доставка (DBO) → ЛК - Сервис доставки). Плейсхолдеры: {'{tradeName}'} — название, {'{link}'} — ссылка, {'{pin}'} — PIN-код.</p>
-                <textarea className="form-input min-h-[160px]" value={freshStore.settings.greetings?.delivery || ''} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, delivery: e.target.value } } })); forceUpdate(n => n + 1); }} />
-                <button onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, delivery: DEFAULT_DELIVERY_GREETING } } })); forceUpdate(n => n + 1); toast.success('Возвращён текст по умолчанию'); }} className="btn-secondary text-xs">Сбросить по умолчанию</button>
-              </div>
+              )}
             </div>
           )}
 
