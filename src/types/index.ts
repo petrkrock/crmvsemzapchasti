@@ -614,6 +614,15 @@ export interface DeliveryContract {
   comment?: string;
 }
 
+/** v1.29.0: Тариф доставки (DBO) — Тариф сервиса / Тариф за Город */
+export interface DeliveryTariff {
+  id: string;
+  name: string;
+  /** Стоимость в месяц */
+  pricePerMonth: number;
+  createdAt: string;
+}
+
 /** v1.29.0: Оператор доставки (DBO) */
 export interface DeliveryOperator {
   id: string;
@@ -647,6 +656,10 @@ export interface AppSettings {
   deliveryOperators?: DeliveryOperator[];
   /** Статусы договоров доставки (DBO) — системные, ТЗ v1.29.0 */
   deliveryContractStatuses?: string[];
+  /** Тарифы сервиса доставки (DBO) */
+  deliveryServiceTariffs?: DeliveryTariff[];
+  /** Тарифы за Город (DBO) */
+  deliveryCityTariffs?: DeliveryTariff[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

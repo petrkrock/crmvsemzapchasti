@@ -340,6 +340,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.deliveryOperators)) settings.deliveryOperators = [];
     // v1.29.0: системные статусы договоров доставки
     if (!Array.isArray(settings.deliveryContractStatuses)) settings.deliveryContractStatuses = ['Ждёт активации', 'Активный', 'Аннулирован'];
+    if (!Array.isArray(settings.deliveryServiceTariffs)) settings.deliveryServiceTariffs = [];
+    if (!Array.isArray(settings.deliveryCityTariffs)) settings.deliveryCityTariffs = [];
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)
     if (!settings.quickLinks || typeof settings.quickLinks !== 'object') {
