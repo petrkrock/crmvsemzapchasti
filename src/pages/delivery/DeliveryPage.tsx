@@ -126,7 +126,7 @@ export default function DeliveryPage() {
                     const wh = (s.warehouseLocations || []).find(w => (w.id || '') === dc.warehouseId) || (s.warehouseLocations || [])[0];
                     const schedule = [ (dc.scheduleDays || []).join(' '), dc.scheduleFrom && dc.scheduleTo ? `${dc.scheduleFrom}–${dc.scheduleTo}` : '' ].filter(Boolean).join(' · ');
                     return (
-                      <tr key={s.id} onClick={() => navigate(`/suppliers/${s.id}`)}
+                      <tr key={s.id} onClick={() => navigate(`/delivery/suppliers/${s.id}`)}
                         className="border-t border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
                         <td className="table-cell font-medium text-gray-800">{s.tradeName}</td>
                         <td className="table-cell text-gray-500">{dc.route || '—'}</td>
