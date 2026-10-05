@@ -289,6 +289,7 @@ async function handlePost(req: Request) {
       warehouses: supplier.warehouse_locations || [],
       serviceSearch: supplier.service_search || [],
       delivery: deliveryPayload,
+      deliveryCities: (dset.deliveryCities as string[]) || [], // v1.29.0: Города (для сервиса доставки DBO) — из настроек Доставка, с городами проценки не связаны
       availableCities: ((await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle()).data?.settings as Record<string, unknown> | undefined)?.cities || [],
     });
   }
