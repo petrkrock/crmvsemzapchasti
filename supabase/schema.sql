@@ -44,6 +44,8 @@ CREATE TABLE public.suppliers (
   service_access      JSONB,
   -- v1.29.0: Доставка (DBO) — чистый ЛК поставщика по ссылке /d/<token> (токен/PIN). С DBS не связан.
   delivery_access     JSONB,
+  -- v1.29.0: Договор доставки (DBO) — данные анкеты из раздела Доставка
+  delivery_contract   JSONB,
   history             JSONB NOT NULL DEFAULT '[]'::jsonb,
   additional_contacts TEXT,
   additional_comment  TEXT,
