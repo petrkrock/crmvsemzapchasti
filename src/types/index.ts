@@ -314,6 +314,8 @@ export interface Supplier {
   serviceAccess?: { token: string; pin?: string; enabled: boolean; createdAt: string };
   /** v1.29.0: Доставка (DBO) — доступ к ЛК доставки по ссылке /d/<token>. СВОЯ настройка, с DBS не связана. */
   deliveryAccess?: { token: string; pin?: string; enabled: boolean; createdAt: string };
+  /** v1.29.0: Данные договора доставки (DBO) — анкета в разделе Доставка */
+  deliveryContract?: DeliveryContract;
   history: HistoryEntry[];
   additionalContacts?: string;
   additionalComment?: string;
@@ -595,6 +597,21 @@ export interface FormConfig {
   errorMessage: string;
   consent: FormConsentConfig; // всегда обязательна в публичной форме
   updatedAt: string;
+}
+
+/** v1.29.0: Договор доставки (DBO) — анкета поставщика в разделе Доставка */
+export interface DeliveryContract {
+  route?: string;
+  scheduleDays?: string[];
+  scheduleFrom?: string;
+  scheduleTo?: string;
+  warehouseId?: string;
+  cities?: string[];
+  operatorId?: string;
+  status?: string;
+  serviceTariff?: string;
+  cityTariff?: string;
+  comment?: string;
 }
 
 /** v1.29.0: Оператор доставки (DBO) */
