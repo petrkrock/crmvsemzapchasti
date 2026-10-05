@@ -60,7 +60,7 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract')
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -280,6 +280,7 @@ async function handlePost(req: Request) {
     return json({
       ok: true,
       pinVerified: true,
+      phone: supplier.phone || '',
       companyName: supplier.trade_name || 'Поставщик',
       inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
       contactName: supplier.contact_name || (Array.isArray((supplier as { contacts?: Array<{ name?: string }> }).contacts) ? ((supplier as { contacts: Array<{ name?: string }> }).contacts[0]?.name ?? '') : '') || '', // ТЗ v1.23.35: fallback — первый контакт карточки
@@ -290,6 +291,14 @@ async function handlePost(req: Request) {
       serviceSearch: supplier.service_search || [],
       delivery: deliveryPayload,
       deliveryCities: (dset.deliveryCities as string[]) || [], // v1.29.0: Города (для сервиса доставки DBO) — из настроек Доставка, с городами проценки не связаны
+      // v1.30.0: дашборд ЛК (баннер, новости, счётчики)
+      dashboard: {
+        banner: (dset.lkBanner as Record<string, string>) || { image: '', link: '' },
+        news: (((dset.lkNews as Array<Record<string, unknown>>) || []).slice(-3)).reverse(),
+        counters: (dset.lkDashboard as Record<string, unknown>) || { countersMode: 'manual', buyersCount: 500, suppliersCount: 500 },
+        dbBuyers: (await client.from('buyers').select('id', { count: 'exact', head: true })).count ?? 0,
+        dbSuppliers: (await client.from('suppliers').select('id', { count: 'exact', head: true })).count ?? 0,
+      },
       availableCities: ((await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle()).data?.settings as Record<string, unknown> | undefined)?.cities || [],
     });
   }
