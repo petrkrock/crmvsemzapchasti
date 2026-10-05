@@ -209,7 +209,7 @@ export default function DeliveryPage() {
                   {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
                     <button key={d} type="button"
                       onClick={() => setRDays(rd => rd.includes(d) ? rd.filter(x => x !== d) : [...rd, d])}
-                      className={`w-9 h-9 rounded-lg text-xs font-semibold border transition-colors ${rDays.includes(d) ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200 hover:border-red-300'}`}>{d}</button>
+                      className={`w-8 h-7 text-[10px] rounded-md border transition-colors ${rDays.includes(d) ? 'bg-red-50 border-red-300 text-red-700 font-semibold' : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'}`}>{d}</button>
                   ))}
                 </div>
               </div>

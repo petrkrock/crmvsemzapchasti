@@ -2,7 +2,7 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Percent, Boxes } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Percent, Boxes, LogOut } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -30,7 +30,7 @@ const EMPTY_COND: Cond = { city: '', warehouseName: '', representative: '', cont
  */
 const LK_MENU = [
   { key: 'dashboard', label: 'Дашборд', icon: LayoutDashboard },
-  { key: 'pricing', label: 'Проценка', icon: Percent },
+  { key: 'pricing', label: 'Проценка', icon: Search },
   { key: 'delivery', label: 'Доставка', icon: Truck },
   { key: 'crossdock', label: 'Кроссдок', icon: Boxes },
 ] as const;
@@ -344,18 +344,14 @@ export default function SupplierServicePage() {
                 <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto">
                   {LK_MENU.map(m => (
                     <button key={m.key} type="button" onClick={() => setLkTab(m.key)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${lkTab === m.key ? 'bg-red-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}>
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${lkTab === m.key ? 'bg-red-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-200'}`}>
                       <m.icon size={15} /> {m.label}
                     </button>
                   ))}
                 </nav>
-                <a href="https://vsemzapchasti.ru/media" target="_blank" rel="noreferrer"
-                  className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
-                  Продвижение
-                </a>
-                <button onClick={() => { sessionStorage.removeItem('dbs_pin_ok'); sessionStorage.removeItem('dbs_pin'); setPinPassed(false); setPin(''); }}
-                  className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
-                  Выход
+                <button onClick={() => { sessionStorage.removeItem('dbs_pin_ok'); sessionStorage.removeItem('dbs_pin'); setPinPassed(false); setPin(''); }} title="Выход"
+                  className="w-9 h-9 rounded-full bg-white border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300 shadow-sm flex items-center justify-center transition-colors shrink-0">
+                  <LogOut size={16} />
                 </button>
               </div>
             </div>
@@ -378,10 +374,10 @@ export default function SupplierServicePage() {
             {lkTab === 'delivery' && (
               <>
                 {/* ПОДМЕНЮ ДОСТАВКИ (второй уровень) */}
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-col gap-2">
                   {DL_MENU.map(m => (
                     <button key={m.key} type="button" onClick={() => setDlTab(m.key)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap bg-white border shadow-sm ${dlTab === m.key ? '!border-red-600 !text-red-600' : 'border-gray-200 text-gray-700 hover:border-red-300'}`}>
+                      className={`w-full flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white border ${dlTab === m.key ? 'border-red-600 text-red-600 shadow-md' : 'border-gray-200 text-gray-700 hover:shadow-md'}`}>
                       <m.icon size={15} /> {m.label}
                     </button>
                   ))}
@@ -439,7 +435,7 @@ export default function SupplierServicePage() {
                       {dlCities.length ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                           {dlCities.map(c => (
-                            <div key={c} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-red-300 transition-colors">
+                            <div key={c} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors">
                               <MapPin size={14} className="text-red-500 shrink-0" />
                               <span className="text-sm text-gray-800 truncate">{c}</span>
                             </div>
