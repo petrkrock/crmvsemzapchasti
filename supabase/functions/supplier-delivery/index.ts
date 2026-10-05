@@ -80,8 +80,12 @@ Deno.serve(async (req) => {
       const { data: settingsRow2 } = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
       const operators = (((settingsRow2?.settings as Record<string, unknown> | undefined)?.deliveryOperators) as Array<Record<string, unknown>>) || [];
       const op = operators.find(o => String(o.id) === String(dc.operatorId || ''));
-      const days = ((dc.scheduleDays as string[]) || []).join(' ');
-      const time = dc.scheduleFrom && dc.scheduleTo ? `${dc.scheduleFrom}–${dc.scheduleTo}` : '';
+      // График — из маршрута самовывоза (раздел Доставка → Маршруты)
+      const routes = (((settingsRow2?.settings as Record<string, unknown> | undefined)?.deliveryRoutes) as Array<Record<string, unknown>>) || [];
+      const rt = routes.find(r => ((r.stops as Array<Record<string, unknown>>) || []).some(st => String(st.supplierId) === String(supplier.id)));
+      const rtStop = rt ? ((rt.stops as Array<Record<string, unknown>>) || []).find(st => String(st.supplierId) === String(supplier.id)) : null;
+      const days = rt ? ((rt.scheduleDays as string[]) || []).join(' ') : '';
+      const time = rt ? `${(rtStop?.from as string) || '—'}–${(rtStop?.to as string) || '—'}` : '';
       return json({
         ok: true,
         companyName: supplier.trade_name,
