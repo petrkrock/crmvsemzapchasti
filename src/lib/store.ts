@@ -344,6 +344,11 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.deliveryServiceTariffs)) settings.deliveryServiceTariffs = [];
     if (!Array.isArray(settings.deliveryCityTariffs)) settings.deliveryCityTariffs = [];
     if (!Array.isArray(settings.deliveryRoutes)) settings.deliveryRoutes = [];
+    // v1.29.0 (ресофт): единый ЛК поставщика — если есть только доставочный доступ, переносим токен/PIN в serviceAccess
+    if (Array.isArray(ps.suppliers)) ps.suppliers = ps.suppliers.map((sp: Supplier) => {
+      if (!sp.serviceAccess?.token && sp.deliveryAccess?.token) return { ...sp, serviceAccess: sp.deliveryAccess };
+      return sp;
+    });
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)
     if (!settings.quickLinks || typeof settings.quickLinks !== 'object') {

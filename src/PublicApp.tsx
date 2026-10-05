@@ -11,8 +11,6 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 const PublicFormPage = lazy(() => import('@/pages/forms/PublicFormPage'));
 const SupplierServicePage = lazy(() => import('@/pages/supplier-service/SupplierServicePage'));
-// v1.29.0: ЛК сервиса доставки (DBO) — свой кабинет по ссылке /d/<token>
-const SupplierDeliveryPage = lazy(() => import('@/pages/supplier-delivery/SupplierDeliveryPage'));
 
 const fallback = (
   <div className="min-h-screen bg-[#f5f5f5] flex items-start justify-center p-6">
@@ -30,7 +28,6 @@ export default function PublicApp() {
         <Routes>
           <Route path="/forms/:entityType" element={<PublicFormPage />} />
           <Route path="/s/:token" element={<SupplierServicePage />} />
-          <Route path="/d/:token" element={<SupplierDeliveryPage />} />
           <Route path="*" element={<PublicFormPage />} />
         </Routes>
       </Suspense>

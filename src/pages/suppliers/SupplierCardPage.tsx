@@ -94,8 +94,6 @@ export default function SupplierCardPage() {
   const [whEditForm, setWhEditForm] = useState({ city: '', skuCount: 0, address: '' }); // ТЗ v1.25.0: +адрес
   const [ssFilterCity, setSsFilterCity] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
-  const [deliveryLinkOpen, setDeliveryLinkOpen] = useState(false);
-  const [deliveryPinDraft, setDeliveryPinDraft] = useState('');
   const form: Supplier = formState || (freshSupplier ? { ...freshSupplier } : {} as Supplier);
   const setForm = (updater: Supplier | ((prev: Supplier) => Supplier)) => {
     setFormState(prev => {
@@ -305,17 +303,6 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
     forceUpdate(n => n + 1);
   }
 
-  // v1.29.0: доступ к ЛК доставки (DBO) — свои настройки, с DBS не связан
-  function patchDeliveryAccess(patch: Partial<NonNullable<Supplier['deliveryAccess']>>, comment: string) {
-    const current: NonNullable<Supplier['deliveryAccess']> = freshSupplier.deliveryAccess || { token: genToken(), enabled: true, createdAt: new Date().toISOString() };
-    const next = { ...current, ...patch };
-    updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, deliveryAccess: next, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
-    pushSupplierHistory(makeHistoryEntry('deliveryAccess', JSON.stringify(freshSupplier.deliveryAccess || null), JSON.stringify(next), comment, getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
-    forceUpdate(n => n + 1);
-  }
-
-
-
   function addToAllCities() {
     const cities = cityList;
     if (!cities.length) { toast.error('Список доступных городов пуст — заполните его в Настройки → Типы и города'); return; }
@@ -486,6 +473,93 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
 
           {tab === 'Анкета' && (
             <div className="space-y-6">
+              {(() => { const sa = freshSupplier.serviceAccess; return (
+<div className="card-base mb-4 overflow-hidden">
+                <button onClick={() => setLinkOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors">
+                  <span className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <Link2 size={17} className="text-brand-red" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="section-title block">ЛК поставщика</span>
+                    <span className="text-[11px] text-gray-400 block truncate">
+                      {sa?.enabled ? `Самообслуживание активно${sa?.pin ? ' · PIN-код установлен' : ''}` : 'Доступ не выдан — поставщик не может заполнять данные самостоятельно'}
+                    </span>
+                  </span>
+                  <span className={`text-gray-400 transition-transform duration-200 ${linkOpen ? 'rotate-180' : ''}`}><ChevronDown size={16} /></span>
+                </button>
+                {linkOpen && (
+                  <div className="px-4 pb-4 pt-3 border-t border-brand-gray-mid animate-fade-in">
+                    <p className="text-xs text-gray-400 mb-3">По ссылке поставщик сам заполняет склады и условия сервиса поиска. Защита — секретный токен{sa?.pin ? ' + PIN-код' : ''}.</p>
+                    {sa?.enabled ? (
+                      <>
+                        <div className="flex items-stretch gap-2 mb-3">
+                          <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-50 border border-brand-gray-mid rounded-lg px-3">
+                            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" title="Доступ активен" />
+                            <input readOnly className="w-full bg-transparent text-xs py-2.5 outline-none text-brand-black truncate" value={`${window.location.origin}/s/${sa.token}`} onFocus={e => (e.target as HTMLInputElement).select()} />
+                          </div>
+                          <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/s/${sa.token}`); toast.success('Ссылка скопирована'); }} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap"><Copy size={12} /> Копировать</button>
+                          <a href={`/s/${sa.token}`} target="_blank" rel="noreferrer" className="btn-primary text-xs flex items-center whitespace-nowrap">Открыть</a>
+                        </div>
+                        <div className="rounded-lg border border-brand-gray-mid p-3 mb-3 bg-gray-50/50">
+                          <p className="text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Безопасность</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={pinDraft} maxLength={6} onChange={e => setPinDraft(e.target.value.replace(/\D/g, ''))} />
+                            <button onClick={() => {
+                              const phrase = window.prompt('Для смены PIN введите слово: сменить');
+                              if (phrase === null) return;
+                              if (phrase.trim().toLowerCase() !== 'сменить') { toast.error('Фраза не совпала — PIN не изменён'); return; }
+                              patchServiceAccess({ pin: pinDraft.trim() || undefined }, 'PIN самообслуживания обновлён');
+                              toast.success('PIN сохранён');
+                            }} className="btn-secondary text-xs">Сменить PIN</button>
+                            <span className="text-[10px] font-semibold text-red-600">PIN-код обязателен к заполнению · 4–6 цифр</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button onClick={() => {
+                            const phrase = window.prompt('Перевыпуск убьёт текущую ссылку. Введите слово: перевыпустить');
+                            if (phrase === null) return;
+                            if (phrase.trim().toLowerCase() !== 'перевыпустить') { toast.error('Фраза не совпала — ссылка не перевыпущена'); return; }
+                            patchServiceAccess({ token: genToken(), enabled: true }, 'Ссылка самообслуживания перевыпущена');
+                            toast.success('Ссылка перевыпущена, старая недействительна');
+                          }} className="btn-secondary text-xs flex items-center gap-1"><RotateCcw size={12} /> Перевыпустить ссылку</button>
+                  <button onClick={() => {
+                    const link = `${window.location.origin}/s/${freshSupplier.serviceAccess?.token || ''}`;
+                    const pin = freshSupplier.serviceAccess?.pin || '—';
+                    const tpl = getStore().settings.greetings?.supplier || DEFAULT_SUPPLIER_GREETING;
+                    const text = tpl.replace('{tradeName}', freshSupplier.tradeName || '').replace('{link}', link).replace('{pin}', pin);
+                    navigator.clipboard.writeText(text).then(() => {
+                      toast.success('Приветствие скопировано');
+                      if (freshSupplier.status !== 'Приветствие' && window.confirm('Сменить статус поставщика на «Приветствие»?')) {
+                        updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, status: 'Приветствие', updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
+                        pushSupplierHistory(makeHistoryEntry('status', freshSupplier.status, 'Приветствие', 'Смена статуса после копирования приветствия', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
+                        forceUpdate(n => n + 1);
+                      }
+                    });
+                  }} className="btn-secondary text-xs">Копировать приветствие</button>
+                          <button onClick={() => {
+                            const phrase = window.prompt('Для отключения доступа введите слово: отключить');
+                            if (phrase === null) return;
+                            if (phrase.trim().toLowerCase() !== 'отключить') { toast.error('Фраза не совпала — доступ НЕ отключён'); return; }
+                            patchServiceAccess({ enabled: false }, 'Доступ поставщика отключён');
+                            // Косяки ч.3: при отключении ЛК удаляем связанные склады и условия проценки
+                            updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, warehouseLocations: [], serviceSearch: [], warehouseCount: 0, skuCount: 0, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
+                            pushSupplierHistory(makeHistoryEntry('warehouseLocations', JSON.stringify(freshSupplier.warehouseLocations || []), '[]', 'Удаление складов при отключении доступа', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
+                            pushSupplierHistory(makeHistoryEntry('serviceSearch', JSON.stringify(freshSupplier.serviceSearch || []), '[]', 'Удаление условий сервиса проценки при отключении доступа', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
+                            forceUpdate(n => n + 1);
+                            toast.success('Доступ отключён, склады и условия удалены');
+                          }} className="text-xs text-red-600 hover:underline ml-auto">Отключить доступ</button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-3">
+                        <p className="text-xs text-gray-400 mb-3 max-w-md mx-auto">Поставщик получит персональную ссылку с секретным токеном и сможет сам заполнить склады и условия сервиса поиска.</p>
+                        <button onClick={() => patchServiceAccess({ enabled: true }, 'Выдана ссылка самообслуживания')} className="btn-primary text-xs flex items-center gap-1 mx-auto"><Link2 size={12} /> Выдать ссылку</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              ); })()}
               {editing && (
                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-md">
                   <label className="form-label text-blue-700">Изменить статус</label>
@@ -668,93 +742,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
 
           {tab === 'Сервис проценки (DBS)' && (
             <div className="space-y-4">
-              {(() => { const sa = freshSupplier.serviceAccess; return (
-<div className="card-base mb-4 overflow-hidden">
-                <button onClick={() => setLinkOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors">
-                  <span className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <Link2 size={17} className="text-brand-red" />
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="section-title block">ЛК - Сервис проценки</span>
-                    <span className="text-[11px] text-gray-400 block truncate">
-                      {sa?.enabled ? `Самообслуживание активно${sa?.pin ? ' · PIN-код установлен' : ''}` : 'Доступ не выдан — поставщик не может заполнять данные самостоятельно'}
-                    </span>
-                  </span>
-                  <span className={`text-gray-400 transition-transform duration-200 ${linkOpen ? 'rotate-180' : ''}`}><ChevronDown size={16} /></span>
-                </button>
-                {linkOpen && (
-                  <div className="px-4 pb-4 pt-3 border-t border-brand-gray-mid animate-fade-in">
-                    <p className="text-xs text-gray-400 mb-3">По ссылке поставщик сам заполняет склады и условия сервиса поиска. Защита — секретный токен{sa?.pin ? ' + PIN-код' : ''}.</p>
-                    {sa?.enabled ? (
-                      <>
-                        <div className="flex items-stretch gap-2 mb-3">
-                          <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-50 border border-brand-gray-mid rounded-lg px-3">
-                            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" title="Доступ активен" />
-                            <input readOnly className="w-full bg-transparent text-xs py-2.5 outline-none text-brand-black truncate" value={`${window.location.origin}/s/${sa.token}`} onFocus={e => (e.target as HTMLInputElement).select()} />
-                          </div>
-                          <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/s/${sa.token}`); toast.success('Ссылка скопирована'); }} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap"><Copy size={12} /> Копировать</button>
-                          <a href={`/s/${sa.token}`} target="_blank" rel="noreferrer" className="btn-primary text-xs flex items-center whitespace-nowrap">Открыть</a>
-                        </div>
-                        <div className="rounded-lg border border-brand-gray-mid p-3 mb-3 bg-gray-50/50">
-                          <p className="text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Безопасность</p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={pinDraft} maxLength={6} onChange={e => setPinDraft(e.target.value.replace(/\D/g, ''))} />
-                            <button onClick={() => {
-                              const phrase = window.prompt('Для смены PIN введите слово: сменить');
-                              if (phrase === null) return;
-                              if (phrase.trim().toLowerCase() !== 'сменить') { toast.error('Фраза не совпала — PIN не изменён'); return; }
-                              patchServiceAccess({ pin: pinDraft.trim() || undefined }, 'PIN самообслуживания обновлён');
-                              toast.success('PIN сохранён');
-                            }} className="btn-secondary text-xs">Сменить PIN</button>
-                            <span className="text-[10px] font-semibold text-red-600">PIN-код обязателен к заполнению · 4–6 цифр</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button onClick={() => {
-                            const phrase = window.prompt('Перевыпуск убьёт текущую ссылку. Введите слово: перевыпустить');
-                            if (phrase === null) return;
-                            if (phrase.trim().toLowerCase() !== 'перевыпустить') { toast.error('Фраза не совпала — ссылка не перевыпущена'); return; }
-                            patchServiceAccess({ token: genToken(), enabled: true }, 'Ссылка самообслуживания перевыпущена');
-                            toast.success('Ссылка перевыпущена, старая недействительна');
-                          }} className="btn-secondary text-xs flex items-center gap-1"><RotateCcw size={12} /> Перевыпустить ссылку</button>
-                  <button onClick={() => {
-                    const link = `${window.location.origin}/s/${freshSupplier.serviceAccess?.token || ''}`;
-                    const pin = freshSupplier.serviceAccess?.pin || '—';
-                    const tpl = getStore().settings.greetings?.supplier || DEFAULT_SUPPLIER_GREETING;
-                    const text = tpl.replace('{tradeName}', freshSupplier.tradeName || '').replace('{link}', link).replace('{pin}', pin);
-                    navigator.clipboard.writeText(text).then(() => {
-                      toast.success('Приветствие скопировано');
-                      if (freshSupplier.status !== 'Приветствие' && window.confirm('Сменить статус поставщика на «Приветствие»?')) {
-                        updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, status: 'Приветствие', updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
-                        pushSupplierHistory(makeHistoryEntry('status', freshSupplier.status, 'Приветствие', 'Смена статуса после копирования приветствия', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
-                        forceUpdate(n => n + 1);
-                      }
-                    });
-                  }} className="btn-secondary text-xs">Копировать приветствие</button>
-                          <button onClick={() => {
-                            const phrase = window.prompt('Для отключения доступа введите слово: отключить');
-                            if (phrase === null) return;
-                            if (phrase.trim().toLowerCase() !== 'отключить') { toast.error('Фраза не совпала — доступ НЕ отключён'); return; }
-                            patchServiceAccess({ enabled: false }, 'Доступ поставщика отключён');
-                            // Косяки ч.3: при отключении ЛК удаляем связанные склады и условия проценки
-                            updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, warehouseLocations: [], serviceSearch: [], warehouseCount: 0, skuCount: 0, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
-                            pushSupplierHistory(makeHistoryEntry('warehouseLocations', JSON.stringify(freshSupplier.warehouseLocations || []), '[]', 'Удаление складов при отключении доступа', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
-                            pushSupplierHistory(makeHistoryEntry('serviceSearch', JSON.stringify(freshSupplier.serviceSearch || []), '[]', 'Удаление условий сервиса проценки при отключении доступа', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
-                            forceUpdate(n => n + 1);
-                            toast.success('Доступ отключён, склады и условия удалены');
-                          }} className="text-xs text-red-600 hover:underline ml-auto">Отключить доступ</button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-3">
-                        <p className="text-xs text-gray-400 mb-3 max-w-md mx-auto">Поставщик получит персональную ссылку с секретным токеном и сможет сам заполнить склады и условия сервиса поиска.</p>
-                        <button onClick={() => patchServiceAccess({ enabled: true }, 'Выдана ссылка самообслуживания')} className="btn-primary text-xs flex items-center gap-1 mx-auto"><Link2 size={12} /> Выдать ссылку</button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              ); })()}
+
             {(() => {
               const covered = new Set((freshSupplier.serviceSearch || []).map(c => (c.city || '').toLowerCase()));
               return (
@@ -866,98 +854,9 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
           )}
 
           {tab === 'Доставка (DBO)' && (
-            <div className="space-y-4">
-              {(() => { const da = freshSupplier.deliveryAccess; return (
-<div className="card-base mb-4 overflow-hidden">
-                <button onClick={() => setDeliveryLinkOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors">
-                  <span className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <Link2 size={17} className="text-brand-red" />
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="section-title block">ЛК - Сервис доставки</span>
-                    <span className="text-[11px] text-gray-400 block truncate">
-                      {da?.enabled ? `Самообслуживание активно${da?.pin ? ' · PIN-код установлен' : ''}` : 'Доступ не выдан — поставщик не может заполнять данные самостоятельно'}
-                    </span>
-                  </span>
-                  <span className={`text-gray-400 transition-transform duration-200 ${deliveryLinkOpen ? 'rotate-180' : ''}`}><ChevronDown size={16} /></span>
-                </button>
-                {deliveryLinkOpen && (
-                  <div className="px-4 pb-4 pt-3 border-t border-brand-gray-mid animate-fade-in">
-                    <p className="text-xs text-gray-400 mb-3">По ссылке поставщик сам заполняет склады и условия сервиса поиска. Защита — секретный токен{da?.pin ? ' + PIN-код' : ''}.</p>
-                    {da?.enabled ? (
-                      <>
-                        <div className="flex items-stretch gap-2 mb-3">
-                          <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-50 border border-brand-gray-mid rounded-lg px-3">
-                            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" title="Доступ активен" />
-                            <input readOnly className="w-full bg-transparent text-xs py-2.5 outline-none text-brand-black truncate" value={`${window.location.origin}/d/${da.token}`} onFocus={e => (e.target as HTMLInputElement).select()} />
-                          </div>
-                          <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/d/${da.token}`); toast.success('Ссылка скопирована'); }} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap"><Copy size={12} /> Копировать</button>
-                          <a href={`/d/${da.token}`} target="_blank" rel="noreferrer" className="btn-primary text-xs flex items-center whitespace-nowrap">Открыть</a>
-                        </div>
-                        <div className="rounded-lg border border-brand-gray-mid p-3 mb-3 bg-gray-50/50">
-                          <p className="text-[11px] font-semibold text-gray-500 mb-2 uppercase tracking-wide">Безопасность</p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <input className="form-input text-xs w-32 !border-red-300 !bg-red-50/40 focus:!border-red-500" placeholder="PIN *" value={deliveryPinDraft || da?.pin || ''} onFocus={e => e.target.select()} maxLength={6} onChange={e => setDeliveryPinDraft(e.target.value.replace(/\D/g, ''))} />
-                            <button onClick={() => {
-                              const phrase = window.prompt('Для смены PIN введите слово: сменить');
-                              if (phrase === null) return;
-                              if (phrase.trim().toLowerCase() !== 'сменить') { toast.error('Фраза не совпала — PIN не изменён'); return; }
-                              patchDeliveryAccess({ pin: deliveryPinDraft.trim() || undefined }, 'PIN самообслуживания доставки обновлён');
-                              toast.success('PIN сохранён');
-                            }} className="btn-secondary text-xs">Сменить PIN</button>
-                            <span className="text-[10px] font-semibold text-red-600">PIN-код обязателен к заполнению · 4–6 цифр</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button onClick={() => {
-                            const phrase = window.prompt('Перевыпуск убьёт текущую ссылку. Введите слово: перевыпустить');
-                            if (phrase === null) return;
-                            if (phrase.trim().toLowerCase() !== 'перевыпустить') { toast.error('Фраза не совпала — ссылка не перевыпущена'); return; }
-                            patchDeliveryAccess({ token: genToken(), enabled: true }, 'Ссылка ЛК доставки перевыпущена');
-                            toast.success('Ссылка перевыпущена, старая недействительна');
-                          }} className="btn-secondary text-xs flex items-center gap-1"><RotateCcw size={12} /> Перевыпустить ссылку</button>
-                  <button onClick={() => {
-                    const link = `${window.location.origin}/d/${freshSupplier.deliveryAccess?.token || ''}`;
-                    const pin = freshSupplier.deliveryAccess?.pin || '—';
-                    const tpl = getStore().settings.greetings?.delivery || DEFAULT_DELIVERY_GREETING;
-                    const text = tpl.replace('{tradeName}', freshSupplier.tradeName || '').replace('{link}', link).replace('{pin}', pin);
-                    navigator.clipboard.writeText(text).then(() => {
-                      toast.success('Приветствие скопировано');
-                      if (freshSupplier.status !== 'Приветствие' && window.confirm('Сменить статус поставщика на «Приветствие»?')) {
-                        updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, status: 'Приветствие', updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
-                        pushSupplierHistory(makeHistoryEntry('status', freshSupplier.status, 'Приветствие', 'Смена статуса после копирования приветствия', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
-                        forceUpdate(n => n + 1);
-                      }
-                    });
-                  }} className="btn-secondary text-xs">Копировать приветствие</button>
-                          <button onClick={() => {
-                            const phrase = window.prompt('Для отключения доступа введите слово: отключить');
-                            if (phrase === null) return;
-                            if (phrase.trim().toLowerCase() !== 'отключить') { toast.error('Фраза не совпала — доступ НЕ отключён'); return; }
-                            patchDeliveryAccess({ enabled: false }, 'Доступ к ЛК доставки отключён');
-                            toast.success('Доступ к ЛК доставки отключён');
-                          }} className="text-xs text-red-600 hover:underline ml-auto">Отключить доступ</button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-3">
-                        <p className="text-xs text-gray-400 mb-3 max-w-md mx-auto">Поставщик получит персональную ссылку с секретным токеном для входа в ЛК сервиса доставки.</p>
-                        <button onClick={() => {
-                          patchDeliveryAccess({ enabled: true }, 'Выдана ссылка самообслуживания');
-                          // v1.29.0: поставщик попадает в раздел Доставка → Поставщики со статусом ЛИД
-                          const dcNext = { ...freshSupplier.deliveryContract, status: 'ЛИД' };
-                          updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, deliveryContract: dcNext, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
-                          pushSupplierHistory(makeHistoryEntry('deliveryContract', JSON.stringify(freshSupplier.deliveryContract || null), JSON.stringify(dcNext), 'Установлен статус ЛИД при выдаче ссылки ЛК доставки', getCurrentUser()?.id || '', getCurrentUser()?.name || ''));
-                          toast.success('Ссылка выдана, статус договора: ЛИД');
-                        }} className="btn-primary text-xs flex items-center gap-1 mx-auto"><Link2 size={12} /> Выдать ссылку</button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              ); })()}
-
-
+            <div className="card-base p-8 text-center">
+              <p className="text-sm font-semibold text-gray-700">Доставка (DBO)</p>
+              <p className="text-xs text-gray-400 mt-2">Раздел появится в следующих обновлениях.</p>
             </div>
           )}
 

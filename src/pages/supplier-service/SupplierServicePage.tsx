@@ -2,7 +2,7 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2 } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -28,6 +28,13 @@ const EMPTY_COND: Cond = { city: '', warehouseName: '', representative: '', cont
  * Сценарий: сначала склады → потом условия сервиса поиска (склад — из
  * выпадающего списка добавленных складов). Защита: токен + опциональный PIN.
  */
+const LK_MENU = [
+  { key: 'dashboard', label: 'Дашборд' },
+  { key: 'pricing', label: 'Проценка' },
+  { key: 'delivery', label: 'Доставка' },
+  { key: 'crossdock', label: 'Кроссдок' },
+] as const;
+
 export default function SupplierServicePage() {
   const { token = '' } = useParams<{ token: string }>();
 
@@ -45,7 +52,10 @@ export default function SupplierServicePage() {
   const [selectedWh, setSelectedWh] = useState(''); // ТЗ v1.23.6: склад, выбранный кнопкой в «Мои склады»
   const [editorOpen, setEditorOpen] = useState(false); // окно условий открывается после выбора города
   const [tkOn, setTkOn] = useState(false); // ТЗ v1.23.6: кнопка ТК
-  const [priceHint, setPriceHint] = useState(false); // ТЗ v1.23.8: подсказка прайс-листа
+  const [priceHint, setPriceHint] = useState(false);
+  // v1.29.0: единый кабинет — меню и данные доставки (DBO)
+  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock'>('dashboard');
+  const [deliveryInfo, setDeliveryInfo] = useState<Record<string, unknown> | null>(null); // ТЗ v1.23.8: подсказка прайс-листа
   const [cityHint, setCityHint] = useState(false); // ТЗ v1.23.9: совет по городам
   const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
   const [statusFilter, setStatusFilter] = useState<'all' | 'Новое' | 'Загружено' | 'Есть изменения'>('all'); // ТЗ v1.23.10: фильтр условий по статусу
@@ -60,6 +70,8 @@ export default function SupplierServicePage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   // ТЗ v1.23.55: тост гаснет сам через 4с
+    // v1.29.0: данные доставки при входе/старте (единый кабинет)
+  useEffect(() => { if (pinPassed) loadDeliveryInfo(); }, [pinPassed]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(''), 4000);
@@ -123,6 +135,19 @@ export default function SupplierServicePage() {
     ro.observe(el); report();
     return () => ro.disconnect();
   }, [data, pinPassed, loading]);
+
+  async function loadDeliveryInfo() {
+    try {
+      const pinCode = sessionStorage.getItem('dbs_pin') || '';
+      const r = await fetch(getFunctionsUrl('supplier-service'), {
+        method: 'POST',
+        headers: { ...getAnonKeyHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin: pinCode }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.delivery) setDeliveryInfo(d.delivery);
+    } catch { /* останется null — покажем «—» */ }
+  }
 
   async function post(payload: Record<string, unknown>, silent = false): Promise<string | null> {
     setSaving(true);
@@ -305,11 +330,12 @@ export default function SupplierServicePage() {
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 sm:px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
               <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
               <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-                <a href="https://vsemzapchasti.ru/offersupplier" target="_blank" rel="noreferrer"
-                  className="group inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-red-700 transition-all hover:border-red-600 hover:bg-red-600 hover:text-white hover:shadow-md">
-                  Сервисы для доставки и продаж
-                  <ArrowUpRight size={14} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </a>
+                <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto">
+                  {LK_MENU.map(m => (
+                    <button key={m.key} type="button" onClick={() => setLkTab(m.key)}
+                      className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${lkTab === m.key ? 'bg-red-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}>{m.label}</button>
+                  ))}
+                </nav>
                 <a href="https://vsemzapchasti.ru/media" target="_blank" rel="noreferrer"
                   className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg px-4 py-2 transition-colors">
                   Продвижение
@@ -321,6 +347,114 @@ export default function SupplierServicePage() {
               </div>
             </div>
 
+            {/* МЕНЮ КАБИНЕТА */}
+            {lkTab === 'dashboard' && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Дашборд</p>
+                <p className="text-xs text-gray-400">Главная страница кабинета появится в следующих обновлениях.</p>
+              </div>
+            )}
+
+            {lkTab === 'crossdock' && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Кроссдок</p>
+                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+              </div>
+            )}
+
+            {lkTab === 'delivery' && (
+              <>
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+                  <div>
+                    <p className="text-[11px] text-gray-400">Поставщик</p>
+                    <h2 className="text-sm font-semibold text-gray-900">{data?.companyName}</h2>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-400">Оператор</p>
+                    {deliveryInfo?.operatorName ? (
+                      <span className="flex items-center gap-1.5">
+                        {deliveryInfo.operatorAvatar
+                          ? <img src={String(deliveryInfo.operatorAvatar)} alt="" className="w-5 h-5 rounded-full object-cover border border-gray-200" onError={ev => (ev.currentTarget.style.display = 'none')} />
+                          : <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-[9px] font-bold">{String(deliveryInfo.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                        <span className="text-sm font-semibold text-gray-900">{String(deliveryInfo.operatorName)}</span>
+                      </span>
+                    ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-400">Маршрут</p>
+                    <h2 className="text-sm font-semibold text-gray-900">{String(deliveryInfo?.route || '') || '—'}</h2>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-400">График и время</p>
+                    <h2 className="text-sm font-semibold text-gray-900">{String(deliveryInfo?.schedule || '') || '—'}</h2>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-400">Склад</p>
+                    {deliveryInfo?.warehouse ? (
+                      <span title={String(deliveryInfo.warehouse)} className="inline-flex text-gray-700 mt-0.5"><Warehouse size={17} /></span>
+                    ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-400">Активных городов</p>
+                    <h2 className="text-sm font-semibold text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : '—'}</h2>
+                  </div>
+                  <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
+                    <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b></span>
+                    <button type="button" title="Активировать доставку"
+                      className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold transition-colors shadow-md">
+                      Активировать
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[{ t: 'Доставки', i: Truck }, { t: 'Возвраты', i: Undo2 }, { t: 'Документы', i: FileText }, { t: 'Финансы', i: Wallet }].map(b => (
+                    <div key={b.t} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <b.i size={16} className="text-red-600" />
+                        <h3 className="text-sm font-semibold text-gray-900">{b.t}</h3>
+                      </div>
+                      <p className="text-xs text-gray-400">Информация появится в следующих обновлениях.</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+                  <div>
+                    <h3 className="section-title">Мои города доставки</h3>
+                    <p className="text-xs text-gray-400 mt-1">Города, в которых вы доставляете заказы.</p>
+                  </div>
+                  <p className="text-xs text-gray-400">Города не добавлены.</p>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                      <h3 className="section-title">Доступные города доставки</h3>
+                      <p className="text-xs text-gray-400 mt-1">Города, в которых доступна доставка.</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs pt-1">
+                      <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span> <b className="text-gray-900">{(data?.availableCities || []).length}</b></span>
+                      <span className="flex items-center gap-2"><span className="text-gray-500">В доставке:</span> <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b></span>
+                    </div>
+                  </div>
+                  {(data?.availableCities || []).length ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {(data?.availableCities || []).map(c => (
+                        <div key={c.name} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-red-300 transition-colors">
+                          <MapPin size={14} className="text-red-500 shrink-0" />
+                          <span className="text-sm text-gray-800 truncate">{c.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400">Список городов появится после настройки (Настройки → Доставка).</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {lkTab === 'pricing' && (<>
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
             <div className="flex flex-col gap-4">
               <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 order-2">
@@ -760,6 +894,7 @@ export default function SupplierServicePage() {
               </div>
             )}
 
+            </>)}
           </div>
         )}
       </div>
