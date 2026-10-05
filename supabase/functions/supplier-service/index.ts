@@ -60,7 +60,7 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history')
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -256,6 +256,27 @@ async function handlePost(req: Request) {
   // grants access to the protected supplier data. No PIN-protected data is
   // returned by GET before this point.
   if (!Object.keys(patch).length) {
+    // v1.29.0: данные доставки (DBO) для единого кабинета — после проверки PIN
+    const dsetRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
+    const dset = (dsetRow.data?.settings || {}) as Record<string, unknown>;
+    const dc = (supplier.delivery_contract || {}) as Record<string, unknown>;
+    const dRoutes = (dset.deliveryRoutes as Array<Record<string, unknown>>) || [];
+    const rt = dRoutes.find(r => ((r.stops as Array<Record<string, unknown>>) || []).some(st => String(st.supplierId) === String(supplier.id)));
+    const rtStop = rt ? ((rt.stops as Array<Record<string, unknown>>) || []).find(st => String(st.supplierId) === String(supplier.id)) : null;
+    const dOp = ((dset.deliveryOperators as Array<Record<string, unknown>>) || []).find(o => String(o.id) === String(dc.operatorId || ''));
+    const dWh = ((supplier.warehouse_locations || []) as Array<Record<string, unknown>>).find(w => String(w.id || '') === String(dc.warehouseId || '')) || (supplier.warehouse_locations || [])[0];
+    const deliveryPayload = {
+      route: dc.route || '',
+      schedule: rt ? [((rt.scheduleDays as string[]) || []).join(' '), rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : ''].filter(Boolean).join(' · ') : '',
+      warehouse: dWh ? `${dWh.city || ''}${dWh.city && dWh.address ? ', ' : ''}${dWh.address || ''}` : '',
+      citiesCount: ((dc.cities as string[]) || []).length,
+      operatorName: (dOp?.name as string) || '',
+      operatorAvatar: (dOp?.avatar as string) || '',
+      operatorPhone: (dOp?.phone as string) || '',
+      status: (dc.status as string) || '',
+      contractNumber: dc.contractNumber || '',
+      contractDate: dc.contractDate || '',
+    };
     return json({
       ok: true,
       pinVerified: true,
@@ -267,6 +288,7 @@ async function handlePost(req: Request) {
       multiWarehouse: Boolean((supplier as { multiwarehouse?: boolean }).multiwarehouse ?? (supplier as { multi_warehouse?: boolean }).multi_warehouse ?? (supplier as { multiWarehouse?: boolean }).multiWarehouse), // ТЗ v1.25.16
       warehouses: supplier.warehouse_locations || [],
       serviceSearch: supplier.service_search || [],
+      delivery: deliveryPayload,
       availableCities: ((await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle()).data?.settings as Record<string, unknown> | undefined)?.cities || [],
     });
   }
