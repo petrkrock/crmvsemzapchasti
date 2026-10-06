@@ -295,9 +295,12 @@ async function handlePost(req: Request) {
       dashboard: {
         banner: (dset.lkBanner as Record<string, string>) || { image: '', link: '' },
         news: (((dset.lkNews as Array<Record<string, unknown>>) || []).slice(-3)).reverse(),
-        counters: (dset.lkDashboard as Record<string, unknown>) || { countersMode: 'manual', buyersCount: 500, suppliersCount: 500 },
+        counters: (dset.lkDashboard as Record<string, unknown>) || { countersMode: 'manual', buyersCount: 500, suppliersCount: 500, skuCount: 350000 },
         dbBuyers: (await client.from('buyers').select('id', { count: 'exact', head: true })).count ?? 0,
         dbSuppliers: (await client.from('suppliers').select('id', { count: 'exact', head: true })).count ?? 0,
+        // платформенные агрегаты: проценки (условия DBS) и склады по всем поставщикам
+        pricingTotal: ((await client.from('suppliers').select('service_search')).data || []).reduce((acc: number, r: Record<string, unknown>) => acc + ((r.service_search as unknown[]) || []).length, 0),
+        warehousesTotal: ((await client.from('suppliers').select('warehouse_locations')).data || []).reduce((acc: number, r: Record<string, unknown>) => acc + ((r.warehouse_locations as unknown[]) || []).length, 0),
       },
       availableCities: ((await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle()).data?.settings as Record<string, unknown> | undefined)?.cities || [],
     });
