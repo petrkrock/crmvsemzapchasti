@@ -496,7 +496,7 @@ export default function SupplierServicePage() {
                               <span className="text-[11px] text-gray-400">{n.date}</span>
                             </div>
                             <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
-                            <p className={`text-xs text-gray-500 leading-relaxed ${clamp}`}>{n.text}</p>
+                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{n.text}</p>
                           </>
                         );
                         const openN = n.link
@@ -524,7 +524,7 @@ export default function SupplierServicePage() {
                             <span className="text-[11px] text-gray-400">{n.date}</span>
                           </div>
                           <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
-                          <p className="text-xs text-gray-500 leading-relaxed">{n.text}</p>
+                          <p className={`text-xs text-gray-500 leading-relaxed ${clamp}`}>{n.text}</p>
                         </>
                       );
                       const cls = "block bg-[#f2f7fc] border border-gray-200 rounded-2xl p-4 space-y-2 transition-colors hover:border-gray-400 h-full";
