@@ -354,7 +354,7 @@ export default function SupplierServicePage() {
                   ))}
                 </nav>
                 <button onClick={() => { sessionStorage.removeItem('dbs_pin_ok'); sessionStorage.removeItem('dbs_pin'); setPinPassed(false); setPin(''); }} title="Выход"
-                  className="w-9 h-9 rounded-full bg-white border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300 shadow-sm flex items-center justify-center transition-colors shrink-0">
+                  className="w-9 h-9 rounded-full bg-white border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300  flex items-center justify-center transition-colors shrink-0">
                   <LogOut size={16} />
                 </button>
               </div>
@@ -409,7 +409,7 @@ export default function SupplierServicePage() {
 
                     {/* СВОДКА ПО ПОСТАВЩИКУ */}
                     <div>
-                      <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full">
+                      <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5 h-full">
                         <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
                           style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
                         <div className="relative space-y-4">
@@ -458,7 +458,7 @@ export default function SupplierServicePage() {
                   </div>
 
                   {/* СЧЁТЧИКИ — B2B-дашборд */}
-                  <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm">
+                  <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 ">
                     <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
                       style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
                     <div className="relative px-6 py-5">
@@ -504,7 +504,7 @@ export default function SupplierServicePage() {
                           : () => setNewsModal(n);
                         return (
                           <button key={n.id} type="button" onClick={openN}
-                            className="block w-full text-left bg-[#f5f5f5] border border-gray-200 hover:shadow-md hover:border-transparent rounded-2xl p-4 space-y-2 transition-colors">
+                            className="block w-full text-left bg-[#eef3fb] rounded-2xl p-4 space-y-2 transition-colors hover:shadow-md">
                             {inner}
                           </button>
                         );
@@ -527,7 +527,7 @@ export default function SupplierServicePage() {
                           <p className={`text-xs text-gray-500 leading-relaxed ${clamp}`}>{n.text}</p>
                         </>
                       );
-                      const cls = "block bg-[#f2f7fc] border border-gray-200 rounded-2xl p-4 space-y-2 transition-colors hover:border-gray-400 h-full";
+                      const cls = "block bg-[#e7fcf9] rounded-2xl p-4 space-y-2 transition-colors hover:shadow-md h-full";
                       const open = n.link
                         ? () => window.open(n.link, '_blank', 'noreferrer')
                         : () => setNewsModal(n);
@@ -550,7 +550,7 @@ export default function SupplierServicePage() {
               {newsModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setNewsModal(null)}>
                   <div className="absolute inset-0 bg-black/40" />
-                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="relative bg-slate-100 rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{newsModal.tag || 'Новая функция'}</span>
@@ -590,13 +590,13 @@ export default function SupplierServicePage() {
                 <div className="flex gap-2">
                   {DL_MENU.map(m => (
                     <button key={m.key} type="button" onClick={() => setDlTab(m.key)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white border ${dlTab === m.key ? 'border-red-600 text-red-600 shadow-md' : 'border-gray-200 text-gray-700 hover:shadow-md'}`}>
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white border ${dlTab === m.key ? 'border-red-600 text-red-600' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
                       <m.icon size={15} /> {m.label}
                     </button>
                   ))}
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="bg-white border border-gray-200 rounded-2xl  px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
                   <div>
                     <p className="text-[11px] text-gray-400">Маршрут</p>
                     <h2 className="text-sm font-semibold text-gray-900">{String(deliveryInfo?.route || '') || '—'}</h2>
@@ -618,7 +618,7 @@ export default function SupplierServicePage() {
                   <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
                     <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b></span>
                     <button type="button" title="Активировать доставку"
-                      className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold transition-colors shadow-md">
+                      className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold transition-colors">
                       Активировать
                     </button>
                   </div>
