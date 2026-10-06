@@ -68,6 +68,7 @@ export default function SupplierServicePage() {
   const [deliveryInfo, setDeliveryInfo] = useState<Record<string, unknown> | null>(null);
   const [dlCities, setDlCities] = useState<string[]>([]);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
+  const [newsModal, setNewsModal] = useState<Record<string, string> | null>(null); // полный текст новости
   const [dlTab, setDlTab] = useState<'mycities' | 'deliveries' | 'returns' | 'documents' | 'finance'>('mycities'); // ТЗ v1.23.8: подсказка прайс-листа
   const [cityHint, setCityHint] = useState(false); // ТЗ v1.23.9: совет по городам
   const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
@@ -408,7 +409,10 @@ export default function SupplierServicePage() {
 
                     {/* СВОДКА ПО ПОСТАВЩИКУ */}
                     <div>
-                      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full relative">
+                      <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full">
+                        <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
+                          style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+                        <div className="relative space-y-4">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="text-base font-bold text-gray-900">{data?.companyName}</h3>
                           <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
@@ -448,6 +452,7 @@ export default function SupplierServicePage() {
                                 className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
                           </div>
                         </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -481,26 +486,27 @@ export default function SupplierServicePage() {
 
                   {/* НОВОСТИ */}
                   <div className="space-y-3">
-                    <h3 className="text-base font-bold text-gray-900">Новости платформы</h3>
+                    <h3 className="text-sm font-semibold text-gray-600">Новости платформы</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {news.map(n => {
                         const inner = (
                           <>
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] font-semibold text-blue-600">{n.tag || 'Новая функция'}</span>
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{n.tag || 'Новая функция'}</span>
                               <span className="text-[11px] text-gray-400">{n.date}</span>
                             </div>
                             <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
-                            <p className="text-xs text-gray-500 leading-relaxed">{n.text}</p>
+                            <p className={`text-xs text-gray-500 leading-relaxed ${clamp}`}>{n.text}</p>
                           </>
                         );
-                        return n.link ? (
-                          <a key={n.id} href={n.link} target="_blank" rel="noreferrer"
-                            className="block bg-[#f5f5f5] border border-gray-200 hover:border-gray-400 rounded-2xl p-4 space-y-2 transition-colors">
+                        const openN = n.link
+                          ? () => window.open(n.link, '_blank', 'noreferrer')
+                          : () => setNewsModal(n);
+                        return (
+                          <button key={n.id} type="button" onClick={openN}
+                            className="block w-full text-left bg-[#f5f5f5] border border-gray-200 hover:shadow-md hover:border-transparent rounded-2xl p-4 space-y-2 transition-colors">
                             {inner}
-                          </a>
-                        ) : (
-                          <div key={n.id} className="bg-[#f5f5f5] border border-gray-200 rounded-2xl p-4 space-y-2">{inner}</div>
+                          </button>
                         );
                       })}
                       {!news.length && <p className="text-xs text-gray-400 md:col-span-3">Новости появятся после публикации (Настройки → ЛК Поставщик → Новости).</p>}
@@ -510,11 +516,11 @@ export default function SupplierServicePage() {
                   {/* ОТ ПОСТАВЩИКОВ ПОСТАВЩИКАМ — слайдер */}
                   {(() => {
                     const vendorNews = (dash?.vendorNews as Array<Record<string, string>>) || [];
-                    const card = (n: Record<string, string>) => {
+                    const card = (n: Record<string, string>, clamp = 'line-clamp-2') => {
                       const inner = (
                         <>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-semibold text-blue-600">{n.tag || 'Новая функция'}</span>
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{n.tag || 'Новая функция'}</span>
                             <span className="text-[11px] text-gray-400">{n.date}</span>
                           </div>
                           <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
@@ -522,16 +528,17 @@ export default function SupplierServicePage() {
                         </>
                       );
                       const cls = "block bg-[#f2f7fc] border border-gray-200 rounded-2xl p-4 space-y-2 transition-colors hover:border-gray-400 h-full";
-                      return n.link
-                        ? <a key={n.id} href={n.link} target="_blank" rel="noreferrer" className={cls}>{inner}</a>
-                        : <div key={n.id} className={cls}>{inner}</div>;
+                      const open = n.link
+                        ? () => window.open(n.link, '_blank', 'noreferrer')
+                        : () => setNewsModal(n);
+                      return <button key={n.id} type="button" onClick={open} className={cls + ' text-left w-full'}>{inner}</button>;
                     };
                     return (
                       <div className="space-y-3">
-                        <h3 className="text-base font-bold text-gray-900">От поставщиков к поставщикам</h3>
+                        <h3 className="text-sm font-semibold text-gray-600">От поставщиков к поставщикам</h3>
                         {vendorNews.length ? (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {vendorNews.slice(0, 3).map(card)}
+                            {vendorNews.slice(0, 3).map(n => card(n, 'line-clamp-3'))}
                           </div>
                         ) : (
                           <p className="text-xs text-gray-400">Материалы появятся после публикации.</p>
@@ -539,6 +546,26 @@ export default function SupplierServicePage() {
                       </div>
                     );
                   })()}
+              {/* МОДАЛКА ПОЛНОГО ТЕКСТА НОВОСТИ */}
+              {newsModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setNewsModal(null)}>
+                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{newsModal.tag || 'Новая функция'}</span>
+                        <h3 className="text-base font-bold text-gray-900 mt-2">{newsModal.title}</h3>
+                        <p className="text-[11px] text-gray-400 mt-1">{newsModal.date}</p>
+                      </div>
+                      <button type="button" onClick={() => setNewsModal(null)}
+                        className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">✕</button>
+                    </div>
+                    {newsModal.fullText
+                      ? <div className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: newsModal.fullText }} />
+                      : <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{newsModal.text}</p>}
+                  </div>
+                </div>
+              )}
                 </>
               );
             })()}

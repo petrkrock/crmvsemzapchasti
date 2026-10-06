@@ -442,18 +442,19 @@ const [tab, setTab] = useState('Статусы');
   const [lkNewsText, setLkNewsText] = useState('');
   const [lkNewsTag, setLkNewsTag] = useState('');
   const [lkNewsLink, setLkNewsLink] = useState('');
+  const [lkNewsFull, setLkNewsFull] = useState('');
   function addLkNews() {
     if (!lkNewsTitle.trim() || !lkNewsText.trim()) { toast.error('Заполните заголовок и текст новости'); return; }
-    const item = { id: `ln-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined };
+    const item = { id: `ln-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined, fullText: lkNewsFull.trim() || undefined };
     updateStore(s => ({ ...s, settings: { ...s.settings, lkNews: [...(s.settings.lkNews || []), item] } }));
-    setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink('');
+    setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink(''); setLkNewsFull('');
     forceUpdate(n => n + 1); toast.success('Новость создана');
   }
   function addLkVendorNews() {
     if (!lkNewsTitle.trim() || !lkNewsText.trim()) { toast.error('Заполните заголовок и текст новости'); return; }
-    const item = { id: `lv-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined };
+    const item = { id: `lv-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined, fullText: lkNewsFull.trim() || undefined };
     updateStore(s => ({ ...s, settings: { ...s.settings, lkVendorNews: [...(s.settings.lkVendorNews || []), item] } }));
-    setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink('');
+    setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink(''); setLkNewsFull('');
     forceUpdate(n => n + 1); toast.success('Новость создана');
   }
   function removeLkVendorNews(id: string) {
@@ -1734,7 +1735,8 @@ const [tab, setTab] = useState('Статусы');
                     <input className="form-input text-xs" placeholder="Заголовок новости" value={lkNewsTitle} onChange={e => setLkNewsTitle(e.target.value)} />
                     <input className="form-input text-xs" placeholder="Тег (по умолчанию «Новая функция»)" value={lkNewsTag} onChange={e => setLkNewsTag(e.target.value)} />
                     <input className="form-input text-xs" placeholder="Ссылка (при клике на новость, https://...)" value={lkNewsLink} onChange={e => setLkNewsLink(e.target.value)} />
-                    <textarea className="form-input text-xs min-h-[80px]" placeholder="Текст новости" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
+                    <textarea className="form-input text-xs min-h-[60px]" placeholder="Короткий текст" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
+                      <textarea className="form-input text-xs min-h-[100px]" placeholder="Полный текст (можно HTML)" value={lkNewsFull} onChange={e => setLkNewsFull(e.target.value)} />
                     <button onClick={addLkNews} className="btn-primary text-xs">Создать новость</button>
                   </div>
                   <div className="space-y-2">
@@ -1757,7 +1759,8 @@ const [tab, setTab] = useState('Статусы');
                       <input className="form-input text-xs" placeholder="Заголовок" value={lkNewsTitle} onChange={e => setLkNewsTitle(e.target.value)} />
                       <input className="form-input text-xs" placeholder="Тег (по умолчанию «Новая функция»)" value={lkNewsTag} onChange={e => setLkNewsTag(e.target.value)} />
                       <input className="form-input text-xs" placeholder="Ссылка (при клике, https://...)" value={lkNewsLink} onChange={e => setLkNewsLink(e.target.value)} />
-                      <textarea className="form-input text-xs min-h-[80px]" placeholder="Текст" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
+                      <textarea className="form-input text-xs min-h-[60px]" placeholder="Короткий текст (3 строки в ЛК)" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
+                      <textarea className="form-input text-xs min-h-[100px]" placeholder="Полный текст (можно HTML)" value={lkNewsFull} onChange={e => setLkNewsFull(e.target.value)} />
                       <button onClick={addLkVendorNews} className="btn-primary text-xs">Создать (слайдер ЛК)</button>
                     </div>
                     <div className="space-y-2">

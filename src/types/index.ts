@@ -637,6 +637,8 @@ export interface LkNews {
   tag?: string;
   /** Ссылка при клике на новость */
   link?: string;
+  /** Полный текст (можно HTML) — открывается модалкой по клику */
+  fullText?: string;
 }
 
 /** v1.29.0: Маршрут самовывоза (DBO) */
