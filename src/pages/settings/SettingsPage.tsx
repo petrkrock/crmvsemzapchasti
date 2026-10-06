@@ -1752,7 +1752,7 @@ const [tab, setTab] = useState('Статусы');
                   </div>
 
                   <div className="border-t border-gray-100 pt-4 space-y-2">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-1">От поставщиков поставщикам</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-1">От поставщиков к поставщикам</h3>
                     <div className="space-y-2">
                       <input className="form-input text-xs" placeholder="Заголовок" value={lkNewsTitle} onChange={e => setLkNewsTitle(e.target.value)} />
                       <input className="form-input text-xs" placeholder="Тег (по умолчанию «Новая функция»)" value={lkNewsTag} onChange={e => setLkNewsTag(e.target.value)} />

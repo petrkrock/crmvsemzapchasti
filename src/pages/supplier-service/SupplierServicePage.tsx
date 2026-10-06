@@ -370,9 +370,9 @@ export default function SupplierServicePage() {
               const covered = new Set((data?.serviceSearch || []).map((c: { city: string }) => c.city).filter(Boolean)).size;
               return (
                 <>
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* БАННЕР */}
-                    <div className="lg:col-span-5">
+                    <div>
                       {banner.image ? (
                         <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
                           className="block bg-white border border-gray-200 rounded-2xl overflow-hidden h-full min-h-[260px]">
@@ -386,7 +386,7 @@ export default function SupplierServicePage() {
                     </div>
 
                     {/* VZ ЧАТ */}
-                    <div className="lg:col-span-3">
+                    <div>
                       <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full">
                         <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
                         <div className="space-y-1.5 text-sm text-gray-700">
@@ -405,7 +405,7 @@ export default function SupplierServicePage() {
                     </div>
 
                     {/* СВОДКА ПО ПОСТАВЩИКУ */}
-                    <div className="lg:col-span-4">
+                    <div>
                       <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full relative">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="text-base font-bold text-gray-900">{data?.companyName}</h3>
@@ -478,7 +478,7 @@ export default function SupplierServicePage() {
 
 
                   {/* НОВОСТИ */}
-                  <div className="space-y-3 bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                  <div className="space-y-3">
                     <h3 className="text-base font-bold text-gray-900">Новости платформы</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {news.map(n => {
@@ -494,11 +494,11 @@ export default function SupplierServicePage() {
                         );
                         return n.link ? (
                           <a key={n.id} href={n.link} target="_blank" rel="noreferrer"
-                            className="block bg-white border border-gray-200 hover:border-gray-400 rounded-2xl p-4 space-y-2 transition-colors">
+                            className="block bg-[#f5f5f5] border border-gray-200 hover:border-gray-400 rounded-2xl p-4 space-y-2 transition-colors">
                             {inner}
                           </a>
                         ) : (
-                          <div key={n.id} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">{inner}</div>
+                          <div key={n.id} className="bg-[#f5f5f5] border border-gray-200 rounded-2xl p-4 space-y-2">{inner}</div>
                         );
                       })}
                       {!news.length && <p className="text-xs text-gray-400 md:col-span-3">Новости появятся после публикации (Настройки → ЛК Поставщик → Новости).</p>}
@@ -519,17 +519,17 @@ export default function SupplierServicePage() {
                           <p className="text-xs text-gray-500 leading-relaxed">{n.text}</p>
                         </>
                       );
-                      const cls = "block bg-white border border-gray-200 rounded-2xl p-4 space-y-2 transition-colors hover:border-gray-400";
+                      const cls = "block bg-white border border-gray-200 rounded-2xl p-4 space-y-2 transition-colors hover:border-gray-400 h-full";
                       return n.link
-                        ? <a key={n.id} href={n.link} target="_blank" rel="noreferrer" className={cls + " min-w-[300px] max-w-[300px] snap-start"}>{inner}</a>
-                        : <div key={n.id} className={cls + " min-w-[300px] max-w-[300px] snap-start"}>{inner}</div>;
+                        ? <a key={n.id} href={n.link} target="_blank" rel="noreferrer" className={cls}>{inner}</a>
+                        : <div key={n.id} className={cls}>{inner}</div>;
                     };
                     return (
-                      <div className="space-y-3">
-                        <h3 className="text-base font-bold text-gray-900">От поставщиков поставщикам</h3>
+                      <div className="space-y-3 bg-[#f2f7fc] border border-blue-100/60 rounded-2xl p-4">
+                        <h3 className="text-base font-bold text-gray-900">От поставщиков к поставщикам!</h3>
                         {vendorNews.length ? (
-                          <div className="flex gap-4 overflow-x-auto pb-2 snap-x" style={{ scrollbarWidth: 'thin' }}>
-                            {vendorNews.map(card)}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {vendorNews.slice(0, 3).map(card)}
                           </div>
                         ) : (
                           <p className="text-xs text-gray-400">Материалы появятся после публикации.</p>
