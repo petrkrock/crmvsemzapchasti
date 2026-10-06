@@ -449,11 +449,22 @@ const [tab, setTab] = useState('Статусы');
     setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink('');
     forceUpdate(n => n + 1); toast.success('Новость создана');
   }
+  function addLkVendorNews() {
+    if (!lkNewsTitle.trim() || !lkNewsText.trim()) { toast.error('Заполните заголовок и текст новости'); return; }
+    const item = { id: `lv-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined };
+    updateStore(s => ({ ...s, settings: { ...s.settings, lkVendorNews: [...(s.settings.lkVendorNews || []), item] } }));
+    setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink('');
+    forceUpdate(n => n + 1); toast.success('Новость создана');
+  }
+  function removeLkVendorNews(id: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, lkVendorNews: (s.settings.lkVendorNews || []).filter(x => x.id !== id) } }));
+    forceUpdate(n => n + 1); toast.success('Новость удалена');
+  }
   function removeLkNews(id: string) {
     updateStore(s => ({ ...s, settings: { ...s.settings, lkNews: (s.settings.lkNews || []).filter(x => x.id !== id) } }));
     forceUpdate(n => n + 1); toast.success('Новость удалена');
   }
-  async async function uploadLkBanner(file: File) {
+  async function uploadLkBanner(file: File) {
     if (!isSupabaseConfigured()) { toast.error('Supabase не настроен'); return; }
     try {
       const fileName = `lk-banner-${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;

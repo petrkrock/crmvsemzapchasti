@@ -708,6 +708,8 @@ export interface AppSettings {
   lkBanner?: { image: string; link: string };
   /** v1.30.0: Новости платформы для ЛК (показываем последние 3) */
   lkNews?: LkNews[];
+  /** v1.30.0: «От поставщиков поставщикам» — слайдер новостей в ЛК */
+  lkVendorNews?: LkNews[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

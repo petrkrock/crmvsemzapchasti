@@ -2,7 +2,7 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut, Megaphone } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -32,7 +32,8 @@ const LK_MENU = [
   { key: 'dashboard', label: 'Дашборд', icon: LayoutDashboard },
   { key: 'pricing', label: 'Проценка', icon: Search },
   { key: 'delivery', label: 'Доставка', icon: Truck },
-  { key: 'crossdock', label: 'Кроссдок', icon: Boxes },
+  { key: 'crossdock', label: 'Кросс-докинг', icon: Boxes },
+  { key: 'promo', label: 'Продвижение', icon: Megaphone },
 ] as const;
 
 // v1.29.0: подвкладки раздела «Доставка»
@@ -63,7 +64,7 @@ export default function SupplierServicePage() {
   const [tkOn, setTkOn] = useState(false); // ТЗ v1.23.6: кнопка ТК
   const [priceHint, setPriceHint] = useState(false);
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
-  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock'>('dashboard');
+  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo'>('dashboard');
   const [deliveryInfo, setDeliveryInfo] = useState<Record<string, unknown> | null>(null);
   const [dlCities, setDlCities] = useState<string[]>([]);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -411,29 +412,39 @@ export default function SupplierServicePage() {
                           <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
                             className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center transition-colors shrink-0">?</button>
                         </div>
-                        <div className="grid grid-cols-[92px_1fr] gap-x-4 gap-y-1.5 text-sm">
-                          <span className="font-semibold text-gray-800">Проценка:</span>
-                          <span className="text-gray-600">Охвачено: <b className="text-gray-900">{covered}</b> · Мультисклад: <b className="text-gray-900">{data?.multiWarehouse ? 'включён' : 'выключен'}</b></span>
-                          <span className="font-semibold text-gray-800">Доставка:</span>
-                          <span className="text-gray-600">В доставке: <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b> · Договор: <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b>{' '}
-                            <button type="button" title="Активировать доставку"
-                              className="ml-1 inline-flex items-center rounded-md bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 text-[11px] font-semibold transition-colors">Активировать</button></span>
-                          <span className="font-semibold text-gray-800">Кроссдок:</span>
-                          <span className="text-gray-600">Не подключен</span>
+                        <div className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-2.5 text-sm items-start">
+                          <span className="font-semibold text-gray-800 pt-0.5">Проценка:</span>
+                          <span className="text-gray-600">Охвачено: <b className="text-gray-900">{covered}</b>
+                            <span className="block mt-1">Мультисклад:{' '}
+                              {data?.multiWarehouse
+                                ? <b className="text-gray-900">включён</b>
+                                : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
+                                    className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                    title="Нажмите для подсказки">выкл ⓘ</button>}
+                            </span>
+                          </span>
+                          <span className="font-semibold text-gray-800 pt-0.5">Доставка:</span>
+                          <span className="text-gray-600">В доставке: <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b>
+                            <span className="block mt-1">Договор: <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b>{' '}
+                              <button type="button" title="Активировать доставку"
+                                className="ml-1 w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-bold inline-flex items-center justify-center transition-colors leading-none">+</button></span>
+                          </span>
+                          <span className="font-semibold text-gray-800 pt-0.5">Кросс-докинг:</span>
+                          <span><button type="button"
+                              className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></span>
+                          <span className="font-semibold text-gray-800 pt-0.5">Продвижение:</span>
+                          <span><button type="button"
+                              className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></span>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* СЧЁТЧИКИ — B2B-дашборд */}
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 shadow-xl">
-                    <div className="absolute inset-0 opacity-[0.07] pointer-events-none"
-                      style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+                  <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-sm">
+                    <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
+                      style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
                     <div className="relative px-6 py-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Счётчики дашборда</p>
-                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-6 gap-y-5">
                         {[
                           { label: 'Магазинов и СТО', value: cntBuyers },
@@ -443,12 +454,19 @@ export default function SupplierServicePage() {
                           { label: 'Городов проценки', value: (data?.availableCities || []).length },
                           { label: 'Городов доставки', value: dlCities.length },
                         ].map((m, i) => (
-                          <div key={m.label} className="relative pl-3 border-l border-slate-700/80">
-                            <p className="text-[22px] leading-none font-bold text-white tabular-nums tracking-tight">
+                          <div key={m.label} className="relative pl-3 border-l border-gray-200">
+                            <p className="text-[22px] leading-none font-bold text-gray-900 tabular-nums tracking-tight">
                               {m.value.toLocaleString('ru-RU')}
                             </p>
-                            <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400 leading-tight">{m.label}</p>
-                            <span className="absolute -left-px top-0 h-5 w-[2px] bg-red-500/90 rounded-full" style={{ opacity: 0.4 + i * 0.12 }} />
+                            <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400 leading-tight">{m.label}</p>
+                            <span className="absolute -left-px top-0 h-5 w-[2px] bg-red-500 rounded-full" style={{ opacity: 0.35 + i * 0.12 }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  -[2px] bg-red-500/90 rounded-full" style={{ opacity: 0.4 + i * 0.12 }} />
                           </div>
                         ))}
                       </div>
@@ -482,13 +500,53 @@ export default function SupplierServicePage() {
                       {!news.length && <p className="text-xs text-gray-400 md:col-span-3">Новости появятся после публикации (Настройки → ЛК Поставщик → Новости).</p>}
                     </div>
                   </div>
+
+                  {/* ОТ ПОСТАВЩИКОВ ПОСТАВЩИКАМ — слайдер */}
+                  {(() => {
+                    const vendorNews = (dash?.vendorNews as Array<Record<string, string>>) || [];
+                    const card = (n: Record<string, string>) => {
+                      const inner = (
+                        <>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-semibold text-blue-600">{n.tag || 'Новая функция'}</span>
+                            <span className="text-[11px] text-gray-400">{n.date}</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
+                          <p className="text-xs text-gray-500 leading-relaxed">{n.text}</p>
+                        </>
+                      );
+                      const cls = "block bg-white border border-gray-200 rounded-2xl p-4 space-y-2 transition-colors hover:border-gray-400";
+                      return n.link
+                        ? <a key={n.id} href={n.link} target="_blank" rel="noreferrer" className={cls + " min-w-[300px] max-w-[300px] snap-start"}>{inner}</a>
+                        : <div key={n.id} className={cls + " min-w-[300px] max-w-[300px] snap-start"}>{inner}</div>;
+                    };
+                    return (
+                      <div className="space-y-3">
+                        <h3 className="text-base font-bold text-gray-900">От поставщиков поставщикам</h3>
+                        {vendorNews.length ? (
+                          <div className="flex gap-4 overflow-x-auto pb-2 snap-x" style={{ scrollbarWidth: 'thin' }}>
+                            {vendorNews.map(card)}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400">Материалы появятся после публикации.</p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </>
               );
             })()}
 
             {lkTab === 'crossdock' && (
               <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Кроссдок</p>
+                <p className="text-sm font-semibold text-gray-700">Кросс-докинг</p>
+                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+              </div>
+            )}
+
+            {lkTab === 'promo' && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Продвижение</p>
                 <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
               </div>
             )}
