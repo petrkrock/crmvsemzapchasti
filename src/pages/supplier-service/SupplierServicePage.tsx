@@ -466,12 +466,6 @@ export default function SupplierServicePage() {
                     </div>
                   </div>
 
-                  -[2px] bg-red-500/90 rounded-full" style={{ opacity: 0.4 + i * 0.12 }} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
 
                   {/* НОВОСТИ */}
                   <div className="space-y-3">
