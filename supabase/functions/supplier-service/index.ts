@@ -295,6 +295,7 @@ async function handlePost(req: Request) {
       dashboard: {
         banner: (dset.lkBanner as Record<string, string>) || { image: '', link: '' },
         news: (((dset.lkNews as Array<Record<string, unknown>>) || []).slice(-3)).reverse(),
+        vendorNews: (((dset.lkVendorNews as Array<Record<string, unknown>>) || []).slice(-8)).reverse(),
         counters: (dset.lkDashboard as Record<string, unknown>) || { countersMode: 'manual', buyersCount: 500, suppliersCount: 500, skuCount: 350000 },
         dbBuyers: (await client.from('buyers').select('id', { count: 'exact', head: true })).count ?? 0,
         dbSuppliers: (await client.from('suppliers').select('id', { count: 'exact', head: true })).count ?? 0,
