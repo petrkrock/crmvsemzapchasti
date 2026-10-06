@@ -375,11 +375,11 @@ export default function SupplierServicePage() {
                     <div className="lg:col-span-5">
                       {banner.image ? (
                         <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
-                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden h-[260px]">
+                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden h-full min-h-[260px]">
                           <img src={banner.image} alt="Баннер" className="w-full h-full object-cover" />
                         </a>
                       ) : (
-                        <div className="bg-white border border-gray-200 rounded-2xl h-[260px] flex items-center justify-center">
+                        <div className="bg-white border border-gray-200 rounded-2xl h-full min-h-[260px] flex items-center justify-center">
                           <p className="text-gray-300 font-bold text-4xl tracking-widest select-none">БАННЕР</p>
                         </div>
                       )}
@@ -388,10 +388,10 @@ export default function SupplierServicePage() {
                     {/* VZ ЧАТ */}
                     <div className="lg:col-span-3">
                       <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full">
-                        <h3 className="text-base font-bold text-gray-900">VZ Чат</h3>
+                        <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
                         <div className="space-y-1.5 text-sm text-gray-700">
-                          <p>Непрочитанные: <b>0</b></p>
-                          <p>Новые контакты: <b>0</b></p>
+                          <p>Непрочитанные: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></p>
+                          <p>Новые контакты: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></p>
                         </div>
                         <button type="button"
                           className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-3 transition-colors">
@@ -412,29 +412,39 @@ export default function SupplierServicePage() {
                           <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
                             className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center transition-colors shrink-0">?</button>
                         </div>
-                        <div className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-2.5 text-sm items-start">
-                          <span className="font-semibold text-gray-800 pt-0.5">Проценка:</span>
-                          <span className="text-gray-600">Охвачено: <b className="text-gray-900">{covered}</b>
-                            <span className="block mt-1">Мультисклад:{' '}
-                              {data?.multiWarehouse
-                                ? <b className="text-gray-900">включён</b>
-                                : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
-                                    className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
-                                    title="Нажмите для подсказки">выкл ⓘ</button>}
-                            </span>
-                          </span>
-                          <span className="font-semibold text-gray-800 pt-0.5">Доставка:</span>
-                          <span className="text-gray-600">В доставке: <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b>
-                            <span className="block mt-1">Договор: <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b>{' '}
-                              <button type="button" title="Активировать доставку"
-                                className="ml-1 w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-bold inline-flex items-center justify-center transition-colors leading-none">+</button></span>
-                          </span>
-                          <span className="font-semibold text-gray-800 pt-0.5">Кросс-докинг:</span>
-                          <span><button type="button"
-                              className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></span>
-                          <span className="font-semibold text-gray-800 pt-0.5">Продвижение:</span>
-                          <span><button type="button"
-                              className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></span>
+                        <div className="divide-y divide-gray-100 text-sm">
+                          <div className="py-2.5 flex gap-3">
+                            <span className="w-[104px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
+                            <div className="space-y-1.5 text-gray-600">
+                              <p>Охвачено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span></p>
+                              <p>Мультисклад:{' '}
+                                {data?.multiWarehouse
+                                  ? <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold">включён</span>
+                                  : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
+                                      className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                      title="Нажмите для подсказки">выкл ⓘ</button>}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="py-2.5 flex gap-3">
+                            <span className="w-[104px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
+                            <div className="space-y-1.5 text-gray-600">
+                              <p>В доставке: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</span></p>
+                              <p>Договор: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold">{String(deliveryInfo?.status || '') || '—'}</span>{' '}
+                                <button type="button" title="Активировать доставку"
+                                  className="ml-1 w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-bold inline-flex items-center justify-center transition-colors leading-none">+</button></p>
+                            </div>
+                          </div>
+                          <div className="py-2.5 flex gap-3">
+                            <span className="w-[104px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>
+                            <p><button type="button"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
+                          </div>
+                          <div className="py-2.5 flex gap-3">
+                            <span className="w-[104px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
+                            <p><button type="button"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -448,7 +458,7 @@ export default function SupplierServicePage() {
                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-6 gap-y-5">
                         {[
                           { label: 'Магазинов и СТО', value: cntBuyers },
-                          { label: 'Проценок на платформе', value: Number(dash?.pricingTotal ?? 0) },
+                          { label: 'Поисков запчастей', value: Number(dash?.pricingTotal ?? 0) },
                           { label: 'Складов', value: Number(dash?.warehousesTotal ?? 0) },
                           { label: 'SKU на платформе', value: Number(counters.skuCount ?? 350000) },
                           { label: 'Городов проценки', value: (data?.availableCities || []).length },
@@ -468,7 +478,7 @@ export default function SupplierServicePage() {
 
 
                   {/* НОВОСТИ */}
-                  <div className="space-y-3">
+                  <div className="space-y-3 bg-gray-50 border border-gray-100 rounded-2xl p-4">
                     <h3 className="text-base font-bold text-gray-900">Новости платформы</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {news.map(n => {

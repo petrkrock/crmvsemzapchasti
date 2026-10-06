@@ -468,9 +468,9 @@ const [tab, setTab] = useState('Статусы');
     if (!isSupabaseConfigured()) { toast.error('Supabase не настроен'); return; }
     try {
       const fileName = `lk-banner-${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
-      const { error } = await supabase.storage.from('knowledge').upload(`files/${fileName}`, file);
+      const { error } = await supabase.storage.from('lk-assets').upload(`files/${fileName}`, file);
       if (error) throw error;
-      const { data } = supabase.storage.from('knowledge').getPublicUrl(`files/${fileName}`);
+      const { data } = supabase.storage.from('lk-assets').getPublicUrl(`files/${fileName}`);
       updateStore(s => ({ ...s, settings: { ...s.settings, lkBanner: { image: data.publicUrl, link: s.settings.lkBanner?.link || '' } } }));
       forceUpdate(n => n + 1); toast.success('Баннер загружен');
     } catch (err) { toast.error(`Баннер: ${(err as Error)?.message || 'ошибка загрузки'}`); }
@@ -509,9 +509,9 @@ const [tab, setTab] = useState('Статусы');
     setOpAvatarBusy(true);
     try {
       const fileName = `dbo-avatar-${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
-      const { error } = await supabase.storage.from('knowledge').upload(`files/${fileName}`, file);
+      const { error } = await supabase.storage.from('lk-assets').upload(`files/${fileName}`, file);
       if (error) throw error;
-      const { data } = supabase.storage.from('knowledge').getPublicUrl(`files/${fileName}`);
+      const { data } = supabase.storage.from('lk-assets').getPublicUrl(`files/${fileName}`);
       setOpAvatar(data.publicUrl);
       toast.success('Аватар загружен');
     } catch (e) { toast.error('Не удалось загрузить аватар'); }
@@ -1714,7 +1714,7 @@ const [tab, setTab] = useState('Статусы');
               {lkTab === 'banner' && (
                 <div className="card-base p-5 space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 mb-1">Баннер дашборда</h3>
-                  <p className="text-[11px] text-gray-400">Рекомендуемый размер баннера: <b>1200 × 600 px</b> (соотношение 2:1, горизонтальный).</p>
+                  <p className="text-[11px] text-gray-400">Рекомендуемый размер баннера: <b>1200 × 675 px</b> (16:9).</p>
                   <div className="flex gap-2 flex-wrap">
                     <label className="btn-secondary text-xs cursor-pointer">
                       Загрузить баннер
@@ -1749,6 +1749,30 @@ const [tab, setTab] = useState('Статусы');
                       </div>
                     ))}
                     {!(freshStore.settings.lkNews || []).length && <p className="text-xs text-gray-400">Новости не созданы.</p>}
+                  </div>
+
+                  <div className="border-t border-gray-100 pt-4 space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-1">От поставщиков поставщикам</h3>
+                    <div className="space-y-2">
+                      <input className="form-input text-xs" placeholder="Заголовок" value={lkNewsTitle} onChange={e => setLkNewsTitle(e.target.value)} />
+                      <input className="form-input text-xs" placeholder="Тег (по умолчанию «Новая функция»)" value={lkNewsTag} onChange={e => setLkNewsTag(e.target.value)} />
+                      <input className="form-input text-xs" placeholder="Ссылка (при клике, https://...)" value={lkNewsLink} onChange={e => setLkNewsLink(e.target.value)} />
+                      <textarea className="form-input text-xs min-h-[80px]" placeholder="Текст" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
+                      <button onClick={addLkVendorNews} className="btn-primary text-xs">Создать (слайдер ЛК)</button>
+                    </div>
+                    <div className="space-y-2">
+                      {(freshStore.settings.lkVendorNews || []).map(item => (
+                        <div key={item.id} className="border border-gray-200 rounded-xl px-3 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-gray-800 flex-1">{item.title}</span>
+                            <span className="text-[11px] text-gray-400">{item.date}</span>
+                            <button onClick={() => removeLkVendorNews(item.id)} className="text-xs text-red-600 hover:underline">Удалить</button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{item.text}</p>
+                        </div>
+                      ))}
+                      {!(freshStore.settings.lkVendorNews || []).length && <p className="text-xs text-gray-400">Записи не созданы.</p>}
+                    </div>
                   </div>
                 </div>
               )}
