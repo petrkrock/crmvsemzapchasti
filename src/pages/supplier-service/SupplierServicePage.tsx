@@ -389,9 +389,11 @@ export default function SupplierServicePage() {
                     <div>
                       <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full">
                         <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
-                        <div className="space-y-1.5 text-sm text-gray-700">
-                          <p>Непрочитанные: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></p>
-                          <p>Новые контакты: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></p>
+                        <div className="grid grid-cols-[130px_1fr] gap-y-1.5 text-sm text-gray-700 items-center">
+                          <span className="text-gray-500">Непрочитанные</span>
+                          <span><span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
+                          <span className="text-gray-500">Новые контакты</span>
+                          <span><span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
                         </div>
                         <button type="button"
                           className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-3 transition-colors">
@@ -414,7 +416,7 @@ export default function SupplierServicePage() {
                         </div>
                         <div className="divide-y divide-gray-100 text-sm">
                           <div className="py-2.5 flex gap-3">
-                            <span className="w-[104px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
                             <div className="space-y-1.5 text-gray-600">
                               <p>Охвачено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span></p>
                               <p>Мультисклад:{' '}
@@ -427,7 +429,7 @@ export default function SupplierServicePage() {
                             </div>
                           </div>
                           <div className="py-2.5 flex gap-3">
-                            <span className="w-[104px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
                             <div className="space-y-1.5 text-gray-600">
                               <p>В доставке: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</span></p>
                               <p>Договор: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold">{String(deliveryInfo?.status || '') || '—'}</span>{' '}
@@ -436,12 +438,12 @@ export default function SupplierServicePage() {
                             </div>
                           </div>
                           <div className="py-2.5 flex gap-3">
-                            <span className="w-[104px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>
                             <p><button type="button"
                                 className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
                           </div>
                           <div className="py-2.5 flex gap-3">
-                            <span className="w-[104px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
                             <p><button type="button"
                                 className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
                           </div>
@@ -519,14 +521,14 @@ export default function SupplierServicePage() {
                           <p className="text-xs text-gray-500 leading-relaxed">{n.text}</p>
                         </>
                       );
-                      const cls = "block bg-white border border-gray-200 rounded-2xl p-4 space-y-2 transition-colors hover:border-gray-400 h-full";
+                      const cls = "block bg-[#f2f7fc] border border-gray-200 rounded-2xl p-4 space-y-2 transition-colors hover:border-gray-400 h-full";
                       return n.link
                         ? <a key={n.id} href={n.link} target="_blank" rel="noreferrer" className={cls}>{inner}</a>
                         : <div key={n.id} className={cls}>{inner}</div>;
                     };
                     return (
-                      <div className="space-y-3 bg-[#f2f7fc] border border-blue-100/60 rounded-2xl p-4">
-                        <h3 className="text-base font-bold text-gray-900">От поставщиков к поставщикам!</h3>
+                      <div className="space-y-3">
+                        <h3 className="text-base font-bold text-gray-900">От поставщиков к поставщикам</h3>
                         {vendorNews.length ? (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {vendorNews.slice(0, 3).map(card)}
