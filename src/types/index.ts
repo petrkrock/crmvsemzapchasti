@@ -633,6 +633,10 @@ export interface LkNews {
   date: string;
   text: string;
   createdAt: string;
+  /** Своя фраза-тег (по умолчанию «Новая функция») */
+  tag?: string;
+  /** Ссылка при клике на новость */
+  link?: string;
 }
 
 /** v1.29.0: Маршрут самовывоза (DBO) */
@@ -699,7 +703,7 @@ export interface AppSettings {
   /** Маршруты самовывоза (DBO) */
   deliveryRoutes?: DeliveryRoute[];
   /** v1.30.0: Дашборд ЛК поставщика (счётчики: manual/database) */
-  lkDashboard?: { countersMode: 'manual' | 'database'; buyersCount: number; suppliersCount: number };
+  lkDashboard?: { countersMode: 'manual' | 'database'; buyersCount: number; suppliersCount: number; skuCount: number };
   /** v1.30.0: Баннер дашборда ЛК (изображение + ссылка) */
   lkBanner?: { image: string; link: string };
   /** v1.30.0: Новости платформы для ЛК (показываем последние 3) */

@@ -440,18 +440,20 @@ const [tab, setTab] = useState('Статусы');
   const [lkBannerLink, setLkBannerLink] = useState('');
   const [lkNewsTitle, setLkNewsTitle] = useState('');
   const [lkNewsText, setLkNewsText] = useState('');
+  const [lkNewsTag, setLkNewsTag] = useState('');
+  const [lkNewsLink, setLkNewsLink] = useState('');
   function addLkNews() {
     if (!lkNewsTitle.trim() || !lkNewsText.trim()) { toast.error('Заполните заголовок и текст новости'); return; }
-    const item = { id: `ln-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString() };
+    const item = { id: `ln-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined };
     updateStore(s => ({ ...s, settings: { ...s.settings, lkNews: [...(s.settings.lkNews || []), item] } }));
-    setLkNewsTitle(''); setLkNewsText('');
+    setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink('');
     forceUpdate(n => n + 1); toast.success('Новость создана');
   }
   function removeLkNews(id: string) {
     updateStore(s => ({ ...s, settings: { ...s.settings, lkNews: (s.settings.lkNews || []).filter(x => x.id !== id) } }));
     forceUpdate(n => n + 1); toast.success('Новость удалена');
   }
-  async function uploadLkBanner(file: File) {
+  async async function uploadLkBanner(file: File) {
     if (!isSupabaseConfigured()) { toast.error('Supabase не настроен'); return; }
     try {
       const fileName = `lk-banner-${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
@@ -460,7 +462,7 @@ const [tab, setTab] = useState('Статусы');
       const { data } = supabase.storage.from('knowledge').getPublicUrl(`files/${fileName}`);
       updateStore(s => ({ ...s, settings: { ...s.settings, lkBanner: { image: data.publicUrl, link: s.settings.lkBanner?.link || '' } } }));
       forceUpdate(n => n + 1); toast.success('Баннер загружен');
-    } catch { toast.error('Не удалось загрузить баннер'); }
+    } catch (err) { toast.error(`Баннер: ${(err as Error)?.message || 'ошибка загрузки'}`); }
   }
   const [opName, setOpName] = useState('');
   const [opPhone, setOpPhone] = useState('');
@@ -1686,6 +1688,10 @@ const [tab, setTab] = useState('Статусы');
                       <input className="form-input text-xs mt-1" inputMode="numeric" disabled={freshStore.settings.lkDashboard?.countersMode === 'database'} value={freshStore.settings.lkDashboard?.buyersCount ?? 500} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'manual', buyersCount: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0), suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500 } } })); forceUpdate(n => n + 1); }} />
                     </div>
                     <div>
+                      <label className="text-xs font-semibold text-gray-600">SKU на платформе</label>
+                      <input className="form-input text-xs mt-1" inputMode="numeric" value={freshStore.settings.lkDashboard?.skuCount ?? 350000} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: s.settings.lkDashboard?.countersMode || 'manual', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500, skuCount: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0) } } })); forceUpdate(n => n + 1); }} />
+                    </div>
+                    <div>
                       <label className="text-xs font-semibold text-gray-600">Поставщиков</label>
                       <input className="form-input text-xs mt-1" inputMode="numeric" disabled={freshStore.settings.lkDashboard?.countersMode === 'database'} value={freshStore.settings.lkDashboard?.suppliersCount ?? 500} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'manual', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0) } } })); forceUpdate(n => n + 1); }} />
                     </div>
@@ -1715,6 +1721,8 @@ const [tab, setTab] = useState('Статусы');
                   <h3 className="text-sm font-semibold text-gray-800 mb-1">Новости платформы</h3>
                   <div className="space-y-2">
                     <input className="form-input text-xs" placeholder="Заголовок новости" value={lkNewsTitle} onChange={e => setLkNewsTitle(e.target.value)} />
+                    <input className="form-input text-xs" placeholder="Тег (по умолчанию «Новая функция»)" value={lkNewsTag} onChange={e => setLkNewsTag(e.target.value)} />
+                    <input className="form-input text-xs" placeholder="Ссылка (при клике на новость, https://...)" value={lkNewsLink} onChange={e => setLkNewsLink(e.target.value)} />
                     <textarea className="form-input text-xs min-h-[80px]" placeholder="Текст новости" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
                     <button onClick={addLkNews} className="btn-primary text-xs">Создать новость</button>
                   </div>

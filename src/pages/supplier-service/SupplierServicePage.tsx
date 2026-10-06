@@ -396,6 +396,10 @@ export default function SupplierServicePage() {
                           className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-3 transition-colors">
                           Открыть ЧАТ
                         </button>
+                        <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer"
+                          className="block w-full text-center border border-gray-200 hover:border-red-300 hover:text-red-600 text-gray-600 text-xs font-semibold rounded-xl py-2.5 transition-colors">
+                          Поддержка
+                        </a>
                       </div>
                     </div>
 
@@ -403,15 +407,17 @@ export default function SupplierServicePage() {
                     <div className="lg:col-span-4">
                       <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full relative">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-base font-bold text-gray-900">{data?.companyName}{data?.phone ? ` (${String(data.phone)})` : ''}</h3>
+                          <h3 className="text-base font-bold text-gray-900">{data?.companyName}</h3>
                           <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
                             className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center transition-colors shrink-0">?</button>
                         </div>
                         <div className="grid grid-cols-[92px_1fr] gap-x-4 gap-y-1.5 text-sm">
                           <span className="font-semibold text-gray-800">Проценка:</span>
-                          <span className="text-gray-600">Доступно городов: <b className="text-gray-900">{(data?.availableCities || []).length}</b><br />Охвачено: <b className="text-gray-900">{covered}</b><br />Мультисклад: <b className="text-gray-900">{data?.multiWarehouse ? 'включён' : 'выключен'}</b></span>
+                          <span className="text-gray-600">Охвачено: <b className="text-gray-900">{covered}</b> · Мультисклад: <b className="text-gray-900">{data?.multiWarehouse ? 'включён' : 'выключен'}</b></span>
                           <span className="font-semibold text-gray-800">Доставка:</span>
-                          <span className="text-gray-600">Доступно городов: <b className="text-gray-900">{dlCities.length}</b><br />В доставке: <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b></span>
+                          <span className="text-gray-600">В доставке: <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b> · Договор: <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b>{' '}
+                            <button type="button" title="Активировать доставку"
+                              className="ml-1 inline-flex items-center rounded-md bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 text-[11px] font-semibold transition-colors">Активировать</button></span>
                           <span className="font-semibold text-gray-800">Кроссдок:</span>
                           <span className="text-gray-600">Не подключен</span>
                         </div>
@@ -419,26 +425,60 @@ export default function SupplierServicePage() {
                     </div>
                   </div>
 
-                  {/* СЧЁТЧИКИ */}
-                  <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 flex flex-wrap items-center gap-x-10 gap-y-2 text-sm">
-                    <span className="text-gray-600">Магазинов и СТО: <b className="text-gray-900">{cntBuyers}</b></span>
-                    <span className="text-gray-600">Поставщиков: <b className="text-gray-900">{cntSuppliers}</b></span>
+                  {/* СЧЁТЧИКИ — B2B-дашборд */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700/60 shadow-xl">
+                    <div className="absolute inset-0 opacity-[0.07] pointer-events-none"
+                      style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+                    <div className="relative px-6 py-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Счётчики дашборда</p>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-6 gap-y-5">
+                        {[
+                          { label: 'Магазинов и СТО', value: cntBuyers },
+                          { label: 'Проценок на платформе', value: Number(dash?.pricingTotal ?? 0) },
+                          { label: 'Складов', value: Number(dash?.warehousesTotal ?? 0) },
+                          { label: 'SKU на платформе', value: Number(counters.skuCount ?? 350000) },
+                          { label: 'Городов проценки', value: (data?.availableCities || []).length },
+                          { label: 'Городов доставки', value: dlCities.length },
+                        ].map((m, i) => (
+                          <div key={m.label} className="relative pl-3 border-l border-slate-700/80">
+                            <p className="text-[22px] leading-none font-bold text-white tabular-nums tracking-tight">
+                              {m.value.toLocaleString('ru-RU')}
+                            </p>
+                            <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400 leading-tight">{m.label}</p>
+                            <span className="absolute -left-px top-0 h-5 w-[2px] bg-red-500/90 rounded-full" style={{ opacity: 0.4 + i * 0.12 }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {/* НОВОСТИ */}
                   <div className="space-y-3">
                     <h3 className="text-base font-bold text-gray-900">Новости платформы</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {news.map(n => (
-                        <div key={n.id} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-semibold text-blue-600">Новая функция</span>
-                            <span className="text-[11px] text-gray-400">{n.date}</span>
-                          </div>
-                          <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
-                          <p className="text-xs text-gray-500 leading-relaxed">{n.text}</p>
-                        </div>
-                      ))}
+                      {news.map(n => {
+                        const inner = (
+                          <>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-semibold text-blue-600">{n.tag || 'Новая функция'}</span>
+                              <span className="text-[11px] text-gray-400">{n.date}</span>
+                            </div>
+                            <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
+                            <p className="text-xs text-gray-500 leading-relaxed">{n.text}</p>
+                          </>
+                        );
+                        return n.link ? (
+                          <a key={n.id} href={n.link} target="_blank" rel="noreferrer"
+                            className="block bg-white border border-gray-200 hover:border-gray-400 rounded-2xl p-4 space-y-2 transition-colors">
+                            {inner}
+                          </a>
+                        ) : (
+                          <div key={n.id} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">{inner}</div>
+                        );
+                      })}
                       {!news.length && <p className="text-xs text-gray-400 md:col-span-3">Новости появятся после публикации (Настройки → ЛК Поставщик → Новости).</p>}
                     </div>
                   </div>
