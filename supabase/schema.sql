@@ -647,6 +647,29 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('knowledge', 'knowledge', false)
 ON CONFLICT (id) DO UPDATE SET public = false;
 
+-- v1.30.0: публичный бакет для ассетов ЛК поставщика (баннер дашборда, аватары операторов) —
+-- читается анонимно (ЛК без авторизации), пишут только авторизованные пользователи CRM.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('lk-assets', 'lk-assets', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public read lk-assets" ON storage.objects
+FOR SELECT TO anon, authenticated
+USING (bucket_id = 'lk-assets');
+
+CREATE POLICY "Auth upload lk-assets" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'lk-assets');
+
+CREATE POLICY "Auth update lk-assets" ON storage.objects
+FOR UPDATE TO authenticated
+USING (bucket_id = 'lk-assets')
+WITH CHECK (bucket_id = 'lk-assets');
+
+CREATE POLICY "Auth delete lk-assets" ON storage.objects
+FOR DELETE TO authenticated
+USING (bucket_id = 'lk-assets');
+
 CREATE POLICY "Active employees read knowledge files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'knowledge' AND is_active_employee());
 CREATE POLICY "Authenticated upload to knowledge" ON storage.objects
 FOR INSERT TO authenticated
