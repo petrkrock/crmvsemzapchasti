@@ -435,7 +435,7 @@ const [tab, setTab] = useState('Статусы');
   // v1.29.0: под-вкладки Доставки + форма оператора
   const [deliveryTab, setDeliveryTab] = useState<'cities' | 'statuses' | 'serviceTariffs' | 'cityTariffs'>('cities');
   // v1.30.0: подвкладки «ЛК Поставщик»
-  const [lkTab, setLkTab] = useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting'>('manager');
+  const [lkTab, setLkTab] = useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('manager');
   const [lkBannerImg, setLkBannerImg] = useState('');
   const [lkBannerLink, setLkBannerLink] = useState('');
   const [lkNewsTitle, setLkNewsTitle] = useState('');
@@ -1635,7 +1635,7 @@ const [tab, setTab] = useState('Статусы');
 {tab === 'ЛК Поставщик' && (
             <div className="space-y-4">
               <div className="flex gap-2 flex-wrap">
-                {[['manager', 'Персональный менеджер'], ['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия']].map(([k, l]) => (
+                {[['manager', 'Персональный менеджер'], ['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия'], ['links', 'Ссылки офер']].map(([k, l]) => (
                   <button key={k} onClick={() => setLkTab(k as typeof lkTab)} className={`btn-secondary text-xs ${lkTab === k ? '!border-red-600 !text-red-600' : ''}`}>{l}</button>
                 ))}
               </div>
@@ -1679,6 +1679,22 @@ const [tab, setTab] = useState('Статусы');
               </div>
             </div>
             )}
+              {lkTab === 'links' && (
+                <div className="card-base p-5 space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-1">Ссылки офер</h3>
+                  <p className="text-[11px] text-gray-400">Ссылки для кнопок раздела «О компании» в ЛК поставщика (Доставка, Кросс-докинг, Продвижение).</p>
+                  <div className="space-y-3">
+                    {([['delivery', 'Доставка'], ['crossdock', 'Кросс-докинг'], ['promo', 'Продвижение']] as const).map(([k, label]) => (
+                      <div key={k}>
+                        <label className="text-xs font-semibold text-gray-600">{label}</label>
+                        <input className="form-input text-xs mt-1" placeholder="https://..." value={freshStore.settings.lkLinks?.[k] || ''}
+                          onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkLinks: { delivery: '', crossdock: '', promo: '', ...s.settings.lkLinks, [k]: e.target.value } } })); forceUpdate(n => n + 1); }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {lkTab === 'dashboard' && (
                 <div className="card-base p-5 space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 mb-1">Счётчики дашборда</h3>

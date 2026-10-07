@@ -363,6 +363,7 @@ export default function SupplierServicePage() {
             {/* МЕНЮ КАБИНЕТА */}
             {lkTab === 'dashboard' && (() => {
               const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
+              const lkLinks = (dash?.lkLinks as Record<string, string>) || {};
               const news = (dash?.news as Array<Record<string, string>>) || [];
               const counters = (dash?.counters as Record<string, unknown>) || {};
               const covered = new Set((data?.serviceSearch || []).map((c: { city: string }) => c.city).filter(Boolean)).size;
@@ -393,7 +394,7 @@ export default function SupplierServicePage() {
                             <Headset size={15} />
                           </a>
                         </div>
-                        <div className="h-4" />
+                        <div className="h-1" />
                         <div className="flex items-center gap-4 text-sm text-gray-700">
                           <span>Непрочитанные: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
                           <span>Новые контакты: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
@@ -470,18 +471,21 @@ export default function SupplierServicePage() {
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
-                            <p><button type="button"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Активировать</button></p>
+                            <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['delivery'] && window.open(lkLinks['delivery'], '_blank', 'noreferrer')} title={lkLinks['delivery'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>
-                            <p><button type="button"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Активировать</button></p>
+                            <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['crossdock'] && window.open(lkLinks['crossdock'], '_blank', 'noreferrer')} title={lkLinks['crossdock'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
-                            <p><button type="button"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Активировать</button></p>
+                            <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['promo'] && window.open(lkLinks['promo'], '_blank', 'noreferrer')} title={lkLinks['promo'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
                           </div>
                         </div>
                         </div>
