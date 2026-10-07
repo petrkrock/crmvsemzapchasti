@@ -376,11 +376,11 @@ export default function SupplierServicePage() {
                     <div>
                       {banner.image ? (
                         <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
-                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden h-full min-h-[260px]">
+                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden h-full min-h-[230px]">
                           <img src={banner.image} alt="Баннер" className="w-full h-full object-cover" />
                         </a>
                       ) : (
-                        <div className="bg-white border border-gray-200 rounded-2xl h-full min-h-[260px] flex items-center justify-center">
+                        <div className="bg-white border border-gray-200 rounded-2xl h-full min-h-[230px] flex items-center justify-center">
                           <p className="text-gray-300 font-bold text-4xl tracking-widest select-none">БАННЕР</p>
                         </div>
                       )}
@@ -388,7 +388,7 @@ export default function SupplierServicePage() {
 
                     {/* VZ ЧАТ */}
                     <div>
-                      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4 h-full">
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 h-full">
                         <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
                         <div className="grid grid-cols-[130px_1fr] gap-y-1.5 text-sm text-gray-700 items-center">
                           <span className="text-gray-500">Непрочитанные</span>
@@ -397,11 +397,11 @@ export default function SupplierServicePage() {
                           <span><span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
                         </div>
                         <button type="button"
-                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-3 transition-colors">
+                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-2.5 transition-colors">
                           Открыть ЧАТ
                         </button>
                         <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer"
-                          className="block w-full text-center border border-gray-200 hover:border-red-300 hover:text-red-600 text-gray-600 text-xs font-semibold rounded-xl py-2.5 transition-colors">
+                          className="block w-full text-center border border-gray-200 hover:border-red-300 hover:text-red-600 text-gray-600 text-xs font-semibold rounded-xl py-2 transition-colors">
                           Поддержка
                         </a>
                       </div>
@@ -419,7 +419,7 @@ export default function SupplierServicePage() {
                             className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center transition-colors shrink-0">?</button>
                         </div>
                         <div className="divide-y divide-gray-100 text-sm">
-                          <div className="py-2.5 flex gap-3">
+                          <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
                             <div className="space-y-1.5 text-gray-600">
                               <p>Охвачено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span></p>
@@ -432,7 +432,7 @@ export default function SupplierServicePage() {
                               </p>
                             </div>
                           </div>
-                          <div className="py-2.5 flex gap-3">
+                          <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
                             <div className="space-y-1.5 text-gray-600">
                               <p>В доставке: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</span></p>
@@ -441,12 +441,12 @@ export default function SupplierServicePage() {
                                   className="ml-1 w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-bold inline-flex items-center justify-center transition-colors leading-none">+</button></p>
                             </div>
                           </div>
-                          <div className="py-2.5 flex gap-3">
+                          <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>
                             <p><button type="button"
                                 className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
                           </div>
-                          <div className="py-2.5 flex gap-3">
+                          <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
                             <p><button type="button"
                                 className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
