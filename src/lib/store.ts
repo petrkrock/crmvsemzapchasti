@@ -345,8 +345,20 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.deliveryCityTariffs)) settings.deliveryCityTariffs = [];
     if (!Array.isArray(settings.deliveryRoutes)) settings.deliveryRoutes = [];
     // v1.30.0: дашборд ЛК поставщика
-    if (!settings.lkDashboard) settings.lkDashboard = { countersMode: 'manual', buyersCount: 500, suppliersCount: 500, skuCount: 350000 };
-    else if (settings.lkDashboard.skuCount === undefined) settings.lkDashboard.skuCount = 350000;
+    if (!settings.lkDashboard) settings.lkDashboard = { buyersMode: 'manual', buyersCount: 500, warehousesMode: 'db', warehousesCount: 500, skuMode: 'manual', skuCount: 350000, requestsPerDay: 1000 };
+    else {
+      // v1.30.0: миграция счётчиков на индивидуальные режимы
+      const ld = settings.lkDashboard as Record<string, unknown>;
+      settings.lkDashboard = {
+        buyersMode: (ld.countersMode === 'database' ? 'db' : (ld.buyersMode as 'manual' | 'db')) || 'manual',
+        buyersCount: Number(ld.buyersCount ?? 500),
+        warehousesMode: (ld.warehousesMode as 'manual' | 'db') || 'db',
+        warehousesCount: Number(ld.warehousesCount ?? 500),
+        skuMode: (ld.skuMode as 'manual' | 'db') || 'manual',
+        skuCount: Number(ld.skuCount ?? 350000),
+        requestsPerDay: Number(ld.requestsPerDay ?? 1000),
+      };
+    }
     if (!settings.lkBanner) settings.lkBanner = { image: '', link: '' };
     if (!Array.isArray(settings.lkNews)) settings.lkNews = [];
     if (!Array.isArray(settings.lkVendorNews)) settings.lkVendorNews = [];

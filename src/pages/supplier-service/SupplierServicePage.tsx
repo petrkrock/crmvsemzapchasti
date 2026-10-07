@@ -2,7 +2,7 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut, Megaphone } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut, Megaphone, UserRound } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -365,9 +365,6 @@ export default function SupplierServicePage() {
               const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
               const news = (dash?.news as Array<Record<string, string>>) || [];
               const counters = (dash?.counters as Record<string, unknown>) || {};
-              const manual = counters.countersMode !== 'database';
-              const cntBuyers = manual ? Number(counters.buyersCount ?? 500) : Number(dash?.dbBuyers ?? 0);
-              const cntSuppliers = manual ? Number(counters.suppliersCount ?? 500) : Number(dash?.dbSuppliers ?? 0);
               const covered = new Set((data?.serviceSearch || []).map((c: { city: string }) => c.city).filter(Boolean)).size;
               return (
                 <>
@@ -388,7 +385,11 @@ export default function SupplierServicePage() {
 
                     {/* VZ ЧАТ */}
                     <div>
-                      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 h-full">
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 h-full relative">
+                        <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
+                          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
+                          <Headset size={15} />
+                        </a>
                         <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
                         <div className="grid grid-cols-[130px_1fr] gap-y-1.5 text-sm text-gray-700 items-center">
                           <span className="text-gray-500">Непрочитанные</span>
@@ -415,8 +416,10 @@ export default function SupplierServicePage() {
                         <div className="relative space-y-4">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="text-base font-bold text-gray-900">{data?.companyName}</h3>
-                          <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
-                            className="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center transition-colors shrink-0">?</button>
+                          <button type="button" title="Личный кабинет"
+                            className="w-8 h-8 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors shrink-0">
+                            <UserRound size={15} />
+                          </button>
                         </div>
                         <div className="divide-y divide-gray-100 text-sm">
                           <div className="py-2 flex gap-3">
@@ -464,15 +467,15 @@ export default function SupplierServicePage() {
                     <div className="relative px-6 py-5">
                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-6 gap-y-5">
                         {[
-                          { label: 'Магазинов и СТО', value: cntBuyers },
-                          { label: 'Поисков запчастей', value: Number(dash?.pricingTotal ?? 0) },
-                          { label: 'Складов', value: Number(dash?.warehousesTotal ?? 0) },
-                          { label: 'SKU на платформе', value: Number(counters.skuCount ?? 350000) },
+                          { label: 'Магазинов и СТО', value: (counters.buyersMode === 'db' ? Number(dash?.dbBuyers ?? 0) : Number(counters.buyersCount ?? 0)) },
+                          { label: 'Запросов в день', value: Number(counters.requestsPerDay ?? 1000) },
+                          { label: 'Складов', value: (counters.warehousesMode === 'db' ? Number(dash?.warehousesTotal ?? 0) : Number(counters.warehousesCount ?? 0)) },
+                          { label: 'SKU на платформе', value: (counters.skuMode === 'db' ? Number(dash?.skuTotal ?? 0) : Number(counters.skuCount ?? 350000)) },
                           { label: 'Городов проценки', value: (data?.availableCities || []).length },
                           { label: 'Городов доставки', value: dlCities.length },
                         ].map((m, i) => (
                           <div key={m.label} className="relative pl-3 border-l border-gray-200">
-                            <p className="text-[22px] leading-none font-bold text-gray-900 tabular-nums tracking-tight">
+                            <p className="text-[19px] leading-none font-bold text-gray-900 tabular-nums tracking-tight">
                               {m.value.toLocaleString('ru-RU')}
                             </p>
                             <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400 leading-tight">{m.label}</p>
@@ -486,7 +489,7 @@ export default function SupplierServicePage() {
 
                   {/* НОВОСТИ */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-600">Новости платформы</h3>
+                    <h3 className="text-sm font-medium text-gray-600">Новости платформы</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {news.map(n => {
                         const inner = (
@@ -535,7 +538,7 @@ export default function SupplierServicePage() {
                     };
                     return (
                       <div className="space-y-3">
-                        <h3 className="text-sm font-semibold text-gray-600">От поставщиков к поставщикам</h3>
+                        <h3 className="text-sm font-medium text-gray-600">От поставщиков к поставщикам</h3>
                         {vendorNews.length ? (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {vendorNews.slice(0, 3).map(n => card(n, 'line-clamp-3'))}

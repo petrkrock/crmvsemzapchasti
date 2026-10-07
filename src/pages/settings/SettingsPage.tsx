@@ -1684,38 +1684,42 @@ const [tab, setTab] = useState('Статусы');
               {lkTab === 'dashboard' && (
                 <div className="card-base p-5 space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 mb-1">Счётчики дашборда</h3>
-                  <div className="flex items-center gap-4 flex-wrap text-xs">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" checked={freshStore.settings.lkDashboard?.countersMode !== 'database'} onChange={() => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'manual', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500 } } })); forceUpdate(n => n + 1); }} />
-                      Вручную
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" checked={freshStore.settings.lkDashboard?.countersMode === 'database'} onChange={() => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'database', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500 } } })); forceUpdate(n => n + 1); }} />
-                      Из базы данных
-                    </label>
-                  </div>
+                  <p className="text-[11px] text-gray-400">«Из базы» — значение считается автоматически из данных CRM. Города считаются из базы всегда.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-600">Магазинов и СТО</label>
-                      <input className="form-input text-xs mt-1" inputMode="numeric" disabled={freshStore.settings.lkDashboard?.countersMode === 'database'} value={freshStore.settings.lkDashboard?.buyersCount ?? 500} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'manual', buyersCount: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0), suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500 } } })); forceUpdate(n => n + 1); }} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-600">SKU на платформе</label>
-                      <input className="form-input text-xs mt-1" inputMode="numeric" value={freshStore.settings.lkDashboard?.skuCount ?? 350000} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: s.settings.lkDashboard?.countersMode || 'manual', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: s.settings.lkDashboard?.suppliersCount ?? 500, skuCount: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0) } } })); forceUpdate(n => n + 1); }} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-gray-600">Поставщиков</label>
-                      <input className="form-input text-xs mt-1" inputMode="numeric" disabled={freshStore.settings.lkDashboard?.countersMode === 'database'} value={freshStore.settings.lkDashboard?.suppliersCount ?? 500} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { countersMode: 'manual', buyersCount: s.settings.lkDashboard?.buyersCount ?? 500, suppliersCount: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0) } } })); forceUpdate(n => n + 1); }} />
-                    </div>
+                    {([
+                      ['buyers', 'Магазинов и СТО', true],
+                      ['requests', 'Запросов в день', false],
+                      ['warehouses', 'Складов', true],
+                      ['sku', 'SKU на платформе', true],
+                    ] as const).map(([key, label, hasDb]) => {
+                      const ld = freshStore.settings.lkDashboard;
+                      const mode = key === 'buyers' ? ld?.buyersMode : key === 'warehouses' ? ld?.warehousesMode : key === 'sku' ? ld?.skuMode : 'manual';
+                      const val = key === 'buyers' ? ld?.buyersCount : key === 'warehouses' ? ld?.warehousesCount : key === 'sku' ? ld?.skuCount : ld?.requestsPerDay;
+                      const patch = (p: Record<string, unknown>) => { updateStore(s => ({ ...s, settings: { ...s.settings, lkDashboard: { buyersMode: 'manual', buyersCount: 500, warehousesMode: 'db', warehousesCount: 500, skuMode: 'manual', skuCount: 350000, requestsPerDay: 1000, ...s.settings.lkDashboard, ...p } } })); forceUpdate(n => n + 1); };
+                      return (
+                        <div key={key} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <label className="text-xs font-semibold text-gray-600">{label}</label>
+                            {hasDb && (
+                              <span className="flex gap-1">
+                                <button onClick={() => patch({ [key + 'Mode']: 'manual' })} className={`text-[10px] px-2 py-0.5 rounded-md transition-colors ${mode !== 'db' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Вручную</button>
+                                <button onClick={() => patch({ [key + 'Mode']: 'db' })} className={`text-[10px] px-2 py-0.5 rounded-md transition-colors ${mode === 'db' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Из базы</button>
+                              </span>
+                            )}
+                          </div>
+                          <input className="form-input text-xs" inputMode="numeric" disabled={mode === 'db'} value={val ?? 0}
+                            onChange={e => patch({ [key === 'buyers' ? 'buyersCount' : key === 'warehouses' ? 'warehousesCount' : key === 'sku' ? 'skuCount' : 'requestsPerDay']: Math.max(0, parseInt(e.target.value.replace(/\D/g, '')) || 0) })} />
+                        </div>
+                      );
+                    })}
                   </div>
-                  {freshStore.settings.lkDashboard?.countersMode === 'database' && <p className="text-[11px] text-gray-400">Значения считаются автоматически из базы (покупатели / поставщики CRM).</p>}
                 </div>
               )}
 
-              {lkTab === 'banner' && (
+          {lkTab === 'banner' && (
                 <div className="card-base p-5 space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 mb-1">Баннер дашборда</h3>
-                  <p className="text-[11px] text-gray-400">Рекомендуемый размер баннера: <b>1200 × 675 px</b> (16:9).</p>
+                  <p className="text-[11px] text-gray-400">Рекомендуемый размер баннера: <b>1200 × 800 px</b> (3:2).</p>
                   <div className="flex gap-2 flex-wrap">
                     <label className="btn-secondary text-xs cursor-pointer">
                       Загрузить баннер
