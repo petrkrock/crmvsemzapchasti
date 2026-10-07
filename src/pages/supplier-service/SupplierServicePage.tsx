@@ -403,25 +403,25 @@ export default function SupplierServicePage() {
                           Открыть ЧАТ
                         </button>
                         {deliveryInfo?.operatorName ? (
-                          <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-white">
+                          <div className="flex items-center gap-3 border border-dashed border-gray-200 rounded-xl p-3 bg-white">
                             {deliveryInfo.operatorAvatar
                               ? <img src={String(deliveryInfo.operatorAvatar)} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
                               : <span className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(deliveryInfo.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
                             <div className="min-w-0 flex-1">
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Персональный менеджер</p>
                               <p className="text-sm font-bold text-gray-900 truncate">{String(deliveryInfo.operatorName)}</p>
-                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              <div className="flex items-center gap-1.5 mt-1.5 whitespace-nowrap">
                                 {deliveryInfo.operatorPhone && (
                                   <button type="button" title="Скопировать номер"
                                     onClick={() => { navigator.clipboard?.writeText(String(deliveryInfo.operatorPhone)); setNotice('Номер скопирован'); }}
                                     className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                                    {String(deliveryInfo.operatorPhone)}
+                                    Телефон
                                   </button>
                                 )}
                                 {deliveryInfo.operatorEmail && (
                                   <a href={`mailto:${String(deliveryInfo.operatorEmail)}`} title="Написать письмо"
                                     className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                                    {String(deliveryInfo.operatorEmail)}
+                                    Почта
                                   </a>
                                 )}
                                 {deliveryInfo.operatorMaxLink && (

@@ -671,8 +671,6 @@ export interface DeliveryOperator {
   name: string;
   phone: string;
   email?: string;
-  /** MAX — максимальная загрузка оператора */
-  max: number;
   avatar?: string;
   /** Связанный пользователь CRM (выбор из существующих) */
   userId: string;
