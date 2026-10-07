@@ -60,7 +60,7 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible')
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible_id')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -264,7 +264,7 @@ async function handlePost(req: Request) {
     const rt = dRoutes.find(r => ((r.stops as Array<Record<string, unknown>>) || []).some(st => String(st.supplierId) === String(supplier.id)));
     const rtStop = rt ? ((rt.stops as Array<Record<string, unknown>>) || []).find(st => String(st.supplierId) === String(supplier.id)) : null;
     // v1.30.0: Персональный менеджер показывается ТОЛЬКО если ответственный поставщика связан с оператором (operator.userId === supplier.responsible)
-    const dOp = ((dset.deliveryOperators as Array<Record<string, unknown>>) || []).find(o => String(o.userId) === String(supplier.responsible || ''));
+    const dOp = ((dset.deliveryOperators as Array<Record<string, unknown>>) || []).find(o => String(o.userId) === String(supplier.responsible_id || ''));
     const dWh = ((supplier.warehouse_locations || []) as Array<Record<string, unknown>>).find(w => String(w.id || '') === String(dc.warehouseId || '')) || (supplier.warehouse_locations || [])[0];
     const deliveryPayload = {
       route: dc.route || '',
