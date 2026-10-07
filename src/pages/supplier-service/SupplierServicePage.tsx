@@ -393,6 +393,7 @@ export default function SupplierServicePage() {
                             <Headset size={15} />
                           </a>
                         </div>
+                        <div className="h-6" />
                         <div className="flex items-center gap-4 text-sm text-gray-700">
                           <span>Непрочитанные: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
                           <span>Новые контакты: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
@@ -406,15 +407,35 @@ export default function SupplierServicePage() {
                             {deliveryInfo.operatorAvatar
                               ? <img src={String(deliveryInfo.operatorAvatar)} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
                               : <span className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(deliveryInfo.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Персональный менеджер</p>
                               <p className="text-sm font-bold text-gray-900 truncate">{String(deliveryInfo.operatorName)}</p>
-                              <p className="text-[11px] text-gray-500 truncate">{String(deliveryInfo.operatorPhone || '')}{deliveryInfo.operatorEmail ? ` · ${String(deliveryInfo.operatorEmail)}` : ''}</p>
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                {deliveryInfo.operatorPhone && (
+                                  <button type="button" title="Скопировать номер"
+                                    onClick={() => { navigator.clipboard?.writeText(String(deliveryInfo.operatorPhone)); setNotice('Номер скопирован'); }}
+                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    {String(deliveryInfo.operatorPhone)}
+                                  </button>
+                                )}
+                                {deliveryInfo.operatorEmail && (
+                                  <a href={`mailto:${String(deliveryInfo.operatorEmail)}`} title="Написать письмо"
+                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    {String(deliveryInfo.operatorEmail)}
+                                  </a>
+                                )}
+                                {deliveryInfo.operatorMaxLink && (
+                                  <a href={String(deliveryInfo.operatorMaxLink)} target="_blank" rel="noreferrer" title="Открыть аккаунт в MAX"
+                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    MAX
+                                  </a>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ) : (
                           <div className="border border-dashed border-gray-200 rounded-xl p-3 text-center">
-                            <p className="text-[11px] text-gray-400">Персональный менеджер доступен при активных сервисах</p>
+                            <p className="text-[11px] text-gray-400">Персональный менеджер доступен поставщику при активированных сервисах продаж.</p>
                           </div>
                         )}
                       </div>

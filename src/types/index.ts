@@ -676,6 +676,8 @@ export interface DeliveryOperator {
   avatar?: string;
   /** Связанный пользователь CRM (выбор из существующих) */
   userId: string;
+  /** Ссылка на аккаунт в MAX */
+  maxLink?: string;
   createdAt: string;
 }
 

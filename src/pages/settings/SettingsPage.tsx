@@ -480,6 +480,7 @@ const [tab, setTab] = useState('Статусы');
   const [opPhone, setOpPhone] = useState('');
   const [opEmail, setOpEmail] = useState('');
   const [opAvatarBusy, setOpAvatarBusy] = useState(false);
+  const [opMaxLink, setOpMaxLink] = useState('');
   const [opMax, setOpMax] = useState('10');
   const [opAvatar, setOpAvatar] = useState('');
   const [opUserId, setOpUserId] = useState('');
@@ -500,9 +501,9 @@ const [tab, setTab] = useState('Статусы');
   function addOperator() {
     if (!opName.trim()) { toast.error('Укажите ФИО оператора'); return; }
     if (!opUserId) { toast.error('Выберите пользователя (роль)'); return; }
-    const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, max: Math.max(0, parseInt(opMax, 10) || 0), avatar: opAvatar.trim() || undefined, userId: opUserId, createdAt: new Date().toISOString() };
+    const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, max: Math.max(0, parseInt(opMax, 10) || 0), avatar: opAvatar.trim() || undefined, userId: opUserId, maxLink: opMaxLink.trim() || undefined, createdAt: new Date().toISOString() };
     updateStore(s => ({ ...s, settings: { ...s.settings, deliveryOperators: [...(s.settings.deliveryOperators || []), op] } }));
-    setOpName(''); setOpPhone(''); setOpEmail(''); setOpMax('10'); setOpAvatar(''); setOpUserId('');
+    setOpName(''); setOpPhone(''); setOpEmail(''); setOpMax('10'); setOpAvatar(''); setOpUserId(''); setOpMaxLink('');
     forceUpdate(n => n + 1); toast.success('Оператор создан');
   }
   async function uploadOperatorAvatar(file: File) {
@@ -1648,6 +1649,7 @@ const [tab, setTab] = useState('Статусы');
                 <input className="form-input" placeholder="Телефон" value={opPhone} onChange={e => setOpPhone(e.target.value)} />
                 <input className="form-input" placeholder="Email" value={opEmail} onChange={e => setOpEmail(e.target.value)} />
                 <input className="form-input" placeholder="MAX" inputMode="numeric" value={opMax} onChange={e => setOpMax(e.target.value.replace(/\D/g, ''))} />
+                <input className="form-input" placeholder="MAX — ссылка на аккаунт (https://...)" value={opMaxLink} onChange={e => setOpMaxLink(e.target.value)} />
                 <label className="form-input flex items-center gap-2 cursor-pointer text-xs text-gray-500">
                   {opAvatarBusy ? 'Загрузка…' : 'Аватар: загрузить изображение'}
                   <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadOperatorAvatar(f); e.target.value = ''; }} />
