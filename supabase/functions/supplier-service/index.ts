@@ -302,6 +302,7 @@ async function handlePost(req: Request) {
         // платформенные агрегаты: проценки (условия DBS) и склады по всем поставщикам
         pricingTotal: ((await client.from('suppliers').select('service_search')).data || []).reduce((acc: number, r: Record<string, unknown>) => acc + ((r.service_search as unknown[]) || []).length, 0),
         warehousesTotal: ((await client.from('suppliers').select('warehouse_locations')).data || []).reduce((acc: number, r: Record<string, unknown>) => acc + ((r.warehouse_locations as unknown[]) || []).length, 0),
+        skuTotal: ((await client.from('suppliers').select('warehouse_locations')).data || []).reduce((acc: number, r: Record<string, unknown>) => acc + ((r.warehouse_locations as Array<Record<string, unknown>>) || []).reduce((a: number, w: Record<string, unknown>) => a + (Number(w.skuCount) || 0), 0), 0),
       },
       availableCities: ((await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle()).data?.settings as Record<string, unknown> | undefined)?.cities || [],
     });
