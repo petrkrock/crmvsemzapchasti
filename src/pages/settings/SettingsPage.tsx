@@ -1266,7 +1266,7 @@ const [tab, setTab] = useState('Статусы');
             <div className="space-y-4">
               <h3 className="section-title flex items-center gap-2"><Megaphone size={16} className="text-brand-red" /> Источники привлечения</h3>
               <div>
-                <h4 className="text-xs font-semibold text-gray-600 mb-2">Оператор ЭДО</h4>
+                <h4 className="text-xs font-semibold text-gray-600 mb-2">Операторы ЭДО</h4>
                 <div className="flex gap-2 mb-3"><input className="form-input flex-1" value={newEdoOp} onChange={e => setNewEdoOp(e.target.value)} onKeyDown={e => e.key === 'Enter' && addEdoOperator()} placeholder="Новый оператор ЭДО..." /><button onClick={addEdoOperator} className="btn-primary text-xs"><Plus size={14} /> Добавить</button></div>
                 <div className="flex flex-wrap gap-2">
                   {(store.settings.edoOperators || []).map(o => <span key={o} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{o}<ChipDelete inUse={false} onClick={() => removeEdoOperator(o)} /></span>)}

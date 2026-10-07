@@ -447,10 +447,10 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   <option value="">— Оператор ЭДО —</option>
                   {(getStore().settings.edoOperators || []).map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
-                <input className="form-input text-xs flex-1 min-w-[200px]" placeholder="Токен ЭДО" value={String((form as Supplier).edoToken || '')} onChange={e => setFormState({ ...(form as Supplier), edoToken: e.target.value })} />
+                <input className="form-input text-[11px] flex-1 min-w-[200px]" placeholder="Идентификатор ЭДО" value={String((form as Supplier).edoToken || '')} onChange={e => setFormState({ ...(form as Supplier), edoToken: e.target.value })} />
               </>
             ) : (
-              <span className="text-sm text-gray-800">{freshSupplier.edoOperator || '—'}{freshSupplier.edoToken ? ` · Токен: ${freshSupplier.edoToken}` : ''}</span>
+              <span className="text-sm text-gray-800">{freshSupplier.edoOperator || '—'}{freshSupplier.edoToken ? <span className="text-[10px] text-gray-500 break-all"> · Идентификатор: {freshSupplier.edoToken}</span> : null}</span>
             )}
           </div>
           {!editing ? <button onClick={() => { setFormState({ ...freshSupplier }); setEditing(true); }} className="btn-primary"><Edit2 size={16} /> Редактировать</button> : <><button onClick={saveForm} className="btn-primary"><Save size={16} /> Сохранить</button><button onClick={() => { setFormState(null); setEditing(false); }} className="btn-secondary"><X size={16} /> Отмена</button></>}
