@@ -140,7 +140,7 @@ export default function DeliveryPage() {
                     <th className="table-header text-left">График и время</th>
                     <th className="table-header text-left" title="Склад и адрес">Склад</th>
                     <th className="table-header text-left">Города</th>
-                    <th className="table-header text-left">Оператор</th>
+                    <th className="table-header text-left">Ответственный</th>
                     <th className="table-header text-left">Статус договора</th>
                     <th className="table-header text-left">Тариф сервиса</th>
                   </tr>
@@ -164,7 +164,7 @@ export default function DeliveryPage() {
                           ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="table-cell text-gray-900 font-medium">{(dc.cities || []).length || new Set((s.warehouseLocations || []).map(w => w.city).filter(Boolean)).size}</td>
-                        <td className="table-cell text-gray-500">{operators.find(o => o.id === dc.operatorId)?.name || '—'}</td>
+                        <td className="table-cell text-gray-500">{respUsers.find(u => u.id === s.responsible)?.name || '—'}</td>
                         <td className="table-cell">
                           <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${statusCls(contractStatus(s))}`}>{contractStatus(s)}</span>
                         </td>

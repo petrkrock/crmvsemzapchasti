@@ -414,7 +414,7 @@ export default function SupplierServicePage() {
                           </div>
                         ) : (
                           <div className="border border-dashed border-gray-200 rounded-xl p-3 text-center">
-                            <p className="text-[11px] text-gray-400">Персональный менеджер не назначен</p>
+                            <p className="text-[11px] text-gray-400">Персональный менеджер доступен при активных сервисах</p>
                           </div>
                         )}
                       </div>

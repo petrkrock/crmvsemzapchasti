@@ -52,6 +52,7 @@ export default function DeliverySupplierCardPage() {
   }
 
   const settings = store.settings;
+  const respUsers = (settings.users || []).filter(u => u.status === 'active');
   const dc = supplier.deliveryContract || {};
   const dcStatuses = settings.deliveryContractStatuses || ['Ждёт активации', 'Активный', 'Аннулирован'];
   const serviceTariffs = settings.deliveryServiceTariffs || [];
@@ -108,10 +109,12 @@ export default function DeliverySupplierCardPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600">Оператор</label>
-                <select className="form-input text-xs mt-1" value={dc.operatorId || ''} onChange={e => patchDeliveryContract({ operatorId: e.target.value })}>
-                  <option value="">— список появится позже —</option>
+                <label className="text-xs font-semibold text-gray-600">Ответственный</label>
+                <select className="form-input text-xs mt-1" value={supplier.responsible || ''} onChange={e => { updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, responsible: e.target.value, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) })); toast.success('Сохранено'); }}>
+                  <option value="">— выберите ответственного —</option>
+                  {respUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
+                <p className="text-[10px] text-gray-400 mt-1">Персональным менеджером в ЛК он станет, если связан с менеджером в Настройки → ЛК Поставщик → Персональный менеджер.</p>
               </div>
             </div>
             <div className="space-y-3">
