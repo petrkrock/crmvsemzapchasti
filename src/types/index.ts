@@ -288,6 +288,9 @@ export interface Supplier {
   city: string;
   address?: string;
   website?: string;
+  /** v1.29.33: ЭДО — оператор и токен */
+  edoOperator?: string;
+  edoToken?: string;
   inn?: string;
   contactRole: RoleType;
   contactName: string;
@@ -719,6 +722,8 @@ export interface AppSettings {
   lkVendorNews?: LkNews[];
   /** v1.30.0: Ссылки офер для кнопок Доставка / Кросс-докинг / Продвижение */
   lkLinks?: { delivery?: string; crossdock?: string; promo?: string };
+  /** v1.29.33: Справочник операторов ЭДО (Настройки → Источники) */
+  edoOperators?: string[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

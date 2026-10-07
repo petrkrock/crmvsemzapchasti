@@ -359,6 +359,19 @@ const [tab, setTab] = useState('Статусы');
 
   // ── SOURCES ──
   const [newSourceName, setNewSourceName] = useState('');
+  // v1.29.33: справочник операторов ЭДО (Источники)
+  const [newEdoOp, setNewEdoOp] = useState('');
+  function addEdoOperator() {
+    const v = newEdoOp.trim();
+    if (!v) return;
+    if ((store.settings.edoOperators || []).some(o => o.toLowerCase() === v.toLowerCase())) { toast.error('Оператор уже есть в списке'); return; }
+    updateStore(s => ({ ...s, settings: { ...s.settings, edoOperators: [...(s.settings.edoOperators || []), v] } }));
+    setNewEdoOp(''); forceUpdate(n => n + 1); toast.success('Оператор ЭДО добавлен');
+  }
+  function removeEdoOperator(v: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, edoOperators: (s.settings.edoOperators || []).filter(o => o !== v) } }));
+    forceUpdate(n => n + 1); toast.success('Оператор ЭДО удалён');
+  }
   const [newContactPref, setNewContactPref] = useState('');
   const [newRoleType, setNewRoleType] = useState(''); // ТЗ v1.22.30
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
@@ -1252,6 +1265,14 @@ const [tab, setTab] = useState('Статусы');
           {tab === 'Источники' && (
             <div className="space-y-4">
               <h3 className="section-title flex items-center gap-2"><Megaphone size={16} className="text-brand-red" /> Источники привлечения</h3>
+              <div>
+                <h4 className="text-xs font-semibold text-gray-600 mb-2">Оператор ЭДО</h4>
+                <div className="flex gap-2 mb-3"><input className="form-input flex-1" value={newEdoOp} onChange={e => setNewEdoOp(e.target.value)} onKeyDown={e => e.key === 'Enter' && addEdoOperator()} placeholder="Новый оператор ЭДО..." /><button onClick={addEdoOperator} className="btn-primary text-xs"><Plus size={14} /> Добавить</button></div>
+                <div className="flex flex-wrap gap-2">
+                  {(store.settings.edoOperators || []).map(o => <span key={o} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{o}<ChipDelete inUse={false} onClick={() => removeEdoOperator(o)} /></span>)}
+                  {!(store.settings.edoOperators || []).length && <p className="text-xs text-gray-400">Операторы не добавлены.</p>}
+                </div>
+              </div>
               <div className="flex gap-2"><input className="form-input flex-1" value={newSourceName} onChange={e => setNewSourceName(e.target.value)} placeholder="Новый источник..." /><button onClick={addSource} className="btn-primary text-xs"><Plus size={14} /> Добавить</button></div>
               <div className="space-y-2">
                 {activeSources.map(src => (

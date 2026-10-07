@@ -626,7 +626,7 @@ export default function SupplierServicePage() {
                 <div className="flex gap-2">
                   {DL_MENU.map(m => (
                     <button key={m.key} type="button" onClick={() => setDlTab(m.key)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white border ${dlTab === m.key ? 'border-red-600 text-red-600' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white border ${dlTab === m.key ? 'text-red-600' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
                       <m.icon size={15} /> {m.label}
                     </button>
                   ))}

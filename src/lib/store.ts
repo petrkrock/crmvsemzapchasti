@@ -363,6 +363,7 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.lkNews)) settings.lkNews = [];
     if (!Array.isArray(settings.lkVendorNews)) settings.lkVendorNews = [];
     if (!settings.lkLinks) settings.lkLinks = { delivery: '', crossdock: '', promo: '' };
+    if (!Array.isArray(settings.edoOperators)) settings.edoOperators = [];
     // v1.29.0 (ресофт): единый ЛК поставщика — если есть только доставочный доступ, переносим токен/PIN в serviceAccess
     if (Array.isArray(ps.suppliers)) ps.suppliers = ps.suppliers.map((sp: Supplier) => {
       if (!sp.serviceAccess?.token && sp.deliveryAccess?.token) return { ...sp, serviceAccess: sp.deliveryAccess };

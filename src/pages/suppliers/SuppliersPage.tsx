@@ -310,7 +310,7 @@ function handleMassStatus() {
     const supplier: Supplier = {
       id: generateId(), type: newForm.type || 'Поставщик/склад',
       tradeName: newForm.tradeName || '', city: newForm.city || '',
-      address: newForm.address, website: newForm.website, inn: newForm.inn,
+      website: newForm.website, inn: newForm.inn,
       contactRole: newForm.contactRole || 'менеджер', contactName: newForm.contactName || '',
       phone: newForm.phone || '', email: newForm.email || '', status: 'Лид CRM',
       source: newForm.source, contactPref: newForm.contactPref,
@@ -400,7 +400,7 @@ function handleMassStatus() {
                 </div>
 
                 <div><label className="form-label">Сайт</label><input className="form-input" placeholder="https://…" value={newForm.website || ''} onChange={e => setNewForm(f => ({ ...f, website: e.target.value }))} /></div>
-                <div><label className="form-label">Адрес ЦС</label><input className="form-input" value={newForm.address || ''} onChange={e => setNewForm(f => ({ ...f, address: e.target.value }))} /></div>
+                
                 <div className="sm:col-span-2"><label className="form-label">Комментарий</label><textarea className="form-input min-h-[60px] resize-none" value={newForm.comment || ''} onChange={e => setNewForm(f => ({ ...f, comment: e.target.value }))} /></div>
                 <div className="sm:col-span-2"><label className="form-label">Сервисы продаж</label>
                   <div className="flex flex-wrap gap-1.5 py-1">
