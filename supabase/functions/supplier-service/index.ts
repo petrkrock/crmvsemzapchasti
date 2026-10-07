@@ -275,6 +275,7 @@ async function handlePost(req: Request) {
       operatorAvatar: (dOp?.avatar as string) || '',
       operatorPhone: (dOp?.phone as string) || '',
       operatorEmail: (dOp?.email as string) || '',
+      operatorMaxLink: (dOp?.maxLink as string) || '',
       status: (dc.status as string) || '',
       contractNumber: dc.contractNumber || '',
       contractDate: dc.contractDate || '',
