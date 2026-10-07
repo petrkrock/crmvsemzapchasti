@@ -386,29 +386,41 @@ export default function SupplierServicePage() {
                     {/* VZ ЧАТ */}
                     <div>
                       <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 h-full relative">
-                        <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
-                          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
-                          <Headset size={15} />
-                        </a>
-                        <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
-                        <div className="grid grid-cols-[130px_1fr] gap-y-1.5 text-sm text-gray-700 items-center">
-                          <span className="text-gray-500">Непрочитанные</span>
-                          <span><span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
-                          <span className="text-gray-500">Новые контакты</span>
-                          <span><span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
+                          <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
+                            className="w-8 h-8 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
+                            <Headset size={15} />
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-700">
+                          <span>Непрочитанные: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
+                          <span>Новые контакты: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
                         </div>
                         <button type="button"
                           className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-2.5 transition-colors">
                           Открыть ЧАТ
                         </button>
-                        <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer"
-                          className="block w-full text-center border border-gray-200 hover:border-red-300 hover:text-red-600 text-gray-600 text-xs font-semibold rounded-xl py-2 transition-colors">
-                          Поддержка
-                        </a>
+                        {deliveryInfo?.operatorName ? (
+                          <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-white">
+                            {deliveryInfo.operatorAvatar
+                              ? <img src={String(deliveryInfo.operatorAvatar)} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
+                              : <span className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(deliveryInfo.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Персональный менеджер</p>
+                              <p className="text-sm font-bold text-gray-900 truncate">{String(deliveryInfo.operatorName)}</p>
+                              <p className="text-[11px] text-gray-500 truncate">{String(deliveryInfo.operatorPhone || '')}{deliveryInfo.operatorEmail ? ` · ${String(deliveryInfo.operatorEmail)}` : ''}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="border border-dashed border-gray-200 rounded-xl p-3 text-center">
+                            <p className="text-[11px] text-gray-400">Персональный менеджер не назначен</p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* СВОДКА ПО ПОСТАВЩИКУ */}
+                                        {/* СВОДКА ПО ПОСТАВЩИКУ */}
                     <div>
                       <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5 h-full">
                         <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
@@ -425,7 +437,7 @@ export default function SupplierServicePage() {
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
                             <div className="space-y-1.5 text-gray-600">
-                              <p>Охвачено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span></p>
+                              <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span> <span className="text-gray-400 text-xs">(из {(data?.availableCities || []).length})</span></p>
                               <p>Мультисклад:{' '}
                                 {data?.multiWarehouse
                                   ? <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold">включён</span>
@@ -438,7 +450,7 @@ export default function SupplierServicePage() {
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
                             <div className="space-y-1.5 text-gray-600">
-                              <p>В доставке: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</span></p>
+                              <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</span> <span className="text-gray-400 text-xs">(из {dlCities.length})</span></p>
                               <p>Договор: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold">{String(deliveryInfo?.status || '') || '—'}</span>{' '}
                                 <button type="button" title="Активировать доставку"
                                   className="ml-1 w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-bold inline-flex items-center justify-center transition-colors leading-none">+</button></p>
