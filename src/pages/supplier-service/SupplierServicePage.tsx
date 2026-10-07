@@ -470,22 +470,18 @@ export default function SupplierServicePage() {
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
-                            <div className="space-y-1.5 text-gray-600">
-                              <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</span> <span className="text-gray-400 text-xs">(из {dlCities.length})</span></p>
-                              <p>Договор: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold">{String(deliveryInfo?.status || '') || '—'}</span>{' '}
-                                <button type="button" title="Активировать доставку"
-                                  className="ml-1 w-6 h-6 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-bold inline-flex items-center justify-center transition-colors leading-none">+</button></p>
-                            </div>
+                            <p><button type="button"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Активировать</button></p>
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>
                             <p><button type="button"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Активировать</button></p>
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
                             <p><button type="button"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Не подключен</button></p>
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Активировать</button></p>
                           </div>
                         </div>
                         </div>
@@ -721,52 +717,25 @@ export default function SupplierServicePage() {
                     className="bg-green-600 hover:bg-green-700 text-white rounded-xl w-11 h-11 flex items-center justify-center disabled:opacity-60">
                     <Plus size={17} />
                   </button>
+                  <div className="flex items-center gap-[0.6rem]">
+                    <div className="relative">
+                      <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
+                        className="w-11 h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-sm flex items-center justify-center transition-colors text-sm font-bold">?</button>
+                      {priceHint && (
+                        <div className="absolute right-0 top-full mt-2 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+                          <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
+                          <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
+                          <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие доставки (DBS).</p>
+                          <p>Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>.</p>
+                          <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="relative bg-white border border-gray-200 rounded-2xl px-5 sm:px-6 py-2 sm:py-3 order-1">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                <h2 className="text-base font-semibold text-gray-900">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</h2>
-                <div className="flex items-center gap-5 flex-wrap text-sm">
-                  {(() => {
-                    const loaded = (data.serviceSearch || []).filter(c => (c.status || 'Новое') === 'Загружено').length;
-                    const chip = (v: number, cls: string) => <span className={`min-w-[28px] text-center text-xs font-bold rounded-md px-2 py-0.5 ${cls}`}>{v}</span>;
-                    return (
-                      <>
-                        <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span>{chip((data.availableCities || []).length, 'bg-blue-50 text-blue-700')}</span>
-                        <span className="flex items-center gap-2" title="Условия сервиса проценки со статусом «Загружено»"><span className="text-gray-500">Охвачено:</span>{chip(loaded, 'bg-green-50 text-green-700')}</span>
-                        <span className="flex items-center gap-2"><span className="text-gray-500">Мультисклад:</span>
-                          {data.multiWarehouse
-                            ? <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-green-50 text-green-700">доступен</span>
-                            : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
-                                className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
-                                title="Нажмите для подсказки">выкл ⓘ</button>}
-                        </span>
-                        <div className="flex items-center gap-[0.6rem]">
-                        <div className="relative">
-                          <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
-                            className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center transition-colors text-sm font-bold">?</button>
-                          {priceHint && (
-                            <div className="absolute right-0 top-full mt-2 z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
-                              <p><b className="text-red-700">Шаг 1.</b> Сначала добавьте склад - это необходимо для создания условий в поиске и укажите примерно сколько на данном складе SKU.</p>
-                              <p><b className="text-red-700">Шаг 2.</b> Выберите Ваш склад в разделе «Мои склады».</p>
-                              <p><b className="text-red-700">Шаг 3.</b> Нажмите на интересующий Вас город и добавьте новое условие в проценку (DBS).</p>
-                              <p>Настройте ежедневную рассылку Вашего прайс-листа на почтовый адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span>.</p>
-                              <p>Включайте свой склад во всех доступных городах, даже если у вас туда нет доставки, это даст прирост узнаваемости и охват Вашей компании.</p>
-                            </div>
-                          )}
-                        </div>
-                        <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
-                          className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-700 shadow-md flex items-center justify-center transition-colors">
-                          <Headset size={17} />
-                        </a>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-              </div>
+              
             </div>
 
             {/* МОИ СКЛАДЫ */}
