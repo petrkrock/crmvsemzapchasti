@@ -110,7 +110,7 @@ export default function DeliverySupplierCardPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600">Ответственный</label>
-                <select className="form-input text-xs mt-1" value={supplier.responsible || ''} onChange={e => { updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, responsible: e.target.value, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) })); toast.success('Сохранено'); }}>
+                <select className="form-input text-xs mt-1" value={supplier.responsibleId || ''} onChange={e => { updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, responsibleId: e.target.value, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) })); toast.success('Сохранено'); }}>
                   <option value="">— выберите ответственного —</option>
                   {respUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>

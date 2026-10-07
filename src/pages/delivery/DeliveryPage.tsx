@@ -71,7 +71,7 @@ export default function DeliveryPage() {
   const filtered = suppliers.filter(s => {
     if (fSearch && !(s.tradeName || '').toLowerCase().includes(fSearch.toLowerCase()) && !(s.legalName || '').toLowerCase().includes(fSearch.toLowerCase())) return false;
     if (fSupplier && s.id !== fSupplier) return false;
-    if (fResp && s.responsible !== fResp) return false;
+    if (fResp && s.responsibleId !== fResp) return false;
     if (fCity && !(s.warehouseLocations || []).some(w => w.city === fCity)) return false;
     if (fStatus && contractStatus(s) !== fStatus) return false;
     return true;
@@ -164,7 +164,7 @@ export default function DeliveryPage() {
                           ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="table-cell text-gray-900 font-medium">{(dc.cities || []).length || new Set((s.warehouseLocations || []).map(w => w.city).filter(Boolean)).size}</td>
-                        <td className="table-cell text-gray-500">{respUsers.find(u => u.id === s.responsible)?.name || '—'}</td>
+                        <td className="table-cell text-gray-500">{respUsers.find(u => u.id === s.responsibleId)?.name || '—'}</td>
                         <td className="table-cell">
                           <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${statusCls(contractStatus(s))}`}>{contractStatus(s)}</span>
                         </td>
