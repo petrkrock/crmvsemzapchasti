@@ -393,7 +393,7 @@ export default function SupplierServicePage() {
                             <Headset size={15} />
                           </a>
                         </div>
-                        <div className="h-6" />
+                        <div className="h-4" />
                         <div className="flex items-center gap-4 text-sm text-gray-700">
                           <span>Непрочитанные: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
                           <span>Новые контакты: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
@@ -405,8 +405,8 @@ export default function SupplierServicePage() {
                         {deliveryInfo?.operatorName ? (
                           <div className="flex items-center gap-3 border border-dashed border-gray-200 rounded-xl p-3 bg-white">
                             {deliveryInfo.operatorAvatar
-                              ? <img src={String(deliveryInfo.operatorAvatar)} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
-                              : <span className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(deliveryInfo.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                              ? <img src={String(deliveryInfo.operatorAvatar)} alt="" className="w-[45px] h-[45px] rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
+                              : <span className="w-[45px] h-[45px] rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(deliveryInfo.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
                             <div className="min-w-0 flex-1">
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Персональный менеджер</p>
                               <p className="text-sm font-bold text-gray-900 truncate">{String(deliveryInfo.operatorName)}</p>
@@ -461,7 +461,7 @@ export default function SupplierServicePage() {
                               <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span> <span className="text-gray-400 text-xs">(из {(data?.availableCities || []).length})</span></p>
                               <p>Мультисклад:{' '}
                                 {data?.multiWarehouse
-                                  ? <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold">включён</span>
+                                  ? <span className="bg-green-50 border border-green-200 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
                                   : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
                                       className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                                       title="Нажмите для подсказки">выкл ⓘ</button>}
@@ -504,7 +504,7 @@ export default function SupplierServicePage() {
                           { label: 'Городов доставки', value: dlCities.length },
                         ].map((m, i) => (
                           <div key={m.label} className="relative pl-3 border-l border-gray-200">
-                            <p className="text-[19px] leading-none font-bold text-gray-900 tabular-nums tracking-tight">
+                            <p className="text-[17px] leading-none font-bold text-gray-900 tabular-nums tracking-tight">
                               {m.value.toLocaleString('ru-RU')}
                             </p>
                             <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400 leading-tight">{m.label}</p>
@@ -706,7 +706,7 @@ export default function SupplierServicePage() {
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
             <div className="flex flex-col gap-4">
               <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 order-2">
-                <div className="grid grid-cols-1 sm:grid-cols-[230px_minmax(280px,1fr)_150px_44px] gap-2">
+                <div className="grid grid-cols-[230px_minmax(280px,1fr)_150px_44px_44px] gap-2">
                   <input className={fld} placeholder="Город или название склада *"
                     value={whCity} onChange={e => setWhCity(e.target.value)} />
                   <input className={fld} placeholder="Адрес склада, начиная с города *"
