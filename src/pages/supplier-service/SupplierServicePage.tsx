@@ -65,6 +65,7 @@ export default function SupplierServicePage() {
   const [priceHint, setPriceHint] = useState(false);
   const [whModal, setWhModal] = useState(false); // v1.30.0: добавление склада через модалку
   const [whErr, setWhErr] = useState<Record<string, boolean>>({}); // незаполненные поля склада
+  const [whMsHint, setWhMsHint] = useState(false); // подсказка мультисклада
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
@@ -456,25 +457,25 @@ export default function SupplierServicePage() {
                               ? <img src={String(deliveryInfo.operatorAvatar)} alt="" className="w-[45px] h-[45px] rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
                               : <span className="w-[45px] h-[45px] rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(deliveryInfo.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
                             <div className="min-w-0 flex-1">
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Персональный менеджер</p>
+                              <p className="text-[10px] font-semibold text-gray-400">Персональный менеджер</p>
                               <p className="text-sm font-bold text-gray-900 truncate">{String(deliveryInfo.operatorName)}</p>
                               <div className="flex items-center gap-1.5 mt-1.5 whitespace-nowrap">
                                 {deliveryInfo.operatorPhone && (
                                   <button type="button" title="Скопировать номер"
                                     onClick={() => { navigator.clipboard?.writeText(String(deliveryInfo.operatorPhone)); setNotice('Номер скопирован'); }}
-                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
                                     Телефон
                                   </button>
                                 )}
                                 {deliveryInfo.operatorEmail && (
                                   <a href={`mailto:${String(deliveryInfo.operatorEmail)}`} title="Написать письмо"
-                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
                                     Почта
                                   </a>
                                 )}
                                 {deliveryInfo.operatorMaxLink && (
                                   <a href={String(deliveryInfo.operatorMaxLink)} target="_blank" rel="noreferrer" title="Открыть аккаунт в MAX"
-                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
                                     MAX
                                   </a>
                                 )}
@@ -675,17 +676,28 @@ export default function SupplierServicePage() {
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
                       <h3 className="text-sm font-semibold text-gray-600">Создание склада в системе</h3>
                       <p className="text-xs text-gray-400">Добавьте свой первый склад, чтобы начать продавать.</p>
-                      <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhErr({}); setWhModal(true); }}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
-                        + Добавить склад
-                      </button>
-                      <p className="text-xs text-gray-500 pt-1">Мультисклад:{' '}
-                        {data?.multiWarehouse
-                          ? <span className="bg-green-50 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
-                          : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
-                              className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
-                              title="Нажмите для подсказки">выкл ⓘ</button>}
-                      </p>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhErr({}); setWhModal(true); }}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                          + Добавить склад
+                        </button>
+                        <span className="text-xs text-gray-500">Мультисклад:{' '}
+                          {data?.multiWarehouse
+                            ? <span className="bg-green-50 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
+                            : (
+                              <span className="relative inline-block">
+                                <button type="button" onClick={() => setWhMsHint(v => !v)}
+                                  className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                  title="Нажмите для подсказки">выкл ⓘ</button>
+                                {whMsHint && (
+                                  <span className="absolute left-0 top-full mt-1.5 z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-xs text-gray-600 leading-relaxed" onClick={e => e.stopPropagation()}>
+                                    Для включения функции Мультисклад обратитесь в поддержку, это бесплатно.
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                        </span>
+                      </div>
                     </div>
 <div className={`bg-white border border-dashed rounded-2xl p-4 space-y-2 ${cabinet?.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
                       <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
@@ -843,7 +855,7 @@ export default function SupplierServicePage() {
                       </select>
                       <input className="form-input text-[11px] flex-1 min-w-[220px]" placeholder="Идентификатор ЭДО" value={String(cb.edoToken || '')} onChange={e => setCabinet({ ...cb, edoToken: e.target.value })} />
                       <button type="button" onClick={async () => { const err = await post({ edoOperator: cb.edoOperator || '', edoToken: cb.edoToken || '' }); if (err) setNotice(err); else { setNotice('ЭДО сохранено'); loadDeliveryInfo(); } }}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить ЭДО</button>
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить ЭДО</button>
                     </div>
                   </div>
                   {/* О ПОСТАВЩИКЕ */}
@@ -879,7 +891,7 @@ export default function SupplierServicePage() {
                       ) : (
                         <div className="flex items-center gap-1.5 shrink-0">
                           <button type="button" onClick={async () => { const err = await post({ contactName: cb.contactName || '', contactRole: cb.contactRole || '', phone: cb.contactPhone || '', email: cb.contactEmail || '' }); if (err) setNotice(err); else { setNotice('Контакты сохранены'); setCabEdit(false); loadDeliveryInfo(); } }}
-                            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
+                            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
                           <button type="button" onClick={() => { setCabEdit(false); loadDeliveryInfo(); }}
                             className="btn-secondary text-xs">Отмена</button>
                         </div>

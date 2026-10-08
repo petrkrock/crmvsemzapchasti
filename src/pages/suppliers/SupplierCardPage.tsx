@@ -261,7 +261,7 @@ function pushSupplierHistory(entry: HistoryEntry) {
 function setWarehouseStatus(locId: string, status: WarehouseStatus) {
     if (status === 'Проверен' && !window.confirm('Вы подтверждаете, что склад проверен?')) return;
     // ТЗ v1.28.1: заморозка — с подтверждением и каскадом: все условия склада → «Удаление»
-    const whCity = (supplier.warehouseLocations || []).find(w => w.id === locId)?.city;
+    const whCity = (freshSupplier.warehouseLocations || []).find(w => w.id === locId)?.city;
     if (status === 'Заморожен' && !window.confirm(`Заморозить склад «${whCity || ''}»? Все привязанные условия проценки получат статус «Удаление». Продолжить?`)) return;
     updateStore(s => ({ ...s, suppliers: s.suppliers.map(sup => sup.id === id ? {
       ...sup,
@@ -682,7 +682,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
 
           {tab === 'Склад' && (
             <div className="space-y-5">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div className="stat-card text-center"><p className="text-xs text-gray-500">Всего складов</p><p className="text-2xl font-bold text-brand-black">{totalWarehouses}</p></div>
                 <div className="stat-card text-center"><p className="text-xs text-gray-500">Городов</p><p className="text-2xl font-bold text-brand-black">{totalCities}</p></div>
                 <div className="stat-card text-center"><p className="text-xs text-gray-500">Всего SKU</p><p className="text-2xl font-bold text-brand-black">{totalSKU.toLocaleString('ru')}</p></div>
