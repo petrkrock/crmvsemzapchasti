@@ -1259,7 +1259,7 @@ export default function SupplierServicePage() {
                     );
                   });
                 })()}
-              </div>
+              </>
             )}
 
             </>)}
