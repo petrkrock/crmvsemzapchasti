@@ -655,7 +655,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                             <input className="form-input text-[11px] flex-1 min-w-[200px]" placeholder="Идентификатор ЭДО" value={String((form as Supplier).edoToken || '')} onChange={e => setFormState({ ...(form as Supplier), edoToken: e.target.value })} />
                           </>
                         ) : (
-                          <span className="text-sm text-gray-800">{freshSupplier.edoOperator || '—'}{freshSupplier.edoToken ?  : ''}</span>
+                          <span className="text-sm text-gray-800">{freshSupplier.edoOperator || '—'}{freshSupplier.edoToken ? <span className="text-[10px] text-gray-500 break-all"> · Идентификатор: {freshSupplier.edoToken}</span> : null}</span>
                         )}
                       </div>
           
