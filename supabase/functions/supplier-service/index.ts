@@ -60,7 +60,7 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands')
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands, price_email')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -256,7 +256,7 @@ async function handlePost(req: Request) {
   // grants access to the protected supplier data. No PIN-protected data is
   // returned by GET before this point.
   // v1.30.1: поставщик правит в ЛК контакты представителя и ЭДО
-  const CAB_KEYS: Record<string, string> = { contactName: 'contact_name', contactRole: 'contact_role', phone: 'phone', email: 'email' };
+  const CAB_KEYS: Record<string, string> = { contactName: 'contact_name', contactRole: 'contact_role', phone: 'phone', email: 'email', priceEmail: 'price_email' };
   for (const [k, col] of Object.entries(CAB_KEYS)) {
     if (body[k] !== undefined) patch[col] = String(body[k] ?? '').slice(0, 200);
   }
@@ -313,6 +313,7 @@ async function handlePost(req: Request) {
         edoToken: (supplier.delivery_contract || {}).edoToken || '',
         active: (supplier.delivery_contract || {}).status === 'Активный',
         edoOperators: (dset.edoOperators as string[]) || [],
+        priceEmail: supplier.price_email || '',
       },
       companyName: supplier.trade_name || 'Поставщик',
       inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
