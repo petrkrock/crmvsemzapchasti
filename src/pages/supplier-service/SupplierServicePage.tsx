@@ -668,18 +668,7 @@ export default function SupplierServicePage() {
               const whs = (data?.warehouses || []) as Array<Record<string, unknown>>;
               return (
                 <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Мультисклад-строка вернётся под кнопкой создания */}
-                    <div className={`bg-white border border-dashed rounded-2xl p-4 space-y-2 ${cabinet?.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
-                      <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
-                      <div className="flex items-center gap-2">
-                        <input className="form-input text-xs flex-1 min-w-0" placeholder="price@example.ru" value={String(cabinet?.priceEmail || '')} onChange={e => setCabinet({ ...(cabinet || {}), priceEmail: e.target.value })} />
-                        <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить</button>
-                      </div>
-                      <p className="text-[10px] text-gray-400">С этого Email от Вас будут приходить прайсы.</p>
-                    </div>
-                  </div>
+
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* СОЗДАНИЕ СКЛАДА */}
@@ -697,6 +686,15 @@ export default function SupplierServicePage() {
                               className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                               title="Нажмите для подсказки">выкл ⓘ</button>}
                       </p>
+                    </div>
+<div className={`bg-white border border-dashed rounded-2xl p-4 space-y-2 ${cabinet?.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
+                      <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
+                      <div className="flex items-center gap-2">
+                        <input className="form-input text-xs flex-1 min-w-0" placeholder="price@example.ru" value={String(cabinet?.priceEmail || '')} onChange={e => setCabinet({ ...(cabinet || {}), priceEmail: e.target.value })} />
+                        <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить</button>
+                      </div>
+                      <p className="text-[10px] text-gray-400">С этого Email от Вас будут приходить прайсы.</p>
                     </div>
 
 

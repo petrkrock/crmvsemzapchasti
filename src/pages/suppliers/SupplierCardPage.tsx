@@ -94,6 +94,8 @@ export default function SupplierCardPage() {
   const [whEditForm, setWhEditForm] = useState({ city: '', skuCount: 0, address: '' }); // ТЗ v1.25.0: +адрес
   const [ssFilterCity, setSsFilterCity] = useState('');
   const [linkOpen, setLinkOpen] = useState(false);
+  const [priceEmailEdit, setPriceEmailEdit] = useState(false);
+  const [priceEmailDraft, setPriceEmailDraft] = useState('');
   const form: Supplier = formState || (freshSupplier ? { ...freshSupplier } : {} as Supplier);
   const setForm = (updater: Supplier | ((prev: Supplier) => Supplier)) => {
     setFormState(prev => {
