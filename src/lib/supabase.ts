@@ -594,6 +594,12 @@ export function sanitizeSettings(settings: AppSettings): AppSettings {
 export async function saveSettings(settings: AppSettings): Promise<void> {
   // ТЗ: защита от записи NULL — колонка settings NOT NULL
   if (!settings) { console.warn('[supabase] saveSettings: пустые настройки — запись пропущена'); return; }
+  // v1.30.6: аварийная защита — никогда не пушим настройки без пользователей (признак затёртого localStorage):
+  // иначе пустое локальное состояние перезапишет серверные настройки целиком.
+  if (!Array.isArray(settings.users) || settings.users.length === 0) {
+    console.error('[supabase] saveSettings: БЛОКИРОВКА — в настройках нет пользователей, push на сервер отменён (защита от затирания).');
+    return;
+  }
   let sanitized;
   try { sanitized = sanitizeSettings(settings) ?? {}; } catch { sanitized = {}; }
   if (sanitized === null || sanitized === undefined) sanitized = {};

@@ -573,7 +573,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
                   { key: 'tradeName', label: 'Торговое название' }, { key: 'city', label: 'Город ЦС' },
-                  { key: 'website', label: 'Сайт' }, { key: 'priceEmail', label: 'Email отправки прайсов' },
+                  { key: 'website', label: 'Сайт' },
                   { key: 'inn', label: 'ИНН' }, { key: 'contactName', label: 'ФИО' },
                 ].map(field => (
                   <div key={field.key}>

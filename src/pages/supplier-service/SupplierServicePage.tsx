@@ -348,7 +348,9 @@ export default function SupplierServicePage() {
 
             {/* ШАПКА ЛК: логотип + Продвижение/Выход */}
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-4 sm:px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-              <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
+              <button type="button" onClick={() => setLkTab('dashboard')} title="На дашборд" className="shrink-0">
+                <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[130px] sm:w-[180px] h-auto" />
+              </button>
               <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                 <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto">
                   {LK_MENU.map(m => (
@@ -398,7 +400,7 @@ export default function SupplierServicePage() {
                         const before = (data?.warehouses || []).length;
                         await addWarehouse();
                         if ((data?.warehouses || []).length > before) { setWhModal(false); setWhErr({}); }
-                      }} className="btn-primary text-xs">Добавить склад</button>
+                      }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Добавить склад</button>
                       <button type="button" onClick={() => { setWhModal(false); setWhErr({}); }} className="btn-secondary text-xs">Отмена</button>
                     </div>
                   </div>
@@ -509,13 +511,6 @@ export default function SupplierServicePage() {
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
                             <div className="space-y-1.5 text-gray-600">
                               <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span> <span className="text-gray-400 text-xs">(из {(data?.availableCities || []).length})</span></p>
-                              <p>Мультисклад:{' '}
-                                {data?.multiWarehouse
-                                  ? <span className="bg-green-50 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
-                                  : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
-                                      className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
-                                      title="Нажмите для подсказки">выкл ⓘ</button>}
-                              </p>
                             </div>
                           </div>
                           <div className="py-2 flex gap-3">
@@ -673,63 +668,69 @@ export default function SupplierServicePage() {
               const whs = (data?.warehouses || []) as Array<Record<string, unknown>>;
               return (
                 <>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Складов</p>
+                      <p className="text-xl font-bold text-gray-900 tabular-nums mt-1">{whs.length}</p>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Всего SKU</p>
+                      <p className="text-xl font-bold text-gray-900 tabular-nums mt-1">{whs.reduce((a: number, w) => a + (Number(w.skuCount) || 0), 0).toLocaleString('ru-RU')}</p>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Мультисклад</p>
+                      <p className="mt-1.5">{data?.multiWarehouse
+                        ? <span className="bg-green-50 rounded-md px-2 py-0.5 text-xs font-bold text-green-700">включён</span>
+                        : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
+                            className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                            title="Нажмите для подсказки">выкл ⓘ</button>}</p>
+                    </div>
+                    <div className={`bg-white border-2 border-dashed rounded-2xl p-4 space-y-2 col-span-3 lg:col-span-1 ${cabinet?.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
+                      <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
+                      <div className="flex items-center gap-2">
+                        <input className="form-input text-xs flex-1 min-w-0" placeholder="price@example.ru" value={String(cabinet?.priceEmail || '')} onChange={e => setCabinet({ ...(cabinet || {}), priceEmail: e.target.value })} />
+                        <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить</button>
+                      </div>
+                      <p className="text-[10px] text-gray-400">С этого Email от Вас будут приходить прайсы.</p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* СОЗДАНИЕ СКЛАДА */}
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
                       <h3 className="text-sm font-semibold text-gray-600">Создание склада в системе</h3>
                       <p className="text-xs text-gray-400">Добавьте свой первый склад, чтобы начать продавать.</p>
                       <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhErr({}); setWhModal(true); }}
-                        className="btn-primary text-xs">
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
                         + Добавить склад
                       </button>
-                      <p className="text-xs text-gray-500 pt-1">Мультисклад:{' '}
-                        {data?.multiWarehouse
-                          ? <span className="bg-green-50 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
-                          : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
-                              className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
-                              title="Нажмите для подсказки">выкл ⓘ</button>}
-                      </p>
                     </div>
 
-                    {/* EMAIL ДЛЯ ПРАЙСОВ */}
-                    <div className={`bg-white border-2 border-dashed rounded-2xl p-5 space-y-3 ${cabinet?.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
-                      <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <input className="form-input text-xs flex-1 min-w-[220px]" placeholder="price@example.ru" value={String(cabinet?.priceEmail || '')} onChange={e => setCabinet({ ...(cabinet || {}), priceEmail: e.target.value })} />
-                        <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
-                          className="btn-primary text-xs whitespace-nowrap">Сохранить</button>
-                      </div>
-                      <p className="text-[10px] text-gray-400">С этого Email от Вас будут приходить прайсы.</p>
-                    </div>
+
                   </div>
 
                   {/* МОИ СКЛАДЫ */}
                   <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
                     <h3 className="text-sm font-semibold text-gray-600">Мои склады</h3>
                     {whs.length ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="space-y-2">
                         {whs.map((w, i) => {
                           const st = (w.status as string) || 'Новый';
                           const stCls = st === 'Проверен' ? 'bg-green-50 border-green-200 text-green-700'
                             : st === 'Заморожен' ? 'bg-gray-100 border-gray-200 text-gray-500'
                             : 'bg-blue-50 border-blue-200 text-blue-700';
                           return (
-                            <div key={w.id || i} className="border border-gray-200 rounded-xl p-4 space-y-2 hover:border-gray-300 transition-colors">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <Warehouse size={15} className="text-red-500 shrink-0" />
-                                  <p className="text-sm font-semibold text-gray-800 truncate">{String(w.city || '—')}</p>
-                                </div>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${stCls}`}>{st}</span>
-                              </div>
-                              <p className="text-xs text-gray-500 break-all">{String(w.address || '—')}</p>
-                              <div className="flex items-center justify-between gap-2 pt-1">
-                                <p className="text-[11px] text-gray-400">SKU: <b className="text-gray-700">{Number(w.skuCount) || 0}</b></p>
-                                <button type="button" onClick={() => setNotice('Редактирование склада появится в следующем обновлении')}
-                                  className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                                  <Pencil size={10} /> Редактировать
-                                </button>
-                              </div>
+                            <div key={w.id || i} className="border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-4 flex-wrap hover:border-gray-300 transition-colors">
+                              <Warehouse size={16} className="text-red-500 shrink-0" />
+                              <p className="text-sm font-semibold text-gray-800 min-w-[130px]">{String(w.city || '—')}</p>
+                              <p className="text-xs text-gray-500 flex-1 min-w-[180px] truncate">{String(w.address || '—')}</p>
+                              <p className="text-[11px] text-gray-400 shrink-0">SKU: <b className="text-gray-700">{Number(w.skuCount) || 0}</b></p>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${stCls}`}>{st}</span>
+                              <button type="button" onClick={() => setNotice('Редактирование склада появится в следующем обновлении')}
+                                className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors shrink-0">
+                                <Pencil size={10} /> Редактировать
+                              </button>
                             </div>
                           );
                         })}
@@ -852,7 +853,7 @@ export default function SupplierServicePage() {
                       </select>
                       <input className="form-input text-[11px] flex-1 min-w-[220px]" placeholder="Идентификатор ЭДО" value={String(cb.edoToken || '')} onChange={e => setCabinet({ ...cb, edoToken: e.target.value })} />
                       <button type="button" onClick={async () => { const err = await post({ edoOperator: cb.edoOperator || '', edoToken: cb.edoToken || '' }); if (err) setNotice(err); else { setNotice('ЭДО сохранено'); loadDeliveryInfo(); } }}
-                        className="btn-primary text-xs whitespace-nowrap">Сохранить ЭДО</button>
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить ЭДО</button>
                     </div>
                   </div>
                   {/* О ПОСТАВЩИКЕ */}
@@ -888,7 +889,7 @@ export default function SupplierServicePage() {
                       ) : (
                         <div className="flex items-center gap-1.5 shrink-0">
                           <button type="button" onClick={async () => { const err = await post({ contactName: cb.contactName || '', contactRole: cb.contactRole || '', phone: cb.contactPhone || '', email: cb.contactEmail || '' }); if (err) setNotice(err); else { setNotice('Контакты сохранены'); setCabEdit(false); loadDeliveryInfo(); } }}
-                            className="btn-primary text-xs">Сохранить</button>
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
                           <button type="button" onClick={() => { setCabEdit(false); loadDeliveryInfo(); }}
                             className="btn-secondary text-xs">Отмена</button>
                         </div>
@@ -988,7 +989,6 @@ export default function SupplierServicePage() {
                     <span className="text-gray-400 text-xs">{Number(w.skuCount).toLocaleString('ru-RU')} SKU</span>
                     <span className={`text-xs ${st === 'Проверен' ? 'text-green-600 font-medium' : st === 'Заморожен' ? 'text-gray-400' : 'text-gray-400'}`}>{st}</span>
                     <span onClick={e => e.stopPropagation()} title={w.address ? `Адрес: ${w.address}` : 'Адрес не указан'} className="text-gray-300 hover:text-gray-500 cursor-help inline-flex"><Warehouse size={12} /></span>
-                    <span onClick={e => { e.stopPropagation(); setEditingWhId(w.id); setWhCity(w.city); setWhSku(String(w.skuCount || '')); setWhAddress(w.address || ''); }} className="text-gray-300 hover:text-red-600 cursor-pointer" title="Редактировать склад"><Pencil size={14} /></span>
                   </button>
                 );
                 })}
