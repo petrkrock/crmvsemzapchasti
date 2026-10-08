@@ -648,14 +648,14 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                         <span className="text-xs font-semibold text-gray-500 w-32">ЭДО</span>
                         {editing ? (
                           <>
-                            <select className="form-input text-xs w-48" value={String((form as Supplier).edoOperator || '')} onChange={e => setFormState({ ...(form as Supplier), edoOperator: e.target.value })}>
+                            <select className="form-input text-xs w-48" value={String((form as Supplier).deliveryContract?.edoOperator || '')} onChange={e => setFormState({ ...(form as Supplier), deliveryContract: { ...(form as Supplier).deliveryContract, edoOperator: e.target.value } })}>
                               <option value="">— Оператор ЭДО —</option>
                               {(getStore().settings.edoOperators || []).map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
-                            <input className="form-input text-[11px] flex-1 min-w-[200px]" placeholder="Идентификатор ЭДО" value={String((form as Supplier).edoToken || '')} onChange={e => setFormState({ ...(form as Supplier), edoToken: e.target.value })} />
+                            <input className="form-input text-[11px] flex-1 min-w-[200px]" placeholder="Идентификатор ЭДО" value={String((form as Supplier).deliveryContract?.edoToken || '')} onChange={e => setFormState({ ...(form as Supplier), deliveryContract: { ...(form as Supplier).deliveryContract, edoToken: e.target.value } })} />
                           </>
                         ) : (
-                          <span className="text-sm text-gray-800">{freshSupplier.edoOperator || '—'}{freshSupplier.edoToken ? <span className="text-[10px] text-gray-500 break-all"> · Идентификатор: {freshSupplier.edoToken}</span> : null}</span>
+                          <span className="text-sm text-gray-800">{freshSupplier.deliveryContract?.edoOperator || '—'}{freshSupplier.deliveryContract?.edoToken ? <span className="text-[10px] text-gray-500 break-all"> · Идентификатор: {freshSupplier.deliveryContract.edoToken}</span> : null</span>
                         )}
                       </div>
           
