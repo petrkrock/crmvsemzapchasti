@@ -60,7 +60,7 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible_id')
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible_id, city, inn, website, type, contactName, contactRole, contactPhone, contactEmail, email, services, productGroups, ownBrands')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -255,6 +255,17 @@ async function handlePost(req: Request) {
   // Пустой PATCH = проверка PIN (вход по ссылке с PIN). Валидный PIN
   // grants access to the protected supplier data. No PIN-protected data is
   // returned by GET before this point.
+  // v1.30.1: поставщик правит в ЛК контакты представителя и ЭДО
+  const CAB_KEYS: Record<string, string> = { contactName: 'contactName', contactRole: 'contactRole', contactPhone: 'contactPhone', contactEmail: 'contactEmail', phone: 'phone', email: 'email' };
+  for (const [k, col] of Object.entries(CAB_KEYS)) {
+    if (body[k] !== undefined) patch[col] = String(body[k] ?? '').slice(0, 200);
+  }
+  if (body.edoOperator !== undefined || body.edoToken !== undefined) {
+    const dc = { ...(supplier.delivery_contract || {}) };
+    if (body.edoOperator !== undefined) dc.edoOperator = String(body.edoOperator ?? '').slice(0, 100);
+    if (body.edoToken !== undefined) dc.edoToken = String(body.edoToken ?? '').slice(0, 300);
+    patch.delivery_contract = dc;
+  }
   if (!Object.keys(patch).length) {
     // v1.29.0: данные доставки (DBO) для единого кабинета — после проверки PIN
     const dsetRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
@@ -284,6 +295,25 @@ async function handlePost(req: Request) {
       ok: true,
       pinVerified: true,
       phone: supplier.phone || '',
+      // v1.30.1: данные кабинета поставщика (страница «Кабинет» в ЛК)
+      cabinet: {
+        tradeName: supplier.trade_name || '',
+        city: supplier.city || '',
+        inn: supplier.inn || '',
+        website: supplier.website || '',
+        type: supplier.type || '',
+        contactName: supplier.contactName || '',
+        contactRole: supplier.contactRole || '',
+        contactPhone: supplier.contactPhone || supplier.phone || '',
+        contactEmail: supplier.contactEmail || supplier.email || '',
+        services: supplier.services || [],
+        productGroups: supplier.productGroups || [],
+        ownBrands: supplier.ownBrands || [],
+        edoOperator: (supplier.delivery_contract || {}).edoOperator || '',
+        edoToken: (supplier.delivery_contract || {}).edoToken || '',
+        active: (supplier.delivery_contract || {}).status === 'Активный',
+        edoOperators: (dset.edoOperators as string[]) || [],
+      },
       companyName: supplier.trade_name || 'Поставщик',
       inn: supplier.inn || '', // ТЗ v1.23.0: ИНН для экрана PIN ЛК
       contactName: supplier.contact_name || (Array.isArray((supplier as { contacts?: Array<{ name?: string }> }).contacts) ? ((supplier as { contacts: Array<{ name?: string }> }).contacts[0]?.name ?? '') : '') || '', // ТЗ v1.23.35: fallback — первый контакт карточки
