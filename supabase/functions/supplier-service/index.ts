@@ -60,7 +60,7 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible_id, city, inn, website, type, contactName, contactRole, contactPhone, contactEmail, email, services, productGroups, ownBrands')
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible_id, city, inn, website, type, contact_name, contact_role, contact_phone, contact_email, email, services, product_groups, own_brands')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -256,7 +256,7 @@ async function handlePost(req: Request) {
   // grants access to the protected supplier data. No PIN-protected data is
   // returned by GET before this point.
   // v1.30.1: поставщик правит в ЛК контакты представителя и ЭДО
-  const CAB_KEYS: Record<string, string> = { contactName: 'contactName', contactRole: 'contactRole', contactPhone: 'contactPhone', contactEmail: 'contactEmail', phone: 'phone', email: 'email' };
+  const CAB_KEYS: Record<string, string> = { contactName: 'contact_name', contactRole: 'contact_role', contactPhone: 'contact_phone', contactEmail: 'contact_email', phone: 'phone', email: 'email' };
   for (const [k, col] of Object.entries(CAB_KEYS)) {
     if (body[k] !== undefined) patch[col] = String(body[k] ?? '').slice(0, 200);
   }
@@ -302,13 +302,13 @@ async function handlePost(req: Request) {
         inn: supplier.inn || '',
         website: supplier.website || '',
         type: supplier.type || '',
-        contactName: supplier.contactName || '',
-        contactRole: supplier.contactRole || '',
-        contactPhone: supplier.contactPhone || supplier.phone || '',
-        contactEmail: supplier.contactEmail || supplier.email || '',
+        contactName: supplier.contact_name || '',
+        contactRole: supplier.contact_role || '',
+        contactPhone: supplier.contact_phone || supplier.phone || '',
+        contactEmail: supplier.contact_email || supplier.email || '',
         services: supplier.services || [],
-        productGroups: supplier.productGroups || [],
-        ownBrands: supplier.ownBrands || [],
+        productGroups: supplier.product_groups || [],
+        ownBrands: supplier.own_brands || [],
         edoOperator: (supplier.delivery_contract || {}).edoOperator || '',
         edoToken: (supplier.delivery_contract || {}).edoToken || '',
         active: (supplier.delivery_contract || {}).status === 'Активный',
