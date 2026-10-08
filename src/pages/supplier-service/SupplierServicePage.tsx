@@ -1260,9 +1260,10 @@ export default function SupplierServicePage() {
                     );
                   });
                 })()}
-              </>
+              </div>
             )}
 
+            </>)}
           </div>
         )}
       </div>
