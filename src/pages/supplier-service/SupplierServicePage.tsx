@@ -303,7 +303,7 @@ export default function SupplierServicePage() {
         {loading && (
           <div className="bg-white border border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-4 py-16 px-6">
             <div className="w-11 h-11 rounded-full border-4 border-red-100 border-t-red-600 animate-spin" aria-hidden="true" />
-            <p className="text-sm text-gray-500 text-center">Сервис проценки (DBS) загружается, пожалуйста подождите.</p>
+            <p className="text-sm text-gray-500 text-center">Кабинет поставщика загружается, пожалуйста подождите.</p>
           </div>
         )}
 
@@ -365,6 +365,38 @@ export default function SupplierServicePage() {
             </div>
 
             {/* МЕНЮ КАБИНЕТА */}
+            {/* МОДАЛКА ДОБАВЛЕНИЯ СКЛАДА (v1.30.0) */}
+            {whModal && (
+              <div className="fixed inset-0 z-40 bg-black/75 flex items-center justify-center p-3 sm:p-6" onClick={() => setWhModal(false)}>
+                <div className="w-full max-w-lg rounded-2xl shadow-2xl ring-1 ring-white/40 border border-white/30" onClick={e => e.stopPropagation()}>
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-base font-bold text-gray-900">Добавить склад</h2>
+                      <button type="button" onClick={() => setWhModal(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600">Город</label>
+                        <input className="form-input text-xs mt-1" placeholder="Город склада" value={whCity} onChange={e => setWhCity(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600">Адрес склада</label>
+                        <input className="form-input text-xs mt-1" placeholder="Улица, дом" value={whAddress} onChange={e => setWhAddress(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600">Количество SKU</label>
+                        <input className="form-input text-xs mt-1" inputMode="numeric" placeholder="Примерно" value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={async () => { const before = (data?.warehouses || []).length; await addWarehouse(); if ((data?.warehouses || []).length > before) setWhModal(false); }} className="btn-primary text-xs">Добавить склад</button>
+                      <button type="button" onClick={() => setWhModal(false)} className="btn-secondary text-xs">Отмена</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {lkTab === 'dashboard' && (() => {
               const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
               const lkLinks = (dash?.lkLinks as Record<string, string>) || {};
@@ -458,7 +490,7 @@ export default function SupplierServicePage() {
                         <span role="button" tabIndex={0}
                           onClick={e => { e.stopPropagation(); setLkTab('wh'); }}
                           onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setLkTab('wh'); } }}
-                          className="flex items-center gap-1.5 bg-green-500/70 hover:bg-green-800 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-colors shrink-0 cursor-pointer"
+                          className="flex items-center gap-1.5 bg-green-600 hover:bg-green-800 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-colors shrink-0 cursor-pointer"
                           title="Склад">
                           <Warehouse size={13} /> СКЛАД
                         </span>
@@ -628,12 +660,56 @@ export default function SupplierServicePage() {
               </div>
             )}
 
-            {lkTab === 'wh' && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Склад</p>
-                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
-              </div>
-            )}
+            {lkTab === 'wh' && (() => {
+              const whs = (data?.warehouses || []) as Array<Record<string, unknown>>;
+              return (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* СОЗДАНИЕ СКЛАДА */}
+                    <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-600">Создание склада в системе</h3>
+                      <p className="text-xs text-gray-400">Добавьте склад, чтобы создавать условия в поиске и указывать количество SKU.</p>
+                      <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhModal(true); }}
+                        className="btn-primary text-xs">
+                        + Добавить склад
+                      </button>
+                    </div>
+
+                    {/* EMAIL ДЛЯ ПРАЙСОВ */}
+                    <div className={`bg-white border-2 border-dashed rounded-2xl p-5 space-y-3 ${cabinet?.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
+                      <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input className="form-input text-xs flex-1 min-w-[220px]" placeholder="price@example.ru" value={String(cabinet?.priceEmail || '')} onChange={e => setCabinet({ ...(cabinet || {}), priceEmail: e.target.value })} />
+                        <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
+                          className="btn-primary text-xs whitespace-nowrap">Сохранить</button>
+                      </div>
+                      <p className="text-[10px] text-gray-400">С этого Email от Вас будут приходить прайсы.</p>
+                    </div>
+                  </div>
+
+                  {/* МОИ СКЛАДЫ */}
+                  <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-600">Мои склады</h3>
+                    {whs.length ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {whs.map((w, i) => (
+                          <div key={w.id || i} className="border border-gray-200 rounded-xl p-3.5 space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <Warehouse size={14} className="text-red-500 shrink-0" />
+                              <p className="text-sm font-semibold text-gray-800 truncate">{String(w.city || '—')}</p>
+                            </div>
+                            <p className="text-xs text-gray-500 break-all">{String(w.address || '—')}</p>
+                            <p className="text-[11px] text-gray-400">SKU: <b className="text-gray-700">{Number(w.skuCount) || 0}</b> · {(w.status as string) || 'Новый'}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">Склады не добавлены.</p>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
 
             {lkTab === 'delivery' && (
               <>
@@ -856,12 +932,10 @@ export default function SupplierServicePage() {
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-base font-semibold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhModal(true); }}
+                  <button type="button" onClick={() => setLkTab('wh')}
                     className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300">
                     + Добавить склад
                   </button>
-                  <button type="button" onClick={() => setPriceHint(v => !v)} title="Помощь"
-                    className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors text-sm font-bold">?</button>
                   <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
                     className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
                     <Warehouse size={16} />
@@ -987,38 +1061,6 @@ export default function SupplierServicePage() {
                   ? 'bg-green-600 text-white border-green-600 shadow-green-200'
                   : 'bg-red-600 text-white border-red-600 shadow-red-200'}`}>
                   {notice}
-                </div>
-              </div>
-            )}
-
-            {/* МОДАЛКА ДОБАВЛЕНИЯ СКЛАДА (v1.30.0) */}
-            {whModal && (
-              <div className="fixed inset-0 z-40 bg-black/75 flex items-center justify-center p-3 sm:p-6" onClick={() => setWhModal(false)}>
-                <div className="w-full max-w-lg rounded-2xl shadow-2xl ring-1 ring-white/40 border border-white/30" onClick={e => e.stopPropagation()}>
-                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-base font-bold text-gray-900">Добавить склад</h2>
-                      <button type="button" onClick={() => setWhModal(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs font-semibold text-gray-600">Город</label>
-                        <input className="form-input text-xs mt-1" placeholder="Город склада" value={whCity} onChange={e => setWhCity(e.target.value)} />
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold text-gray-600">Адрес склада</label>
-                        <input className="form-input text-xs mt-1" placeholder="Улица, дом" value={whAddress} onChange={e => setWhAddress(e.target.value)} />
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold text-gray-600">Количество SKU</label>
-                        <input className="form-input text-xs mt-1" inputMode="numeric" placeholder="Примерно" value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={async () => { const before = (data?.warehouses || []).length; await addWarehouse(); if ((data?.warehouses || []).length > before) setWhModal(false); }} className="btn-primary text-xs">Добавить склад</button>
-                      <button type="button" onClick={() => setWhModal(false)} className="btn-secondary text-xs">Отмена</button>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
