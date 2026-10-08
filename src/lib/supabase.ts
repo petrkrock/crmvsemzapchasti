@@ -134,7 +134,7 @@ function mapSupplier(row: Record<string, unknown>): Supplier {
     website: (row.website as string) ?? undefined,
     inn: (row.inn as string) ?? undefined,
     contactRole: row.contact_role as Supplier['contactRole'],
-    priceEmail: orEmpty(row.price_email),
+    priceEmail: (row.price_email as string) || '',
     contactName: row.contact_name as string,
     phone: row.phone as string,
     email: row.email as string,

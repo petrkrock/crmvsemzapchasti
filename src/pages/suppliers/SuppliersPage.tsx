@@ -310,7 +310,7 @@ function handleMassStatus() {
     const supplier: Supplier = {
       id: generateId(), type: newForm.type || 'Поставщик/склад',
       tradeName: newForm.tradeName || '', city: newForm.city || '',
-      website: newForm.website, inn: newForm.inn,
+      website: newForm.website, priceEmail: newForm.priceEmail || '', inn: newForm.inn,
       contactRole: newForm.contactRole || 'менеджер', contactName: newForm.contactName || '',
       phone: newForm.phone || '', email: newForm.email || '', status: 'Лид CRM',
       source: newForm.source, contactPref: newForm.contactPref,
@@ -389,7 +389,7 @@ function handleMassStatus() {
               <div><label className="form-label">Роль</label><select className="form-input" value={newForm.contactRole || 'менеджер'} onChange={e => setNewForm(f => ({ ...f, contactRole: e.target.value as Supplier['contactRole'] }))}>{ROLE_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
               <div><label className="form-label">ФИО *</label><input required className="form-input" value={newForm.contactName || ''} onChange={e => setNewForm(f => ({ ...f, contactName: e.target.value }))} /></div>
               <div><label className="form-label">Телефон *</label><input required className="form-input" value={newForm.phone || ''} onChange={e => setNewForm(f => ({ ...f, phone: e.target.value }))} /></div>
-              <div><label className="form-label">Email *</label><input required type="email" className="form-input" value={newForm.email || ''} onChange={e => setNewForm(f => ({ ...f, email: e.target.value }))} /></div>
+              <div><label className="form-label">Email *</label><input required type="email" className="form-input" value={newForm.email || ''} onChange={e => setNewForm(f => ({ ...f, email: e.target.value }))} /></div><div><label className="form-label">Email отправки прайсов</label><input className="form-input" type="email" placeholder="price@example.ru" value={newForm.priceEmail || ''} onChange={e => setNewForm(f => ({ ...f, priceEmail: e.target.value }))} /></div>
               <div><label className="form-label">Источник</label><select className="form-input" value={newForm.source || ''} onChange={e => setNewForm(f => ({ ...f, source: e.target.value }))}><option value="">—</option>{activeSources.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
               <div className="sm:col-span-2"><label className="form-label">Связь</label>
                   <div className="flex flex-wrap gap-1.5 py-1">
