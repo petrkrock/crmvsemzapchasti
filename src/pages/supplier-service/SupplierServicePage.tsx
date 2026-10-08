@@ -66,6 +66,7 @@ export default function SupplierServicePage() {
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet'>('dashboard');
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
+  const [cabEdit, setCabEdit] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState<Record<string, unknown> | null>(null);
   const [dlCities, setDlCities] = useState<string[]>([]);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -457,14 +458,14 @@ export default function SupplierServicePage() {
                             <UserRound size={15} />
                           </button>
                         </div>
-                        <div className="divide-y divide-gray-100 text-sm">
+                        <div className="divide-y divide-gray-100 text-[13px]">
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
                             <div className="space-y-1.5 text-gray-600">
                               <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span> <span className="text-gray-400 text-xs">(из {(data?.availableCities || []).length})</span></p>
                               <p>Мультисклад:{' '}
                                 {data?.multiWarehouse
-                                  ? <span className="bg-green-50 border border-green-200 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
+                                  ? <span className="bg-green-50 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
                                   : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
                                       className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                                       title="Нажмите для подсказки">выкл ⓘ</button>}
@@ -720,6 +721,21 @@ export default function SupplierServicePage() {
               );
               return (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+<div className={`lg:col-span-2 bg-white border-2 border-dashed rounded-2xl p-5 space-y-3 ${cb.edoOperator && cb.edoToken ? 'border-green-300' : 'border-red-200'}`}>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-gray-800">ЭДО</h3>
+                      <span className="text-[10px] text-gray-400">Электронный документооборот — подключите для быстрой работы с документами</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select className="form-input text-xs w-56" value={String(cb.edoOperator || '')} onChange={e => setCabinet({ ...cb, edoOperator: e.target.value })}>
+                        <option value="">— Оператор ЭДО —</option>
+                        {((cabinet?.edoOperators as string[]) || []).map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                      <input className="form-input text-[11px] flex-1 min-w-[220px]" placeholder="Идентификатор ЭДО" value={String(cb.edoToken || '')} onChange={e => setCabinet({ ...cb, edoToken: e.target.value })} />
+                      <button type="button" onClick={async () => { const err = await post({ edoOperator: cb.edoOperator || '', edoToken: cb.edoToken || '' }); if (err) setNotice(err); else { setNotice('ЭДО сохранено'); loadDeliveryInfo(); } }}
+                        className="btn-primary text-xs whitespace-nowrap">Сохранить ЭДО</button>
+                    </div>
+                  </div>
                   {/* О ПОСТАВЩИКЕ */}
                   <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5">
                     <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
@@ -728,8 +744,8 @@ export default function SupplierServicePage() {
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <h3 className="text-sm font-semibold text-gray-600">О поставщике</h3>
                         {cb.active && (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-green-50 border border-green-200 text-green-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Активирован на платформе
+                          <span title="Активирован на платформе" className="w-7 h-7 rounded-full bg-green-500 text-white flex items-center justify-center shadow-sm shrink-0">
+                            <Check size={15} strokeWidth={3} />
                           </span>
                         )}
                       </div>
@@ -743,25 +759,44 @@ export default function SupplierServicePage() {
 
                   {/* КОНТАКТЫ ПРЕДСТАВИТЕЛЯ — редактируемо */}
                   <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-600">Контакты представителя</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <input className="form-input text-xs" placeholder="ФИО" value={String(cb.contactName || '')} onChange={e => setCabinet({ ...cb, contactName: e.target.value })} />
-                      <input className="form-input text-xs" placeholder="Телефон" value={String(cb.contactPhone || '')} onChange={e => setCabinet({ ...cb, contactPhone: e.target.value })} />
-                      <input className="form-input text-xs" placeholder="Email" value={String(cb.contactEmail || '')} onChange={e => setCabinet({ ...cb, contactEmail: e.target.value })} />
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-gray-600">Представитель поставщика</h3>
+                      {!cabEdit ? (
+                        <button type="button" onClick={() => setCabEdit(true)}
+                          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors shrink-0">
+                          <Pencil size={11} /> Редактировать
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button type="button" onClick={async () => { const err = await post({ contactName: cb.contactName || '', contactRole: cb.contactRole || '', phone: cb.contactPhone || '', email: cb.contactEmail || '' }); if (err) setNotice(err); else { setNotice('Контакты сохранены'); setCabEdit(false); loadDeliveryInfo(); } }}
+                            className="btn-primary text-xs">Сохранить</button>
+                          <button type="button" onClick={() => { setCabEdit(false); loadDeliveryInfo(); }}
+                            className="btn-secondary text-xs">Отмена</button>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={async () => { const err = await post({ contactName: cb.contactName || '', contactPhone: cb.contactPhone || '', contactEmail: cb.contactEmail || '', phone: cb.contactPhone || '', email: cb.contactEmail || '' }); if (err) setNotice(err); else { setNotice('Контакты сохранены'); loadDeliveryInfo(); } }}
-                        className="btn-primary text-xs">Сохранить контакты</button>
-                      <span className="text-[10px] text-gray-400">Остальные данные — через поддержку или персонального менеджера.</span>
-                    </div>
+                    {cabEdit ? (
+                      <div className="grid grid-cols-1 gap-2">
+                        <input className="form-input text-xs" placeholder="ФИО" value={String(cb.contactName || '')} onChange={e => setCabinet({ ...cb, contactName: e.target.value })} />
+                        <input className="form-input text-xs" placeholder="Телефон" value={String(cb.contactPhone || '')} onChange={e => setCabinet({ ...cb, contactPhone: e.target.value })} />
+                        <input className="form-input text-xs" placeholder="Email" value={String(cb.contactEmail || '')} onChange={e => setCabinet({ ...cb, contactEmail: e.target.value })} />
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5 text-[13px] text-gray-700">
+                        <p><span className="text-gray-400">ФИО:</span> {String(cb.contactName || '—')}</p>
+                        <p><span className="text-gray-400">Телефон:</span> {String(cb.contactPhone || '—')}</p>
+                        <p><span className="text-gray-400">Email:</span> {String(cb.contactEmail || '—')}</p>
+                      </div>
+                    )}
+                    {!cabEdit && <p className="text-[10px] text-gray-400">Остальные данные — через поддержку или персонального менеджера.</p>}
                   </div>
 
-                  {/* АКТИВНЫЕ СЕРВИСЫ */}
+                                    {/* АКТИВНЫЕ СЕРВИСЫ */}
                   <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
                     <h3 className="text-sm font-semibold text-gray-600">Активные сервисы продаж</h3>
                     <div className="flex flex-wrap gap-1.5">
                       {svc.map(s => (
-                        <span key={s} className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${activeServices.includes(s) ? 'bg-red-50 border-red-200 text-red-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{s}</span>
+                        <span key={s} className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${activeServices.includes(s) ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{s}</span>
                       ))}
                     </div>
                   </div>
@@ -786,21 +821,7 @@ export default function SupplierServicePage() {
                   </div>
 
                   {/* ЭДО — заметное окно, редактируемо */}
-                  <div className="lg:col-span-2 bg-white border-2 border-dashed border-red-200 rounded-2xl p-5 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-gray-800">ЭДО</h3>
-                      <span className="text-[10px] text-gray-400">Электронный документооборот — подключите для быстрой работы с документами</span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <select className="form-input text-xs w-56" value={String(cb.edoOperator || '')} onChange={e => setCabinet({ ...cb, edoOperator: e.target.value })}>
-                        <option value="">— Оператор ЭДО —</option>
-                        {((cabinet?.edoOperators as string[]) || []).map(o => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                      <input className="form-input text-[11px] flex-1 min-w-[220px]" placeholder="Идентификатор ЭДО" value={String(cb.edoToken || '')} onChange={e => setCabinet({ ...cb, edoToken: e.target.value })} />
-                      <button type="button" onClick={async () => { const err = await post({ edoOperator: cb.edoOperator || '', edoToken: cb.edoToken || '' }); if (err) setNotice(err); else { setNotice('ЭДО сохранено'); loadDeliveryInfo(); } }}
-                        className="btn-primary text-xs whitespace-nowrap">Сохранить ЭДО</button>
-                    </div>
-                  </div>
+                  
                 </div>
               );
             })()}
