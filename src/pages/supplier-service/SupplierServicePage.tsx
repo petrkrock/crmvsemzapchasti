@@ -64,7 +64,8 @@ export default function SupplierServicePage() {
   const [tkOn, setTkOn] = useState(false); // ТЗ v1.23.6: кнопка ТК
   const [priceHint, setPriceHint] = useState(false);
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
-  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo'>('dashboard');
+  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet'>('dashboard');
+  const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [deliveryInfo, setDeliveryInfo] = useState<Record<string, unknown> | null>(null);
   const [dlCities, setDlCities] = useState<string[]>([]);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -161,6 +162,7 @@ export default function SupplierServicePage() {
       const d = await r.json().catch(() => ({}));
       if (r.ok && d?.delivery) { setDeliveryInfo(d.delivery); setDlCities(d.deliveryCities || []); }
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
+      if (r.ok && d?.cabinet) setCabinet(d.cabinet);
     } catch { /* останется null — покажем «—» */ }
   }
 
@@ -450,7 +452,7 @@ export default function SupplierServicePage() {
                         <div className="relative space-y-4">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="text-base font-bold text-gray-900">{data?.companyName}</h3>
-                          <button type="button" title="Личный кабинет"
+                          <button type="button" onClick={() => setLkTab('cabinet')} title="Личный кабинет"
                             className="w-8 h-8 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors shrink-0">
                             <UserRound size={15} />
                           </button>
@@ -705,6 +707,103 @@ export default function SupplierServicePage() {
                 )}
               </>
             )}
+
+            {lkTab === 'cabinet' && (() => {
+              const cb = cabinet || {};
+              const svc = ['DBS', 'DBO', 'FBS', 'MEDIA'];
+              const activeServices = svc.filter(s => (cb.services as string[] || []).includes(s));
+              const row = (label: string, value: unknown) => (
+                <div className="flex items-baseline gap-3 text-sm py-1.5">
+                  <span className="w-40 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{label}</span>
+                  <span className="text-gray-800 break-all">{value || '—'}</span>
+                </div>
+              );
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* О ПОСТАВЩИКЕ */}
+                  <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5">
+                    <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
+                      style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+                    <div className="relative">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <h3 className="text-sm font-semibold text-gray-600">О поставщике</h3>
+                        {cb.active && (
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-green-50 border border-green-200 text-green-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Активирован на платформе
+                          </span>
+                        )}
+                      </div>
+                      {row('Торговое название', String(cb.tradeName || ''))}
+                      {row('Город ЦС', String(cb.city || ''))}
+                      {row('ИНН', String(cb.inn || ''))}
+                      {row('Сайт', cb.website ? <a href={String(cb.website)} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all">{String(cb.website)}</a> : null)}
+                      {row('Тип', String(cb.type || ''))}
+                    </div>
+                  </div>
+
+                  {/* КОНТАКТЫ ПРЕДСТАВИТЕЛЯ — редактируемо */}
+                  <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-600">Контакты представителя</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input className="form-input text-xs" placeholder="ФИО" value={String(cb.contactName || '')} onChange={e => setCabinet({ ...cb, contactName: e.target.value })} />
+                      <input className="form-input text-xs" placeholder="Телефон" value={String(cb.contactPhone || '')} onChange={e => setCabinet({ ...cb, contactPhone: e.target.value })} />
+                      <input className="form-input text-xs" placeholder="Email" value={String(cb.contactEmail || '')} onChange={e => setCabinet({ ...cb, contactEmail: e.target.value })} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={async () => { const err = await post({ contactName: cb.contactName || '', contactPhone: cb.contactPhone || '', contactEmail: cb.contactEmail || '', phone: cb.contactPhone || '', email: cb.contactEmail || '' }); if (err) setNotice(err); else { setNotice('Контакты сохранены'); loadDeliveryInfo(); } }}
+                        className="btn-primary text-xs">Сохранить контакты</button>
+                      <span className="text-[10px] text-gray-400">Остальные данные — через поддержку или персонального менеджера.</span>
+                    </div>
+                  </div>
+
+                  {/* АКТИВНЫЕ СЕРВИСЫ */}
+                  <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-600">Активные сервисы продаж</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {svc.map(s => (
+                        <span key={s} className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${activeServices.includes(s) ? 'bg-red-50 border-red-200 text-red-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* АССОРТИМЕНТ */}
+                  <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-600">Ассортимент</h3>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Основные группы товаров</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {((cb.productGroups as string[]) || []).map(g => <span key={g} className="text-xs font-medium px-2.5 py-1 rounded-md bg-gray-100 text-gray-600">{g}</span>)}
+                        {!(cb.productGroups as string[])?.length && <span className="text-xs text-gray-400">—</span>}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Собственные бренды (СТМ)</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {((cb.ownBrands as string[]) || []).map(g => <span key={g} className="text-xs font-medium px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-100">{g}</span>)}
+                        {!(cb.ownBrands as string[])?.length && <span className="text-xs text-gray-400">—</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ЭДО — заметное окно, редактируемо */}
+                  <div className="lg:col-span-2 bg-white border-2 border-dashed border-red-200 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-gray-800">ЭДО</h3>
+                      <span className="text-[10px] text-gray-400">Электронный документооборот — подключите для быстрой работы с документами</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select className="form-input text-xs w-56" value={String(cb.edoOperator || '')} onChange={e => setCabinet({ ...cb, edoOperator: e.target.value })}>
+                        <option value="">— Оператор ЭДО —</option>
+                        {((cabinet?.edoOperators as string[]) || []).map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                      <input className="form-input text-[11px] flex-1 min-w-[220px]" placeholder="Идентификатор ЭДО" value={String(cb.edoToken || '')} onChange={e => setCabinet({ ...cb, edoToken: e.target.value })} />
+                      <button type="button" onClick={async () => { const err = await post({ edoOperator: cb.edoOperator || '', edoToken: cb.edoToken || '' }); if (err) setNotice(err); else { setNotice('ЭДО сохранено'); loadDeliveryInfo(); } }}
+                        className="btn-primary text-xs whitespace-nowrap">Сохранить ЭДО</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {lkTab === 'pricing' && (<>
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}

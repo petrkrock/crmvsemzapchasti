@@ -439,20 +439,7 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
         <div className="flex gap-2 flex-wrap">
           {freshSupplier.status !== 'Активный' && <button onClick={handleActivate} className="btn-activate"><CheckCircle size={16} /> Активировать на платформе</button>}
           <button onClick={() => setShowTaskForm(v => !v)} className="btn-secondary text-sm"><Calendar size={15} /> Задача</button>
-                    <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 flex-wrap">
-            <span className="text-xs font-semibold text-gray-500 w-32">ЭДО</span>
-            {editing ? (
-              <>
-                <select className="form-input text-xs w-48" value={String((form as Supplier).edoOperator || '')} onChange={e => setFormState({ ...(form as Supplier), edoOperator: e.target.value })}>
-                  <option value="">— Оператор ЭДО —</option>
-                  {(getStore().settings.edoOperators || []).map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-                <input className="form-input text-[11px] flex-1 min-w-[200px]" placeholder="Идентификатор ЭДО" value={String((form as Supplier).edoToken || '')} onChange={e => setFormState({ ...(form as Supplier), edoToken: e.target.value })} />
-              </>
-            ) : (
-              <span className="text-sm text-gray-800">{freshSupplier.edoOperator || '—'}{freshSupplier.edoToken ? <span className="text-[10px] text-gray-500 break-all"> · Идентификатор: {freshSupplier.edoToken}</span> : null}</span>
-            )}
-          </div>
+                    
           {!editing ? <button onClick={() => { setFormState({ ...freshSupplier }); setEditing(true); }} className="btn-primary"><Edit2 size={16} /> Редактировать</button> : <><button onClick={saveForm} className="btn-primary"><Save size={16} /> Сохранить</button><button onClick={() => { setFormState(null); setEditing(false); }} className="btn-secondary"><X size={16} /> Отмена</button></>}
         </div>
       </div>
@@ -657,6 +644,21 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   {editing ? <textarea className="form-input min-h-[80px] resize-none" value={form.comment || ''} onChange={e => setForm(f => ({ ...f, comment: e.target.value }))} /> : <p className="text-sm text-brand-black py-2">{freshSupplier.comment || '—'}</p>}
                 </div>
               </div>
+            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 flex-wrap">
+                        <span className="text-xs font-semibold text-gray-500 w-32">ЭДО</span>
+                        {editing ? (
+                          <>
+                            <select className="form-input text-xs w-48" value={String((form as Supplier).edoOperator || '')} onChange={e => setFormState({ ...(form as Supplier), edoOperator: e.target.value })}>
+                              <option value="">— Оператор ЭДО —</option>
+                              {(getStore().settings.edoOperators || []).map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                            <input className="form-input text-[11px] flex-1 min-w-[200px]" placeholder="Идентификатор ЭДО" value={String((form as Supplier).edoToken || '')} onChange={e => setFormState({ ...(form as Supplier), edoToken: e.target.value })} />
+                          </>
+                        ) : (
+                          <span className="text-sm text-gray-800">{freshSupplier.edoOperator || '—'}{freshSupplier.edoToken ?  : ''}</span>
+                        )}
+                      </div>
+          
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="form-label">Основные группы товаров</label>
