@@ -2,7 +2,7 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut, Megaphone, UserRound } from 'lucide-react';
+import { Loader2, Check, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut, Megaphone, UserRound } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -401,7 +401,7 @@ export default function SupplierServicePage() {
                         await addWarehouse();
                         if ((data?.warehouses || []).length > before) { setWhModal(false); setWhErr({}); }
                       }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Добавить склад</button>
-                      <button type="button" onClick={() => { setWhModal(false); setWhErr({}); }} className="btn-secondary text-xs">Отмена</button>
+                      <button type="button" onClick={() => { setWhModal(false); setWhErr({}); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
                     </div>
                   </div>
                 </div>
@@ -668,24 +668,9 @@ export default function SupplierServicePage() {
               const whs = (data?.warehouses || []) as Array<Record<string, unknown>>;
               return (
                 <>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white border border-gray-200 rounded-2xl p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Складов</p>
-                      <p className="text-xl font-bold text-gray-900 tabular-nums mt-1">{whs.length}</p>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-2xl p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Всего SKU</p>
-                      <p className="text-xl font-bold text-gray-900 tabular-nums mt-1">{whs.reduce((a: number, w) => a + (Number(w.skuCount) || 0), 0).toLocaleString('ru-RU')}</p>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-2xl p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Мультисклад</p>
-                      <p className="mt-1.5">{data?.multiWarehouse
-                        ? <span className="bg-green-50 rounded-md px-2 py-0.5 text-xs font-bold text-green-700">включён</span>
-                        : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
-                            className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
-                            title="Нажмите для подсказки">выкл ⓘ</button>}</p>
-                    </div>
-                    <div className={`bg-white border-2 border-dashed rounded-2xl p-4 space-y-2 col-span-3 lg:col-span-1 ${cabinet?.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Мультисклад-строка вернётся под кнопкой создания */}
+                    <div className={`bg-white border border-dashed rounded-2xl p-4 space-y-2 ${cabinet?.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
                       <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
                       <div className="flex items-center gap-2">
                         <input className="form-input text-xs flex-1 min-w-0" placeholder="price@example.ru" value={String(cabinet?.priceEmail || '')} onChange={e => setCabinet({ ...(cabinet || {}), priceEmail: e.target.value })} />
@@ -705,6 +690,13 @@ export default function SupplierServicePage() {
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
                         + Добавить склад
                       </button>
+                      <p className="text-xs text-gray-500 pt-1">Мультисклад:{' '}
+                        {data?.multiWarehouse
+                          ? <span className="bg-green-50 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
+                          : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
+                              className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                              title="Нажмите для подсказки">выкл ⓘ</button>}
+                      </p>
                     </div>
 
 
@@ -841,7 +833,7 @@ export default function SupplierServicePage() {
               );
               return (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-<div className={`lg:col-span-2 bg-white border-2 border-dashed rounded-2xl p-5 space-y-3 ${cb.edoOperator && cb.edoToken ? 'border-green-300' : 'border-red-200'}`}>
+<div className={`lg:col-span-2 bg-white border border-dashed rounded-2xl p-5 space-y-3 ${cb.edoOperator && cb.edoToken ? 'border-green-300' : 'border-red-200'}`}>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-semibold text-gray-800">ЭДО</h3>
                       <span className="text-[10px] text-gray-400">Электронный документооборот — подключите для быстрой работы с документами</span>

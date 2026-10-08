@@ -684,6 +684,23 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                 <div className="stat-card text-center"><p className="text-xs text-gray-500">Всего складов</p><p className="text-2xl font-bold text-brand-black">{totalWarehouses}</p></div>
                 <div className="stat-card text-center"><p className="text-xs text-gray-500">Городов</p><p className="text-2xl font-bold text-brand-black">{totalCities}</p></div>
                 <div className="stat-card text-center"><p className="text-xs text-gray-500">Всего SKU</p><p className="text-2xl font-bold text-brand-black">{totalSKU.toLocaleString('ru')}</p></div>
+                <div className="stat-card text-center"><p className="text-xs text-gray-500">Email отправки прайсов</p>
+                  {priceEmailEdit ? (
+                    <div className="flex items-center gap-1.5 justify-center mt-1">
+                      <input className="form-input text-xs w-44" placeholder="price@example.ru" value={priceEmailDraft} onChange={e => setPriceEmailDraft(e.target.value)} />
+                      <button type="button" onClick={() => { updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, priceEmail: priceEmailDraft.trim(), updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) })); pushSupplierHistory(makeHistoryEntry('priceEmail', freshSupplier.priceEmail || '', priceEmailDraft.trim(), 'Email отправки прайсов изменён', getCurrentUser()?.id || '', getCurrentUser()?.name || '')); forceUpdate(n => n + 1); setPriceEmailEdit(false); toast.success('Сохранено'); }}
+                        className="btn-primary text-xs">Сохранить</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 justify-center mt-1">
+                      <p className="text-sm font-bold text-brand-black truncate max-w-[170px]">{freshSupplier.priceEmail || '—'}</p>
+                      <button type="button" onClick={() => { setPriceEmailDraft(freshSupplier.priceEmail || ''); setPriceEmailEdit(true); }}
+                        className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                        <Pencil size={10} /> Редактировать
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 
