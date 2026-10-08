@@ -854,7 +854,8 @@ export default function SupplierServicePage() {
                   <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
                     className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
                     <Warehouse size={16} />
-                </button>
+                  </button>
+                </div>
               </div>
               {whHint && (
                 <div className="absolute right-8 top-16 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
@@ -1262,7 +1263,6 @@ export default function SupplierServicePage() {
               </>
             )}
 
-            </>)}
           </div>
         )}
       </div>
