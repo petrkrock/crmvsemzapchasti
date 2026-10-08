@@ -29,7 +29,7 @@ const EMPTY_COND: Cond = { city: '', warehouseName: '', representative: '', cont
  * выпадающего списка добавленных складов). Защита: токен + опциональный PIN.
  */
 const LK_MENU = [
-  { key: 'dashboard', label: 'Дашборд', icon: LayoutDashboard },
+  { key: 'dashboard', label: '', icon: LayoutDashboard },
   { key: 'pricing', label: 'Проценка', icon: Search },
   { key: 'delivery', label: 'Доставка', icon: Truck },
   { key: 'crossdock', label: 'Кросс-докинг', icon: Boxes },
@@ -65,7 +65,7 @@ export default function SupplierServicePage() {
   const [priceHint, setPriceHint] = useState(false);
   const [whModal, setWhModal] = useState(false); // v1.30.0: добавление склада через модалку
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
-  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet'>('dashboard');
+  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [cabEdit, setCabEdit] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState<Record<string, unknown> | null>(null);
@@ -353,7 +353,7 @@ export default function SupplierServicePage() {
                   {LK_MENU.map(m => (
                     <button key={m.key} type="button" onClick={() => setLkTab(m.key)}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${lkTab === m.key ? 'bg-red-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-200'}`}>
-                      <m.icon size={15} /> {m.label}
+                      <m.icon size={15} />{m.label ? ' ' + m.label : ''}
                     </button>
                   ))}
                 </nav>
@@ -452,14 +452,18 @@ export default function SupplierServicePage() {
                         <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
                           style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
                         <div className="relative space-y-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-base font-bold text-gray-900">{data?.companyName}</h3>
-                          <button type="button" onClick={() => setLkTab('cabinet')} title="Личный кабинет"
-                            className="w-8 h-8 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors shrink-0">
-                            <UserRound size={15} />
-                          </button>
-                        </div>
-                        <div className="divide-y divide-gray-100 text-[13px]">
+                        <button type="button" onClick={() => setLkTab('cabinet')} title="Личный кабинет"
+                        className="w-full flex items-center justify-between gap-3 bg-green-600 hover:bg-green-700 active:bg-green-800 rounded-xl px-4 py-2.5 transition-colors text-left">
+                        <span className="text-sm font-bold text-white uppercase tracking-wide truncate">{data?.companyName}</span>
+                        <span role="button" tabIndex={0}
+                          onClick={e => { e.stopPropagation(); setLkTab('wh'); }}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setLkTab('wh'); } }}
+                          className="flex items-center gap-1.5 bg-green-500/70 hover:bg-green-800 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-colors shrink-0 cursor-pointer"
+                          title="Склад">
+                          <Warehouse size={13} /> СКЛАД
+                        </span>
+                      </button>
+                      <div className="divide-y divide-gray-100 text-[13px]">
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
                             <div className="space-y-1.5 text-gray-600">
@@ -620,6 +624,13 @@ export default function SupplierServicePage() {
             {lkTab === 'promo' && (
               <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
                 <p className="text-sm font-semibold text-gray-700">Продвижение</p>
+                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+              </div>
+            )}
+
+            {lkTab === 'wh' && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Склад</p>
                 <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
               </div>
             )}
