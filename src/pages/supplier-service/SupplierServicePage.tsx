@@ -64,6 +64,7 @@ export default function SupplierServicePage() {
   const [tkOn, setTkOn] = useState(false); // ТЗ v1.23.6: кнопка ТК
   const [priceHint, setPriceHint] = useState(false);
   const [whModal, setWhModal] = useState(false); // v1.30.0: добавление склада через модалку
+  const [whErr, setWhErr] = useState<Record<string, boolean>>({}); // незаполненные поля склада
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
@@ -317,14 +318,14 @@ export default function SupplierServicePage() {
         {pinScreen && (
           <div className="flex flex-col items-center" style={{ marginBottom: '4.5rem' }}>
             <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[333px] h-auto mb-3" />
-            <p className="text-sm font-normal text-gray-900 tracking-wide text-center">НАСТРОЙКА СЕРВИСА ПРОЦЕНКИ (DBS)</p>
+            <p className="text-sm font-normal text-gray-900 tracking-wide text-center">КАБИНЕТ ПОСТАВЩИКА</p>
             <p className="text-[10px] text-gray-300 text-center mt-1">v{APP_VERSION}</p>
           </div>
         )}
 
         {!loading && !fatal && data && !pinPassed && (
           <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8">
-            <p className="text-sm text-gray-500 mt-1.5">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</p>
+            <p className="text-sm text-gray-500 mt-1.5 text-center">{data.companyName}{data.inn ? ` (ИНН ${data.inn})` : ''}</p>
             <hr className="border-gray-100 my-5" />
             <div className="text-center">
               <p className="text-sm text-gray-700 mb-4">Введите PIN-код из сообщения от менеджера</p>
@@ -376,21 +377,29 @@ export default function SupplierServicePage() {
                     </div>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs font-semibold text-gray-600">Город</label>
-                        <input className="form-input text-xs mt-1" placeholder="Город склада" value={whCity} onChange={e => setWhCity(e.target.value)} />
+                        <label className="text-xs font-semibold text-gray-600">Город (название) склада</label>
+                        <input className={`form-input text-xs mt-1 ${whErr.city ? '!border-red-400 !bg-red-50/40' : ''}`} placeholder="Город склада" value={whCity} onChange={e => { setWhCity(e.target.value); setWhErr(e2 => ({ ...e2, city: false })); }} />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-gray-600">Адрес склада</label>
-                        <input className="form-input text-xs mt-1" placeholder="Улица, дом" value={whAddress} onChange={e => setWhAddress(e.target.value)} />
+                        <label className="text-xs font-semibold text-gray-600">Адрес склада включая Город</label>
+                        <input className={`form-input text-xs mt-1 ${whErr.address ? '!border-red-400 !bg-red-50/40' : ''}`} placeholder="Улица, дом" value={whAddress} onChange={e => { setWhAddress(e.target.value); setWhErr(e2 => ({ ...e2, address: false })); }} />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-gray-600">Количество SKU</label>
-                        <input className="form-input text-xs mt-1" inputMode="numeric" placeholder="Примерно" value={whSku} onChange={e => setWhSku(e.target.value.replace(/\D/g, ''))} />
+                        <label className="text-xs font-semibold text-gray-600">Примерное кол-во SKU</label>
+                        <input className={`form-input text-xs mt-1 ${whErr.sku ? '!border-red-400 !bg-red-50/40' : ''}`} inputMode="numeric" placeholder="Примерно" value={whSku} onChange={e => { setWhSku(e.target.value.replace(/\D/g, '')); setWhErr(e2 => ({ ...e2, sku: false })); }} />
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={async () => { const before = (data?.warehouses || []).length; await addWarehouse(); if ((data?.warehouses || []).length > before) setWhModal(false); }} className="btn-primary text-xs">Добавить склад</button>
-                      <button type="button" onClick={() => setWhModal(false)} className="btn-secondary text-xs">Отмена</button>
+                      <button type="button" onClick={async () => {
+                        const errs: Record<string, boolean> = { city: !whCity.trim(), address: !whAddress.trim(), sku: !whSku.trim() };
+                        setWhErr(errs);
+                        if (errs.city || errs.address || errs.sku) { setNotice('Заполните все поля'); return; }
+                        if (!data?.multiWarehouse && (data?.warehouses || []).length >= 1) { setNotice('Мультисклад не подключён. Для добавления второго склада обратитесь в поддержку.'); return; }
+                        const before = (data?.warehouses || []).length;
+                        await addWarehouse();
+                        if ((data?.warehouses || []).length > before) { setWhModal(false); setWhErr({}); }
+                      }} className="btn-primary text-xs">Добавить склад</button>
+                      <button type="button" onClick={() => { setWhModal(false); setWhErr({}); }} className="btn-secondary text-xs">Отмена</button>
                     </div>
                   </div>
                 </div>
@@ -668,11 +677,18 @@ export default function SupplierServicePage() {
                     {/* СОЗДАНИЕ СКЛАДА */}
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
                       <h3 className="text-sm font-semibold text-gray-600">Создание склада в системе</h3>
-                      <p className="text-xs text-gray-400">Добавьте склад, чтобы создавать условия в поиске и указывать количество SKU.</p>
-                      <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhModal(true); }}
+                      <p className="text-xs text-gray-400">Добавьте свой первый склад, чтобы начать продавать.</p>
+                      <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhErr({}); setWhModal(true); }}
                         className="btn-primary text-xs">
                         + Добавить склад
                       </button>
+                      <p className="text-xs text-gray-500 pt-1">Мультисклад:{' '}
+                        {data?.multiWarehouse
+                          ? <span className="bg-green-50 rounded-md px-1.5 py-0.5 text-green-700">включён</span>
+                          : <button type="button" onClick={() => setNotice('Для включения функции мультисклад обратитесь в поддержку.')}
+                              className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                              title="Нажмите для подсказки">выкл ⓘ</button>}
+                      </p>
                     </div>
 
                     {/* EMAIL ДЛЯ ПРАЙСОВ */}
@@ -692,16 +708,31 @@ export default function SupplierServicePage() {
                     <h3 className="text-sm font-semibold text-gray-600">Мои склады</h3>
                     {whs.length ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {whs.map((w, i) => (
-                          <div key={w.id || i} className="border border-gray-200 rounded-xl p-3.5 space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <Warehouse size={14} className="text-red-500 shrink-0" />
-                              <p className="text-sm font-semibold text-gray-800 truncate">{String(w.city || '—')}</p>
+                        {whs.map((w, i) => {
+                          const st = (w.status as string) || 'Новый';
+                          const stCls = st === 'Проверен' ? 'bg-green-50 border-green-200 text-green-700'
+                            : st === 'Заморожен' ? 'bg-gray-100 border-gray-200 text-gray-500'
+                            : 'bg-blue-50 border-blue-200 text-blue-700';
+                          return (
+                            <div key={w.id || i} className="border border-gray-200 rounded-xl p-4 space-y-2 hover:border-gray-300 transition-colors">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Warehouse size={15} className="text-red-500 shrink-0" />
+                                  <p className="text-sm font-semibold text-gray-800 truncate">{String(w.city || '—')}</p>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${stCls}`}>{st}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 break-all">{String(w.address || '—')}</p>
+                              <div className="flex items-center justify-between gap-2 pt-1">
+                                <p className="text-[11px] text-gray-400">SKU: <b className="text-gray-700">{Number(w.skuCount) || 0}</b></p>
+                                <button type="button" onClick={() => setNotice('Редактирование склада появится в следующем обновлении')}
+                                  className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                  <Pencil size={10} /> Редактировать
+                                </button>
+                              </div>
                             </div>
-                            <p className="text-xs text-gray-500 break-all">{String(w.address || '—')}</p>
-                            <p className="text-[11px] text-gray-400">SKU: <b className="text-gray-700">{Number(w.skuCount) || 0}</b> · {(w.status as string) || 'Новый'}</p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-xs text-gray-400">Склады не добавлены.</p>
@@ -879,16 +910,7 @@ export default function SupplierServicePage() {
                     {!cabEdit && <p className="text-[10px] text-gray-400">Остальные данные — через поддержку или персонального менеджера.</p>}
                   </div>
 
-                                                      {/* EMAIL ОТПРАВКИ ПРАЙСОВ */}
-                  <div className={`bg-white border-2 border-dashed rounded-2xl p-5 space-y-3 ${cb.priceEmail ? 'border-green-300' : 'border-red-200'}`}>
-                    <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <input className="form-input text-xs flex-1 min-w-[220px]" placeholder="price@example.ru" value={String(cb.priceEmail || '')} onChange={e => setCabinet({ ...cb, priceEmail: e.target.value })} />
-                      <button type="button" onClick={async () => { const err = await post({ priceEmail: cb.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
-                        className="btn-primary text-xs whitespace-nowrap">Сохранить</button>
-                    </div>
-                    <p className="text-[10px] text-gray-400">На этот адрес будут приходить прайс-листы.</p>
-                  </div>
+                                    
 
                   {/* АКТИВНЫЕ СЕРВИСЫ */}
                   <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
