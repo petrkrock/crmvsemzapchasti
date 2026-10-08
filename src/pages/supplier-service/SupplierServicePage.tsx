@@ -390,7 +390,7 @@ export default function SupplierServicePage() {
 
                     {/* VZ ЧАТ */}
                     <div>
-                      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 h-full relative">
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 pt-[1.85rem] space-y-3 h-full relative">
                         <div className="flex items-center justify-between gap-2">
                           <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
                           <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
@@ -453,8 +453,8 @@ export default function SupplierServicePage() {
                           style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
                         <div className="relative space-y-4">
                         <button type="button" onClick={() => setLkTab('cabinet')} title="Личный кабинет"
-                        className="w-full flex items-center justify-between gap-3 bg-green-600 hover:bg-green-700 active:bg-green-800 rounded-xl px-4 py-2.5 transition-colors text-left">
-                        <span className="text-sm font-bold text-white uppercase tracking-wide truncate">{data?.companyName}</span>
+                        className="w-full flex items-center justify-between gap-3 bg-gray-100 hover:bg-gray-200 rounded-xl px-4 py-2.5 transition-colors text-left">
+                        <span className="text-xs font-semibold text-gray-800 uppercase tracking-wide truncate">{data?.companyName}</span>
                         <span role="button" tabIndex={0}
                           onClick={e => { e.stopPropagation(); setLkTab('wh'); }}
                           onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setLkTab('wh'); } }}
