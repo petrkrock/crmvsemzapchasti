@@ -291,6 +291,8 @@ export interface Supplier {
   /** v1.29.33: ЭДО — оператор и токен */
   edoOperator?: string;
   edoToken?: string;
+  /** v1.30.0: Email отправки прайсов */
+  priceEmail?: string;
   inn?: string;
   contactRole: RoleType;
   contactName: string;

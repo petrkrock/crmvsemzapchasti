@@ -134,6 +134,7 @@ function mapSupplier(row: Record<string, unknown>): Supplier {
     website: (row.website as string) ?? undefined,
     inn: (row.inn as string) ?? undefined,
     contactRole: row.contact_role as Supplier['contactRole'],
+    priceEmail: orEmpty(row.price_email),
     contactName: row.contact_name as string,
     phone: row.phone as string,
     email: row.email as string,
@@ -180,6 +181,7 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.website !== undefined) db.website = orNull(s.website);
   if (s.inn !== undefined) db.inn = orNull(s.inn);
   if (s.contactRole !== undefined) db.contact_role = s.contactRole;
+  if (s.priceEmail !== undefined) db.price_email = s.priceEmail;
   if (s.contactName !== undefined) db.contact_name = s.contactName;
   if (s.phone !== undefined) db.phone = s.phone;
   if (s.email !== undefined) db.email = s.email;
