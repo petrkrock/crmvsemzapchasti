@@ -260,10 +260,13 @@ async function handlePost(req: Request) {
   for (const [k, col] of Object.entries(CAB_KEYS)) {
     if (body[k] !== undefined) patch[col] = String(body[k] ?? '').slice(0, 200);
   }
-  if (body.edoOperator !== undefined || body.edoToken !== undefined) {
+  if (body.edoOperator !== undefined || body.edoToken !== undefined || body.status !== undefined || body.warehouseId !== undefined) {
     const dc = { ...(supplier.delivery_contract || {}) };
     if (body.edoOperator !== undefined) dc.edoOperator = String(body.edoOperator ?? '').slice(0, 100);
     if (body.edoToken !== undefined) dc.edoToken = String(body.edoToken ?? '').slice(0, 300);
+    // v1.30.17: активация доставки из ЛК (склад + статус «Ждёт активации»)
+    if (body.status !== undefined) dc.status = String(body.status ?? '').slice(0, 50);
+    if (body.warehouseId !== undefined) dc.warehouseId = String(body.warehouseId ?? '').slice(0, 60);
     patch.delivery_contract = dc;
   }
   if (!Object.keys(patch).length) {
