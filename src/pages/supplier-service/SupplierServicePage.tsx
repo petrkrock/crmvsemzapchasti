@@ -413,6 +413,8 @@ export default function SupplierServicePage() {
               </div>
             )}
 
+              {/* МОДАЛКА АКТИВАЦИИ ДОСТАВКИ */}
+
             {lkTab === 'dashboard' && (() => {
               const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
               const lkLinks = (dash?.lkLinks as Record<string, string>) || {};
@@ -631,7 +633,7 @@ export default function SupplierServicePage() {
                       </div>
                     );
                   })()}
-              {/* МОДАЛКА АКТИВАЦИИ ДОСТАВКИ */}
+
               {activateOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setActivateOpen(false)}>
                   <div className="absolute inset-0 bg-black/50" />
@@ -807,7 +809,7 @@ export default function SupplierServicePage() {
                   ))}
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex flex-wrap items-end gap-x-6 gap-y-2">
+                <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
                   <div className="self-center">
                     {deliveryInfo?.warehouse ? (
                       <span title={String(deliveryInfo.warehouse)} className="inline-flex text-gray-700"><Warehouse size={17} /></span>
