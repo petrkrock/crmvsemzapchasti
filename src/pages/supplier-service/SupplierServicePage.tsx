@@ -66,7 +66,6 @@ export default function SupplierServicePage() {
   const [whModal, setWhModal] = useState(false); // v1.30.0: добавление склада через модалку
   const [whErr, setWhErr] = useState<Record<string, boolean>>({}); // незаполненные поля склада
   const [whMsHint, setWhMsHint] = useState(false); // подсказка мультисклада
-  const [faqHint, setFaqHint] = useState(false); // подсказка «Вопрос» в проценке
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
@@ -675,22 +674,7 @@ export default function SupplierServicePage() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* СОЗДАНИЕ СКЛАДА */}
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold text-gray-600">Создание склада в системе</h3>
-                        <span className="relative inline-block">
-                          <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
-                                              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
-                                              <Warehouse size={16} />
-                                            </button>
-                                            {whHint && (
-                                          <div className="absolute right-8 top-16 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
-                                            <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
-                                            <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
-                                          
-                                          </div>
-                                        )}
-                        </span>
-                      </div>
+                      <h3 className="text-sm font-semibold text-gray-600">Создание склада в системе</h3>
                       <p className="text-xs text-gray-400">Добавьте свой первый склад, чтобы начать продавать.</p>
                       <div className="flex items-center gap-3 flex-wrap">
                         <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhErr({}); setWhModal(true); }}
@@ -720,7 +704,7 @@ export default function SupplierServicePage() {
                       <div className="flex items-center gap-2">
                         <input className="form-input text-xs flex-1 min-w-0" placeholder="price@example.ru" value={String(cabinet?.priceEmail || '')} onChange={e => setCabinet({ ...(cabinet || {}), priceEmail: e.target.value })} />
                         <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить</button>
+                          className="text-[11px] font-semibold px-2.5 h-10 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить</button>
                       </div>
                       <p className="text-[10px] text-gray-400">С указанного Email настройте рассылку прайс-листов на адрес: price@vsemzapchasti.ru</p>
                     </div>
@@ -907,7 +891,7 @@ export default function SupplierServicePage() {
                       ) : (
                         <div className="flex items-center gap-1.5 shrink-0">
                           <button type="button" onClick={async () => { const err = await post({ contactName: cb.contactName || '', contactRole: cb.contactRole || '', phone: cb.contactPhone || '', email: cb.contactEmail || '' }); if (err) setNotice(err); else { setNotice('Контакты сохранены'); setCabEdit(false); loadDeliveryInfo(); } }}
-                            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
+                            className="text-[11px] font-semibold px-2.5 h-10 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
                           <button type="button" onClick={() => { setCabEdit(false); loadDeliveryInfo(); }}
                             className="btn-secondary text-xs">Отмена</button>
                         </div>
@@ -973,24 +957,23 @@ export default function SupplierServicePage() {
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-base font-semibold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="relative inline-block">
-                    <button type="button" onClick={() => setFaqHint(v => !v)} title="Вопрос"
-                      className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${faqHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
-                      ?
-                    </button>
-                    {faqHint && (
-                      <span className="absolute right-0 top-full mt-2 z-30 w-96 max-w-[calc(100vw-4rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2 block" onClick={e => e.stopPropagation()}>
-                        <p><b className="text-red-700">Шаг 1.</b> Добавьте свой склад в систему и настройте условия доставки для доступных городов.</p>
-                        <p><b className="text-red-700">Шаг 2.</b> Настройте автоматическую рассылку вашего прайс-листа на адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span></p>
-                        <p><b className="text-red-700">Шаг 3.</b> После прохождения модерации ваш склад станет доступен на платформе.</p>
-                      </span>
-                    )}
-                  </span>
                   <button type="button" onClick={() => setLkTab('wh')}
                     className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300">
                     + Добавить склад
                   </button>
+                  <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
+                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                    <Warehouse size={16} />
+                  </button>
                 </div>
+              </div>
+              {whHint && (
+                <div className="absolute right-8 top-16 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+                  <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
+                  <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
+                
+                </div>
+              )}
               {(data.warehouses || []).length === 0 && (
                 <p className="text-sm text-gray-400">Шаг 1. Сначала добавьте склад – это необходимо для создания условий в поиске.</p>
               )}
@@ -1356,7 +1339,6 @@ export default function SupplierServicePage() {
                 })()}
               </div>
             )}
-            </div>
 
             </>)}
           </div>
