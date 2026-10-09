@@ -74,7 +74,7 @@ export default function DeliverySupplierCardPage() {
 
       <div className="card-base p-5 space-y-4">
         <div className="flex gap-2 flex-wrap border-b border-gray-100 pb-3">
-          {['Анкета DBO', 'Финансы', 'Комментарий'].map((tb, i) => (
+          {['Анкета DBO', 'Доставки', 'Возвраты', 'Документы', 'Финансы', 'Города', 'Комментарий'].map((tb, i) => (
             <button key={tb} type="button" onClick={() => setDboTab(i)}
               className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${dboTab === i ? 'bg-red-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>{tb}</button>
           ))}
@@ -83,14 +83,10 @@ export default function DeliverySupplierCardPage() {
         {dboTab === 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
+
               <div>
-                <label className="text-xs font-semibold text-gray-600">Маршрут</label>
-                <select className="form-input text-xs mt-1" value={dc.route || ''} onChange={e => patchDeliveryContract({ route: e.target.value })}>
-                  <option value="">— список появится позже —</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600">График и время</label>
+                <label className="text-xs font-semibold text-gray-600">Маршрут (График и время)</label>
+                <p className="text-[10px] text-gray-400 mt-0.5">Назначается в разделе Маршруты самовывоза.</p>
                 {route ? (
                   <div className="mt-1 space-y-1 text-xs text-gray-700 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
                     <p>Маршрут <b>№{route.number}</b> · {(route.scheduleDays || []).join(' ') || 'без графика'}</p>
@@ -118,17 +114,7 @@ export default function DeliverySupplierCardPage() {
               </div>
             </div>
             <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-gray-600">Города</label>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {dcCities.map(c => (
-                    <button key={c} type="button"
-                      onClick={() => patchDeliveryContract({ cities: (dc.cities || []).includes(c) ? (dc.cities || []).filter(x => x !== c) : [...(dc.cities || []), c] })}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${(dc.cities || []).includes(c) ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200 hover:border-red-300'}`}>{c}</button>
-                  ))}
-                  {!dcCities.length && <p className="text-xs text-gray-400">Список городов пуст (Настройки → Доставка).</p>}
-                </div>
-              </div>
+
               <div>
                 <label className="text-xs font-semibold text-gray-600">Статус договора</label>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -157,11 +143,15 @@ export default function DeliverySupplierCardPage() {
           </div>
         )}
 
-        {dboTab === 1 && (
+                  {([1, 2, 3, 5].includes(dboTab)) && (
+            <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+          )}
+
+{dboTab === 4 && (
           <p className="text-xs text-gray-400">Раздел «Финансы» появится в следующих обновлениях.</p>
         )}
 
-        {dboTab === 2 && (
+        {dboTab === 6 && (
           <div className="space-y-2">
             <textarea className="form-input min-h-[120px] text-xs" placeholder="Комментарий по договору доставки..."
               value={dboComment || dc.comment || ''}

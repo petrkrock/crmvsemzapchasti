@@ -69,7 +69,12 @@ export default function DeliveryPage() {
     const w = window.open('', '_blank', 'width=700,height=600');
     if (!w) return;
     const stops = [...(r.stops || [])].sort((a, b) => (a.order || 99) - (b.order || 99));
-    const rows = stops.map((st, i) => `<tr><td>${i + 1}</td><td>${suppliers.find(s => s.id === st.supplierId)?.tradeName || '—'}</td><td>${st.from || '—'} – ${st.to || '—'}</td></tr>`).join('');
+    const rows = stops.map((st, i) => {
+      const sup = suppliers.find(s => s.id === st.supplierId);
+      const addr = (sup?.warehouseLocations || [])[0];
+      const addrLine = addr ? `<div style="font-size:11px;color:#888">${addr.city ? addr.city + ', ' : ''}${addr.address || ''}</div>` : '';
+      return `<tr><td>${i + 1}</td><td><b>${sup?.tradeName || '—'}</b>${addrLine}</td><td>${st.from || '—'} – ${st.to || '—'}</td></tr>`;
+    }).join('');
     w.document.write(`<html><head><title>Маршрут №${r.number}</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:18px}table{width:100%;border-collapse:collapse;margin-top:12px}td,th{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:13px}</style></head><body>
       <h1>Маршрут самовывоза №${r.number}</h1>
       <p>Выезд с ЦС: ${r.departureTime || '—'} · Прибытие на ЦС: ${r.arrivalTime || '—'} · График: ${(r.scheduleDays || []).join(' ') || '—'}</p>
@@ -272,15 +277,21 @@ export default function DeliveryPage() {
                     <input type="time" className="form-input text-xs w-auto" value={st.from} onChange={e => setRStops(rs => rs.map((x, xi) => xi === i ? { ...x, from: e.target.value } : x))} />
                     <span className="text-xs text-gray-400">—</span>
                     <input type="time" className="form-input text-xs w-auto" value={st.to} onChange={e => setRStops(rs => rs.map((x, xi) => xi === i ? { ...x, to: e.target.value } : x))} />
-                    <span className="flex items-center gap-0.5" title="Порядок погрузки">
-                      {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                        <button key={n} type="button"
-                          onClick={() => setRStops(rs => rs.map((x, xi) => xi === i ? { ...x, order: n } : x))}
-                          className={`w-5 h-5 text-[9px] font-bold rounded border transition-colors ${(st.order ?? i + 1) === n ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-red-300'}`}>
-                          {n}
-                        </button>
-                      ))}
-                    </span>
+                    <button type="button" title="Сохранить поставщика в маршруте"
+                      onClick={() => setRSaved(rs => ({ ...rs, [i]: true }))}
+                      className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors ${rSaved[i] ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-green-400 hover:text-green-600'}`}>
+                      <Save size={12} />
+                    </button>
+                    <button type="button" title="Выше в списке" disabled={i === 0}
+                      onClick={() => { setRStops(rs => { const a = [...rs]; [a[i], a[i-1]] = [a[i-1], a[i]]; return a; }); setRSaved({}); }}
+                      className="w-7 h-7 rounded-lg border bg-white border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-600 flex items-center justify-center transition-colors disabled:opacity-30">
+                      <ArrowUp size={12} />
+                    </button>
+                    <button type="button" title="Ниже в списке" disabled={i === rStops.length - 1}
+                      onClick={() => { setRStops(rs => { const a = [...rs]; [a[i], a[i+1]] = [a[i+1], a[i]]; return a; }); setRSaved({}); }}
+                      className="w-7 h-7 rounded-lg border bg-white border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-600 flex items-center justify-center transition-colors disabled:opacity-30">
+                      <ArrowDown size={12} />
+                    </button>
                     {rStops.length > 1 && (
                       <button type="button" onClick={() => setRStops(rs => rs.filter((_, xi) => xi !== i))} className="text-xs text-red-600 hover:underline">Убрать</button>
                     )}
