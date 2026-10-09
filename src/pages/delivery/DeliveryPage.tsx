@@ -91,6 +91,10 @@ export default function DeliveryPage() {
 
   function addRoute() {
     if (!rNumber.trim()) { toast.error('Укажите номер маршрута'); return; }
+    if (!rDepart) { toast.error('Укажите время выезда с ЦС'); return; }
+    if (!rArrive) { toast.error('Укажите время прибытия на ЦС'); return; }
+    if (!rDays.length) { toast.error('Выберите график (дни недели)'); return; }
+    if (!rStops.some(st => st.supplierId && st.from && st.to)) { toast.error('Добавьте хотя бы одного поставщика с указанием поставщика и времени'); return; }
     const stops = rStops.filter(s => s.supplierId).map((st, i) => ({ ...st, order: st.order ?? i + 1 }));
     const userName = getCurrentUser()?.name || '';
     if (editingRouteId) {
@@ -189,8 +193,7 @@ export default function DeliveryPage() {
                 <thead>
                   <tr>
                     <th className="table-header text-left">Поставщик</th>
-                    <th className="table-header text-left">Маршрут</th>
-                    <th className="table-header text-left">График и время</th>
+                    <th className="table-header text-left">Маршрут (График и время)</th>
                     <th className="table-header text-left" title="Склад и адрес">Склад</th>
                     <th className="table-header text-left">Города</th>
                     <th className="table-header text-left">Ответственный</th>
@@ -209,7 +212,6 @@ export default function DeliveryPage() {
                       <tr key={s.id} onClick={() => navigate(`/delivery/suppliers/${s.id}`)}
                         className="border-t border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
                         <td className="table-cell font-medium text-gray-800">{s.tradeName}</td>
-                        <td className="table-cell text-gray-500">{dc.route || '—'}</td>
                         <td className="table-cell text-gray-500">{schedule || '—'}</td>
                         <td className="table-cell">
                           {wh ? (
@@ -267,12 +269,12 @@ export default function DeliveryPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-600">Поставщики маршрута</label>
+                <label className="text-xs font-semibold text-gray-600">Поставщики на маршруте</label>
                 {rStops.map((st, i) => (
                   <div key={i} className="flex items-center gap-2 flex-wrap">
                     <select className="form-input text-xs flex-1 min-w-[200px]" value={st.supplierId} onChange={e => setRStops(rs => rs.map((x, xi) => xi === i ? { ...x, supplierId: e.target.value } : x))}>
                       <option value="">— выберите поставщика —</option>
-                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
+                      {suppliers.filter(s => !rStops.some((x, xi) => xi !== i && x.supplierId === s.id)).map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
                     </select>
                     <input type="time" className="form-input text-xs w-auto" value={st.from} onChange={e => setRStops(rs => rs.map((x, xi) => xi === i ? { ...x, from: e.target.value } : x))} />
                     <span className="text-xs text-gray-400">—</span>
