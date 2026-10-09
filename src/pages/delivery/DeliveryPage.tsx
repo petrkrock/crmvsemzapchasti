@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Landmark, MapPin, Route, Truck, Undo2, Users, Warehouse, Pencil, Trash2, Printer, History } from 'lucide-react';
+import { FileText, Landmark, MapPin, Route, Truck, Undo2, Users, Warehouse, Pencil, Trash2, Printer, History, Save, ArrowUp, ArrowDown } from 'lucide-react';
 import { getStore, useStoreVersion, updateStore } from '@/lib/store';
 import { getCurrentUser } from '@/lib/auth';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ export default function DeliveryPage() {
   const [rDays, setRDays] = useState<string[]>([]);
   const [rStops, setRStops] = useState([{ supplierId: '', from: '', to: '' }]);
   const [rArrive, setRArrive] = useState('');
+  const [rSaved, setRSaved] = useState<Record<number, boolean>>({});
 
   const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
   const [deleteRouteId, setDeleteRouteId] = useState<string | null>(null);
@@ -52,16 +53,18 @@ export default function DeliveryPage() {
     setRArrive(r.arrivalTime || '');
     setRouteFormOpen(true);
   }
-  function setStopOrder(routeId: string, idx: number, order: number) {
+  function moveStop(routeId: string, idx: number, dir: -1 | 1) {
     const routes = (store.settings.deliveryRoutes || []).map(r => {
       if (r.id !== routeId) return r;
-      const stops = (r.stops || []).map((st, i) => i === idx ? { ...st, order } : st)
-        .sort((a, b) => (a.order || 99) - (b.order || 99));
-      return { ...r, stops, history: [...(r.history || []), { at: new Date().toISOString(), by: getCurrentUser()?.name || '', action: `Порядок погрузки: поставщик №${idx + 1} → ${order}` }] };
+      const stops = [...(r.stops || [])];
+      const j = idx + dir;
+      if (j < 0 || j >= stops.length) return r;
+      [stops[idx], stops[j]] = [stops[j], stops[idx]];
+      return { ...r, stops, history: [...(r.history || []), { at: new Date().toISOString(), by: getCurrentUser()?.name || 'Поставщик', action: `Порядок погрузки изменён: позиция ${idx + 1} ↔ ${j + 1}` }] };
     });
     updateStore(s => ({ ...s, settings: { ...s.settings, deliveryRoutes: routes } }));
-    toast.success('Порядок погрузки обновлён');
   }
+
   function printRoute(r: (typeof store.settings.deliveryRoutes)[number]) {
     const w = window.open('', '_blank', 'width=700,height=600');
     if (!w) return;
@@ -312,20 +315,16 @@ export default function DeliveryPage() {
                       <td className="table-cell text-gray-500">{r.departureTime || '—'}</td>
                       <td className="table-cell text-gray-500">{(r.scheduleDays || []).join(' ') || '—'}</td>
                       <td className="table-cell text-gray-500">
-                        {[...(r.stops || [])].sort((a, b) => (a.order || 99) - (b.order || 99)).map((st, si) => (
-                          <div key={si} className="flex items-center gap-1.5 py-0.5 flex-wrap">
-                            <span>{suppliers.find(s => s.id === st.supplierId)?.tradeName || '?'} ({st.from || '—'}–{st.to || '—'})</span>
-                            <span className="flex items-center gap-0.5" title="Порядок погрузки: чем выше цифра, тем ниже в списке">
-                              {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                                <button key={n} type="button" onClick={() => setStopOrder(r.id, si, n)}
-                                  className={`w-4 h-4 text-[8px] font-bold rounded border transition-colors ${st.order === n ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-red-300'}`}>
-                                  {n}
-                                </button>
-                              ))}
-                            </span>
-                          </div>
-                        ))}
-                        {!(r.stops || []).length && '—'}
+                        {(r.stops || []).map((st, si) => {
+                          const sup = suppliers.find(s => s.id === st.supplierId);
+                          const addr = (sup?.warehouseLocations || [])[0];
+                          return (
+                            <div key={si} className="py-0.5">
+                              <span>{sup?.tradeName || '?'}</span> <span className="text-gray-400">({st.from || '—'}–{st.to || '—'})</span>
+                              {addr && <span className="block text-[11px] text-gray-400">{addr.city ? addr.city + ', ' : ''}{addr.address}</span>}
+                            </div>
+                          );
+                        })}
                       </td>
                       <td className="table-cell text-gray-500">{r.arrivalTime || '—'}</td>
                       <td className="table-cell text-right whitespace-nowrap">
