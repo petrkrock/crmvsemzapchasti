@@ -523,8 +523,13 @@ export default function SupplierServicePage() {
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
                             <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['delivery'] && window.open(lkLinks['delivery'], '_blank', 'noreferrer')} title={lkLinks['delivery'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button>
+                              {deliveryInfo?.status ? (
+                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${deliveryInfo.status === 'Активный' ? 'bg-green-50 text-green-700' : deliveryInfo.status === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'}`}>{String(deliveryInfo.status)}</span>
+                              ) : (
+                                <button type="button" title="Активировать" onClick={() => { setActivateWh(String(deliveryInfo?.warehouseId || '')); setActivateOpen(true); }}
+                                  className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button>
+                              )}</p>
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>
@@ -638,13 +643,17 @@ export default function SupplierServicePage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setActivateOpen(false)}>
                   <div className="absolute inset-0 bg-black/50" />
                   <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-base font-bold text-gray-900">Для активации доставки выберите склад.</h3>
+                    <h3 className="text-base font-bold text-gray-900">Для активации доставки выберите Ваш склад.</h3>
                     <select className="form-input text-xs w-full" value={activateWh} onChange={e => setActivateWh(e.target.value)}>
                       <option value="">— выберите склад —</option>
                       {(data?.warehouses || []).map((w: Record<string, unknown>, i: number) => (
                         <option key={String(w.id || i)} value={String(w.id || i)}>{String(w.city || '')}{w.address ? `, ${String(w.address)}` : ''}</option>
                       ))}
                     </select>
+                    <p className="text-[11px] text-gray-400">Заполните в личном кабинете идентификатор участника ЭДО — туда придет Ваш договор.</p>
+                    <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[11px] text-gray-500 leading-relaxed">
+                      Внимание! Активация договора Вас ни к чему не обязывает, для полноценной работы доставки добавьте интересующие Вас города в настройках и оплатите подписку на сервис.
+                    </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={async () => {
                         if (!activateWh) { setNotice('Выберите склад'); return; }
