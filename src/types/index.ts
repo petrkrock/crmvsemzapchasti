@@ -629,6 +629,8 @@ export interface RouteStop {
   /** Диапазон времени — вручную от и до */
   from: string;
   to: string;
+  /** Порядок погрузки (1–10): чем выше цифра, тем ниже в списке */
+  order?: number;
 }
 
 /** v1.30.0: Новость платформы для ЛК поставщика */
@@ -659,6 +661,8 @@ export interface DeliveryRoute {
   /** Время прибытия на ЦС */
   arrivalTime: string;
   createdAt: string;
+  /** История изменений маршрута */
+  history?: { at: string; by: string; action: string }[];
 }
 
 /** v1.29.0: Тариф доставки (DBO) — Тариф сервиса / Тариф за Город */

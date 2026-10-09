@@ -403,7 +403,7 @@ export default function SupplierServicePage() {
                         const before = (data?.warehouses || []).length;
                         await addWarehouse();
                         if (editingWhId || (data?.warehouses || []).length > before) { setWhModal(false); setWhErr({}); setEditingWhId(null); }
-                      }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Добавить склад</button>
+                      }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
                       <button type="button" onClick={() => { setWhModal(false); setWhErr({}); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
                     </div>
                   </div>
@@ -1029,7 +1029,7 @@ export default function SupplierServicePage() {
                 <div className="flex items-center gap-2">
                   {(['covered', 'empty'] as const).map(f => (
                     <button key={f} type="button" onClick={() => setCityFilter(prev => prev === f ? 'all' : f)}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${cityFilter === f ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${cityFilter === f ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-blue-300'}`}>
                       {f === 'covered' ? 'Есть условия' : 'Нет условий'}
                     </button>
                   ))}

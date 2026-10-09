@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Landmark, MapPin, Route, Truck, Undo2, Users, Warehouse } from 'lucide-react';
+import { FileText, Landmark, MapPin, Route, Truck, Undo2, Users, Warehouse, Pencil, Trash2, Printer, History } from 'lucide-react';
 import { getStore, useStoreVersion, updateStore } from '@/lib/store';
 import { getCurrentUser } from '@/lib/auth';
 import { toast } from 'sonner';
@@ -40,19 +40,64 @@ export default function DeliveryPage() {
   const [rStops, setRStops] = useState([{ supplierId: '', from: '', to: '' }]);
   const [rArrive, setRArrive] = useState('');
 
+  const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
+  const [deleteRouteId, setDeleteRouteId] = useState<string | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [historyRouteId, setHistoryRouteId] = useState<string | null>(null);
+
+  function startEditRoute(r: (typeof store.settings.deliveryRoutes)[number]) {
+    setEditingRouteId(r.id);
+    setRNumber(r.number); setRDepart(r.departureTime || ''); setRDays(r.scheduleDays || []);
+    setRStops((r.stops || []).map(st => ({ supplierId: st.supplierId, from: st.from, to: st.to, order: st.order })));
+    setRArrive(r.arrivalTime || '');
+    setRouteFormOpen(true);
+  }
+  function setStopOrder(routeId: string, idx: number, order: number) {
+    const routes = (store.settings.deliveryRoutes || []).map(r => {
+      if (r.id !== routeId) return r;
+      const stops = (r.stops || []).map((st, i) => i === idx ? { ...st, order } : st)
+        .sort((a, b) => (a.order || 99) - (b.order || 99));
+      return { ...r, stops, history: [...(r.history || []), { at: new Date().toISOString(), by: getCurrentUser()?.name || '', action: `Порядок погрузки: поставщик №${idx + 1} → ${order}` }] };
+    });
+    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryRoutes: routes } }));
+    toast.success('Порядок погрузки обновлён');
+  }
+  function printRoute(r: (typeof store.settings.deliveryRoutes)[number]) {
+    const w = window.open('', '_blank', 'width=700,height=600');
+    if (!w) return;
+    const stops = [...(r.stops || [])].sort((a, b) => (a.order || 99) - (b.order || 99));
+    const rows = stops.map((st, i) => `<tr><td>${i + 1}</td><td>${suppliers.find(s => s.id === st.supplierId)?.tradeName || '—'}</td><td>${st.from || '—'} – ${st.to || '—'}</td></tr>`).join('');
+    w.document.write(`<html><head><title>Маршрут №${r.number}</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:18px}table{width:100%;border-collapse:collapse;margin-top:12px}td,th{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:13px}</style></head><body>
+      <h1>Маршрут самовывоза №${r.number}</h1>
+      <p>Выезд с ЦС: ${r.departureTime || '—'} · Прибытие на ЦС: ${r.arrivalTime || '—'} · График: ${(r.scheduleDays || []).join(' ') || '—'}</p>
+      <table><thead><tr><th>№</th><th>Поставщик</th><th>Время (от–до)</th></tr></thead><tbody>${rows}</tbody></table>
+      <script>window.print();</script></body></html>`);
+    w.document.close();
+  }
+  function confirmDeleteRoute() {
+    if (deleteConfirmText.trim() !== 'УДАЛИТЬ') { toast.error('Введите слово УДАЛИТЬ'); return; }
+    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryRoutes: (s.settings.deliveryRoutes || []).filter(r => r.id !== deleteRouteId) } }));
+    toast.success('Маршрут удалён');
+    setDeleteRouteId(null); setDeleteConfirmText('');
+  }
+
   function addRoute() {
     if (!rNumber.trim()) { toast.error('Укажите номер маршрута'); return; }
-    const stops = rStops.filter(s => s.supplierId);
-    const route = { id: `dr-${Date.now()}`, number: rNumber.trim(), departureTime: rDepart, scheduleDays: rDays, stops, arrivalTime: rArrive, createdAt: new Date().toISOString() };
-    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryRoutes: [...(s.settings.deliveryRoutes || []), route] } }));
+    const stops = rStops.filter(s => s.supplierId).map((st, i) => ({ ...st, order: st.order ?? i + 1 }));
+    const userName = getCurrentUser()?.name || '';
+    if (editingRouteId) {
+      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryRoutes: (s.settings.deliveryRoutes || []).map(r => r.id === editingRouteId ? { ...r, number: rNumber.trim(), departureTime: rDepart, scheduleDays: rDays, stops, arrivalTime: rArrive, history: [...(r.history || []), { at: new Date().toISOString(), by: userName, action: 'Маршрут отредактирован' }] } : r) } }));
+      toast.success(`Маршрут №${rNumber.trim()} сохранён`);
+    } else {
+      const route = { id: `dr-${Date.now()}`, number: rNumber.trim(), departureTime: rDepart, scheduleDays: rDays, stops, arrivalTime: rArrive, createdAt: new Date().toISOString(), history: [{ at: new Date().toISOString(), by: userName, action: 'Маршрут создан' }] };
+      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryRoutes: [...(s.settings.deliveryRoutes || []), route] } }));
+      toast.success(`Маршрут №${route.number} создан`);
+    }
+    setEditingRouteId(null);
     setRNumber(''); setRDepart(''); setRDays([]); setRStops([{ supplierId: '', from: '', to: '' }]); setRArrive('');
     setRouteFormOpen(false);
-    toast.success(`Маршрут №${route.number} создан`);
   }
-  function removeRoute(id: string) {
-    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryRoutes: (s.settings.deliveryRoutes || []).filter(r => r.id !== id) } }));
-    toast.success('Маршрут удалён');
-  }
+
   // маршрут поставщика (для анкеты и таблицы)
   const findRoute = (supplierId: string) => (store.settings.deliveryRoutes || []).find(r => (r.stops || []).some(st => st.supplierId === supplierId));
 
@@ -224,6 +269,15 @@ export default function DeliveryPage() {
                     <input type="time" className="form-input text-xs w-auto" value={st.from} onChange={e => setRStops(rs => rs.map((x, xi) => xi === i ? { ...x, from: e.target.value } : x))} />
                     <span className="text-xs text-gray-400">—</span>
                     <input type="time" className="form-input text-xs w-auto" value={st.to} onChange={e => setRStops(rs => rs.map((x, xi) => xi === i ? { ...x, to: e.target.value } : x))} />
+                    <span className="flex items-center gap-0.5" title="Порядок погрузки">
+                      {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                        <button key={n} type="button"
+                          onClick={() => setRStops(rs => rs.map((x, xi) => xi === i ? { ...x, order: n } : x))}
+                          className={`w-5 h-5 text-[9px] font-bold rounded border transition-colors ${(st.order ?? i + 1) === n ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-red-300'}`}>
+                          {n}
+                        </button>
+                      ))}
+                    </span>
                     {rStops.length > 1 && (
                       <button type="button" onClick={() => setRStops(rs => rs.filter((_, xi) => xi !== i))} className="text-xs text-red-600 hover:underline">Убрать</button>
                     )}
@@ -246,11 +300,9 @@ export default function DeliveryPage() {
                     <th className="table-header text-left">Номер маршрута</th>
                     <th className="table-header text-left">Выезд с ЦС</th>
                     <th className="table-header text-left">График</th>
-                    <th className="table-header text-left">Поставщики (время от–до)</th>
+                    <th className="table-header text-left">Поставщики (время от–до · порядок погрузки)</th>
                     <th className="table-header text-left">Прибытие на ЦС</th>
-                    <th className="table-header text-left">Исполнитель</th>
-                    <th className="table-header text-left">Статус</th>
-                    <th className="table-header"></th>
+                    <th className="table-header text-right">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -260,19 +312,77 @@ export default function DeliveryPage() {
                       <td className="table-cell text-gray-500">{r.departureTime || '—'}</td>
                       <td className="table-cell text-gray-500">{(r.scheduleDays || []).join(' ') || '—'}</td>
                       <td className="table-cell text-gray-500">
-                        {(r.stops || []).map(st => `${suppliers.find(s => s.id === st.supplierId)?.tradeName || '?'} (${st.from || '—'}–${st.to || '—'})`).join('; ') || '—'}
+                        {[...(r.stops || [])].sort((a, b) => (a.order || 99) - (b.order || 99)).map((st, si) => (
+                          <div key={si} className="flex items-center gap-1.5 py-0.5 flex-wrap">
+                            <span>{suppliers.find(s => s.id === st.supplierId)?.tradeName || '?'} ({st.from || '—'}–{st.to || '—'})</span>
+                            <span className="flex items-center gap-0.5" title="Порядок погрузки: чем выше цифра, тем ниже в списке">
+                              {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                                <button key={n} type="button" onClick={() => setStopOrder(r.id, si, n)}
+                                  className={`w-4 h-4 text-[8px] font-bold rounded border transition-colors ${st.order === n ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-red-300'}`}>
+                                  {n}
+                                </button>
+                              ))}
+                            </span>
+                          </div>
+                        ))}
+                        {!(r.stops || []).length && '—'}
                       </td>
                       <td className="table-cell text-gray-500">{r.arrivalTime || '—'}</td>
-                      <td className="table-cell text-gray-400">—</td>
-                      <td className="table-cell text-gray-400">—</td>
-                      <td className="table-cell text-right"><button type="button" onClick={() => removeRoute(r.id)} className="text-xs text-red-600 hover:underline">Удалить</button></td>
+                      <td className="table-cell text-right whitespace-nowrap">
+                        <button type="button" onClick={() => printRoute(r)} title="Печать маршрута" className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Printer size={14} /></button>
+                        <button type="button" onClick={() => startEditRoute(r)} title="Редактировать" className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Pencil size={14} /></button>
+                        <button type="button" onClick={() => setHistoryRouteId(r.id)} title="История изменений" className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
+                        <button type="button" onClick={() => { setDeleteRouteId(r.id); setDeleteConfirmText(''); }} title="Удалить" className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                      </td>
                     </tr>
                   ))}
-                  {!(store.settings.deliveryRoutes || []).length && <tr><td className="table-cell text-gray-400 text-center py-8" colSpan={8}>Маршруты не созданы.</td></tr>}
+                  {!(store.settings.deliveryRoutes || []).length && <tr><td className="table-cell text-gray-400 text-center py-8" colSpan={4}>Маршруты не созданы.</td></tr>}
                 </tbody>
               </table>
             </div>
           </div>
+
+          {/* МОДАЛКА УДАЛЕНИЯ МАРШРУТА */}
+          {deleteRouteId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDeleteRouteId(null)}>
+              <div className="absolute inset-0 bg-black/50" />
+              <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                <h3 className="text-base font-bold text-gray-900">Удалить маршрут?</h3>
+                <p className="text-xs text-gray-500">Действие необратимо. Для подтверждения введите слово <b className="text-red-600">УДАЛИТЬ</b>.</p>
+                <input className="form-input text-sm" placeholder="УДАЛИТЬ" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} />
+                <div className="flex gap-2">
+                  <button type="button" onClick={confirmDeleteRoute} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Удалить маршрут</button>
+                  <button type="button" onClick={() => setDeleteRouteId(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* МОДАЛКА ИСТОРИИ МАРШРУТА */}
+          {historyRouteId && (() => {
+            const hr = (store.settings.deliveryRoutes || []).find(r => r.id === historyRouteId);
+            if (!hr) return null;
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setHistoryRouteId(null)}>
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-gray-900">История маршрута №{hr.number}</h3>
+                    <button type="button" onClick={() => setHistoryRouteId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                  </div>
+                  <div className="space-y-2">
+                    {[...(hr.history || [])].reverse().map((hEntry, i) => (
+                      <div key={i} className="border border-gray-100 rounded-xl px-3 py-2 text-xs">
+                        <p className="text-gray-800">{hEntry.action}</p>
+                        <p className="text-gray-400 mt-0.5">{new Date(hEntry.at).toLocaleString('ru-RU')} · {hEntry.by || '—'}</p>
+                      </div>
+                    ))}
+                    {!(hr.history || []).length && <p className="text-xs text-gray-400">История пуста.</p>}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
 
