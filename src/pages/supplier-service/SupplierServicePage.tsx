@@ -67,6 +67,8 @@ export default function SupplierServicePage() {
   const [whErr, setWhErr] = useState<Record<string, boolean>>({}); // незаполненные поля склада
   const [whMsHint, setWhMsHint] = useState(false); // подсказка мультисклада
   const [faqHint, setFaqHint] = useState(false); // подсказка «Вопрос» в проценке
+  const [activateOpen, setActivateOpen] = useState(false); // модалка активации доставки
+  const [activateWh, setActivateWh] = useState('');
   const [whSkuHint, setWhSkuHint] = useState(false); // подсказка «Склад» в разделе Склад
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
@@ -629,6 +631,31 @@ export default function SupplierServicePage() {
                       </div>
                     );
                   })()}
+              {/* МОДАЛКА АКТИВАЦИИ ДОСТАВКИ */}
+              {activateOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setActivateOpen(false)}>
+                  <div className="absolute inset-0 bg-black/50" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-base font-bold text-gray-900">Для активации доставки выберите склад.</h3>
+                    <select className="form-input text-xs w-full" value={activateWh} onChange={e => setActivateWh(e.target.value)}>
+                      <option value="">— выберите склад —</option>
+                      {(data?.warehouses || []).map((w: Record<string, unknown>, i: number) => (
+                        <option key={String(w.id || i)} value={String(w.id || i)}>{String(w.city || '')}{w.address ? `, ${String(w.address)}` : ''}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={async () => {
+                        if (!activateWh) { setNotice('Выберите склад'); return; }
+                        const err = await post({ warehouseId: activateWh, status: 'Ждёт активации' });
+                        if (err) setNotice(err);
+                        else { setNotice('Заявка на активацию отправлена'); setActivateOpen(false); loadDeliveryInfo(); }
+                      }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Активировать</button>
+                      <button type="button" onClick={() => setActivateOpen(false)} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отменить</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* МОДАЛКА ПОЛНОГО ТЕКСТА НОВОСТИ */}
               {newsModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setNewsModal(null)}>
@@ -780,7 +807,7 @@ export default function SupplierServicePage() {
                   ))}
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-2xl  px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex flex-wrap items-end gap-x-6 gap-y-2">
                   <div>
                     <p className="text-[11px] text-gray-400">Склад</p>
                     {deliveryInfo?.warehouse ? (
@@ -796,7 +823,7 @@ export default function SupplierServicePage() {
                     <div className="flex gap-1 mt-1">
                       {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
                         <span key={d}
-                          className={`w-8 h-7 text-[10px] rounded-md border flex items-center justify-center ${((deliveryInfo?.routeDays as string[]) || []).includes(d) ? 'bg-red-50 border-red-300 text-red-700 font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>
+                          className={`w-6 h-5 text-[9px] rounded-md border flex items-center justify-center ${((deliveryInfo?.routeDays as string[]) || []).includes(d) ? 'bg-green-50 border-green-300 text-green-700 font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>
                           {d}
                         </span>
                       ))}
@@ -808,10 +835,16 @@ export default function SupplierServicePage() {
                   </div>
                   <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
                     <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b></span>
-                    <button type="button" title="Активировать доставку"
-                      className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold transition-colors">
-                      Активировать
-                    </button>
+                    {deliveryInfo?.status ? (
+                      <span className={`ml-1 inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md ${deliveryInfo.status === 'Активный' ? 'bg-green-50 text-green-700' : deliveryInfo.status === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'}`}>
+                        {String(deliveryInfo.status)}
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => { setActivateWh(String(deliveryInfo?.warehouseId || '')); setActivateOpen(true); }} title="Активировать доставку"
+                        className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold transition-colors">
+                        Активировать
+                      </button>
+                    )}
                   </div>
                 </div>
 
