@@ -782,18 +782,25 @@ export default function SupplierServicePage() {
 
                 <div className="bg-white border border-gray-200 rounded-2xl  px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
                   <div>
-                    <p className="text-[11px] text-gray-400">Маршрут</p>
-                    <h2 className="text-sm font-semibold text-gray-900">{String(deliveryInfo?.route || '') || '—'}</h2>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-gray-400">График и время</p>
-                    <h2 className="text-sm font-semibold text-gray-900">{String(deliveryInfo?.schedule || '') || '—'}</h2>
-                  </div>
-                  <div>
                     <p className="text-[11px] text-gray-400">Склад</p>
                     {deliveryInfo?.warehouse ? (
                       <span title={String(deliveryInfo.warehouse)} className="inline-flex text-gray-700 mt-0.5"><Warehouse size={17} /></span>
                     ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-400">Маршрут</p>
+                    <h2 className="text-sm font-semibold text-gray-900">{deliveryInfo?.routeNumber ? `№${String(deliveryInfo.routeNumber)}` : '—'}</h2>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-400">График и время</p>
+                    <div className="flex gap-1 mt-1">
+                      {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                        <span key={d}
+                          className={`w-8 h-7 text-[10px] rounded-md border flex items-center justify-center ${((deliveryInfo?.routeDays as string[]) || []).includes(d) ? 'bg-red-50 border-red-300 text-red-700 font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>
+                          {d}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <p className="text-[11px] text-gray-400">Активных городов</p>
