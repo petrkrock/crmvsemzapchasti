@@ -66,6 +66,8 @@ export default function SupplierServicePage() {
   const [whModal, setWhModal] = useState(false); // v1.30.0: добавление склада через модалку
   const [whErr, setWhErr] = useState<Record<string, boolean>>({}); // незаполненные поля склада
   const [whMsHint, setWhMsHint] = useState(false); // подсказка мультисклада
+  const [faqHint, setFaqHint] = useState(false); // подсказка «Вопрос» в проценке
+  const [whSkuHint, setWhSkuHint] = useState(false); // подсказка «Склад» в разделе Склад
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
@@ -674,7 +676,21 @@ export default function SupplierServicePage() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* СОЗДАНИЕ СКЛАДА */}
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
-                      <h3 className="text-sm font-semibold text-gray-600">Создание склада в системе</h3>
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-gray-600">Создание склада в системе</h3>
+                        <span className="relative inline-block">
+                          <button type="button" onClick={() => setWhSkuHint(v => !v)} title="Склад"
+                            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whSkuHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                            <Warehouse size={16} />
+                          </button>
+                          {whSkuHint && (
+                            <span className="absolute right-0 top-full mt-2 z-30 w-96 max-w-[calc(100vw-4rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2 block" onClick={e => e.stopPropagation()}>
+                              <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
+                              <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
+                            </span>
+                          )}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-400">Добавьте свой первый склад, чтобы начать продавать.</p>
                       <div className="flex items-center gap-3 flex-wrap">
                         <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhErr({}); setWhModal(true); }}
@@ -879,6 +895,35 @@ export default function SupplierServicePage() {
                     </div>
                   </div>
 
+                  {/* АССОРТИМЕНТ */}
+                  <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-600">Ассортимент</h3>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Основные группы товаров</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {((cb.productGroups as string[]) || []).map(g => <span key={g} className="text-xs font-medium px-2.5 py-1 rounded-md bg-gray-100 text-gray-600">{g}</span>)}
+                        {!(cb.productGroups as string[])?.length && <span className="text-xs text-gray-400">—</span>}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Собственные бренды (СТМ)</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {((cb.ownBrands as string[]) || []).map(g => <span key={g} className="text-xs font-medium px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-100">{g}</span>)}
+                        {!(cb.ownBrands as string[])?.length && <span className="text-xs text-gray-400">—</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* АКТИВНЫЕ СЕРВИСЫ */}
+                  <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-600">Активные сервисы продаж</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {svc.map(s => (
+                        <span key={s} className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${activeServices.includes(s) ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* КОНТАКТЫ ПРЕДСТАВИТЕЛЯ — редактируемо */}
                   <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
                     <div className="flex items-start justify-between gap-2">
@@ -915,35 +960,6 @@ export default function SupplierServicePage() {
 
                                     
 
-                  {/* АКТИВНЫЕ СЕРВИСЫ */}
-                  <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-600">Активные сервисы продаж</h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {svc.map(s => (
-                        <span key={s} className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${activeServices.includes(s) ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{s}</span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* АССОРТИМЕНТ */}
-                  <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-600">Ассортимент</h3>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Основные группы товаров</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {((cb.productGroups as string[]) || []).map(g => <span key={g} className="text-xs font-medium px-2.5 py-1 rounded-md bg-gray-100 text-gray-600">{g}</span>)}
-                        {!(cb.productGroups as string[])?.length && <span className="text-xs text-gray-400">—</span>}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Собственные бренды (СТМ)</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {((cb.ownBrands as string[]) || []).map(g => <span key={g} className="text-xs font-medium px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-100">{g}</span>)}
-                        {!(cb.ownBrands as string[])?.length && <span className="text-xs text-gray-400">—</span>}
-                      </div>
-                    </div>
-                  </div>
-
                   {/* ЭДО — заметное окно, редактируемо */}
                   
                 </div>
@@ -961,6 +977,19 @@ export default function SupplierServicePage() {
                     className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300">
                     + Добавить склад
                   </button>
+                  <span className="relative inline-block">
+                    <button type="button" onClick={() => setFaqHint(v => !v)} title="Вопрос"
+                      className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${faqHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                      ?
+                    </button>
+                    {faqHint && (
+                      <span className="absolute right-0 top-full mt-2 z-30 w-96 max-w-[calc(100vw-4rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2 block" onClick={e => e.stopPropagation()}>
+                        <p><b className="text-red-700">Шаг 1.</b> Добавьте свой склад в систему и настройте условия доставки для доступных городов.</p>
+                        <p><b className="text-red-700">Шаг 2.</b> Настройте автоматическую рассылку вашего прайс-листа на адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span></p>
+                        <p><b className="text-red-700">Шаг 3.</b> После прохождения модерации ваш склад станет доступен на платформе.</p>
+                      </span>
+                    )}
+                  </span>
                   <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
                     className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
                     <Warehouse size={16} />
