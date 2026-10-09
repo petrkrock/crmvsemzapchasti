@@ -808,19 +808,16 @@ export default function SupplierServicePage() {
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex flex-wrap items-end gap-x-6 gap-y-2">
-                  <div>
-                    <p className="text-[11px] text-gray-400">Склад</p>
+                  <div className="self-center">
                     {deliveryInfo?.warehouse ? (
-                      <span title={String(deliveryInfo.warehouse)} className="inline-flex text-gray-700 mt-0.5"><Warehouse size={17} /></span>
+                      <span title={String(deliveryInfo.warehouse)} className="inline-flex text-gray-700"><Warehouse size={17} /></span>
                     ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
                   </div>
-                  <div>
-                    <p className="text-[11px] text-gray-400">Маршрут</p>
+                  <div className="self-center">
                     <h2 className="text-sm font-semibold text-gray-900">{deliveryInfo?.routeNumber ? `№${String(deliveryInfo.routeNumber)}` : '—'}</h2>
                   </div>
                   <div>
-                    <p className="text-[11px] text-gray-400">График и время</p>
-                    <div className="flex gap-1 mt-1">
+                    <div className="flex gap-1">
                       {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
                         <span key={d}
                           className={`w-6 h-5 text-[9px] rounded-md border flex items-center justify-center ${((deliveryInfo?.routeDays as string[]) || []).includes(d) ? 'bg-green-50 border-green-300 text-green-700 font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>
@@ -829,12 +826,13 @@ export default function SupplierServicePage() {
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <p className="text-[11px] text-gray-400">Активных городов</p>
-                    <h2 className="text-sm font-semibold text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : '—'}</h2>
+                  <div className="self-center text-xs text-gray-500">
+                    Активных городов: <b className="text-gray-900 tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : '—'}</b>
                   </div>
                   <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
-                    <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b></span>
+                    <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b>
+                      {deliveryInfo?.contractNumber && <span className="text-gray-500">№ {String(deliveryInfo.contractNumber)}{deliveryInfo?.contractDate ? ` от ${String(deliveryInfo.contractDate)}` : ''}</span>}
+                    </span>
                     {deliveryInfo?.status ? (
                       <span className={`ml-1 inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md ${deliveryInfo.status === 'Активный' ? 'bg-green-50 text-green-700' : deliveryInfo.status === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'}`}>
                         {String(deliveryInfo.status)}
