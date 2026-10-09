@@ -2,7 +2,7 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, Check, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut, Megaphone, UserRound } from 'lucide-react';
+import { Loader2, Check, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut, Megaphone, UserRound, Copy } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -377,7 +377,7 @@ export default function SupplierServicePage() {
                 <div className="w-full max-w-lg rounded-2xl shadow-2xl ring-1 ring-white/40 border border-white/30" onClick={e => e.stopPropagation()}>
                   <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-base font-bold text-gray-900">Добавить склад</h2>
+                      <h2 className="text-base font-bold text-gray-900">{editingWhId ? 'Редактировать склад' : 'Добавить склад'}</h2>
                       <button type="button" onClick={() => setWhModal(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
                     </div>
                     <div className="space-y-3">
@@ -399,10 +399,10 @@ export default function SupplierServicePage() {
                         const errs: Record<string, boolean> = { city: !whCity.trim(), address: !whAddress.trim(), sku: !whSku.trim() };
                         setWhErr(errs);
                         if (errs.city || errs.address || errs.sku) { setNotice('Заполните все поля'); return; }
-                        if (!data?.multiWarehouse && (data?.warehouses || []).length >= 1) { setNotice('Мультисклад не подключён. Для добавления второго склада обратитесь в поддержку.'); return; }
+                        if (!editingWhId && !data?.multiWarehouse && (data?.warehouses || []).length >= 1) { setNotice('Мультисклад не подключён. Для добавления второго склада обратитесь в поддержку.'); return; }
                         const before = (data?.warehouses || []).length;
                         await addWarehouse();
-                        if ((data?.warehouses || []).length > before) { setWhModal(false); setWhErr({}); }
+                        if (editingWhId || (data?.warehouses || []).length > before) { setWhModal(false); setWhErr({}); setEditingWhId(null); }
                       }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Добавить склад</button>
                       <button type="button" onClick={() => { setWhModal(false); setWhErr({}); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
                     </div>
@@ -691,7 +691,6 @@ export default function SupplierServicePage() {
                           )}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400">Добавьте свой первый склад, чтобы начать продавать.</p>
                       <div className="flex items-center gap-3 flex-wrap">
                         <button type="button" onClick={() => { setWhCity(''); setWhAddress(''); setWhSku(''); setWhErr({}); setWhModal(true); }}
                           className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
@@ -722,7 +721,14 @@ export default function SupplierServicePage() {
                         <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
                           className="text-[11px] font-semibold px-2.5 h-10 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить</button>
                       </div>
-                      <p className="text-[10px] text-gray-400">С указанного Email настройте рассылку прайс-листов на адрес: price@vsemzapchasti.ru</p>
+                      <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600">
+                        С указанного Email настройте рассылку прайс-листов на адрес:{' '}
+                        <button type="button" title="Скопировать адрес"
+                          onClick={() => { navigator.clipboard?.writeText('price@vsemzapchasti.ru'); setNotice('Адрес скопирован'); }}
+                          className="inline-flex items-center gap-1 text-gray-800 font-bold hover:text-red-600 transition-colors">
+                          price@vsemzapchasti.ru <Copy size={11} />
+                        </button>
+                      </p>
                     </div>
 
 
@@ -735,17 +741,18 @@ export default function SupplierServicePage() {
                       <div className="space-y-2">
                         {whs.map((w, i) => {
                           const st = (w.status as string) || 'Новый';
-                          const stCls = st === 'Проверен' ? 'bg-green-50 border-green-200 text-green-700'
-                            : st === 'Заморожен' ? 'bg-gray-100 border-gray-200 text-gray-500'
-                            : 'bg-blue-50 border-blue-200 text-blue-700';
+                          const stCls = st === 'Проверен' ? 'bg-green-100 text-green-700'
+                            : st === 'Заморожен' ? 'bg-gray-100 text-gray-500'
+                            : 'bg-blue-100 text-blue-700';
                           return (
-                            <div key={w.id || i} className="border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-4 flex-wrap hover:border-gray-300 transition-colors">
-                              <Warehouse size={16} className="text-red-500 shrink-0" />
-                              <p className="text-sm font-semibold text-gray-800 min-w-[130px]">{String(w.city || '—')}</p>
-                              <p className="text-xs text-gray-500 flex-1 min-w-[180px] truncate">{String(w.address || '—')}</p>
-                              <p className="text-[11px] text-gray-400 shrink-0">SKU: <b className="text-gray-700">{Number(w.skuCount) || 0}</b></p>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${stCls}`}>{st}</span>
-                              <button type="button" onClick={() => setNotice('Редактирование склада появится в следующем обновлении')}
+                            <div key={w.id || i} className={`border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-4 hover:border-gray-300 transition-colors ${st === 'Проверен' ? 'bg-green-50' : 'bg-white'}`}>
+                              <Warehouse size={16} className="text-gray-400 shrink-0" />
+                              <p className="text-sm font-semibold text-gray-800 w-36 shrink-0 truncate">{String(w.city || '—')}</p>
+                              <p className="text-xs text-gray-500 flex-1 min-w-[140px] truncate">{String(w.address || '—')}</p>
+                              <p className="text-sm text-gray-500 w-28 shrink-0 text-right">SKU: <b className="text-gray-800 tabular-nums">{Number(w.skuCount) || 0}</b></p>
+                              <span className={`text-[11px] font-semibold px-2 py-1 rounded-md w-24 shrink-0 text-center ${stCls}`}>{st}</span>
+                              <button type="button"
+                                onClick={() => { setEditingWhId((w.id as string) || null); setWhCity(String(w.city || '')); setWhAddress(String(w.address || '')); setWhSku(String(w.skuCount || '')); setWhErr({}); setWhModal(true); }}
                                 className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors shrink-0">
                                 <Pencil size={10} /> Редактировать
                               </button>
@@ -990,19 +997,8 @@ export default function SupplierServicePage() {
                       </span>
                     )}
                   </span>
-                  <button type="button" onClick={() => setWhHint(v => !v)} title="О складах"
-                    className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${whHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
-                    <Warehouse size={16} />
-                  </button>
                 </div>
               </div>
-              {whHint && (
-                <div className="absolute right-8 top-16 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
-                  <p>Указывайте количество SKU на складе, близкое к реальному. Если данные в вашем складе сильно расходятся с загружаемым прайсом, система заблокирует этот склад.</p>
-                  <p>Вы можете заморозить склад во всех городах — тогда Личный кабинет будет аннулирован, а проценка перестанет показывать прайсы. Для этого обратитесь в поддержку.</p>
-                
-                </div>
-              )}
               {(data.warehouses || []).length === 0 && (
                 <p className="text-sm text-gray-400">Шаг 1. Сначала добавьте склад – это необходимо для создания условий в поиске.</p>
               )}
