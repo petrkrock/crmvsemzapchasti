@@ -413,7 +413,34 @@ export default function SupplierServicePage() {
               </div>
             )}
 
-              {/* МОДАЛКА АКТИВАЦИИ ДОСТАВКИ */}
+              {/* {/* МОДАЛКА АКТИВАЦИИ ДОСТАВКИ */}
+            {activateOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setActivateOpen(false)}>
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-base font-bold text-gray-900">Для активации доставки выберите Ваш склад.</h3>
+                  <select className="form-input text-xs w-full" value={activateWh} onChange={e => setActivateWh(e.target.value)}>
+                    <option value="">— выберите склад —</option>
+                    {(data?.warehouses || []).map((w: Record<string, unknown>, i: number) => (
+                      <option key={String(w.id || i)} value={String(w.id || i)}>{String(w.city || '')}{w.address ? `, ${String(w.address)}` : ''}</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-gray-400">Заполните в личном кабинете идентификатор участника ЭДО — туда придет Ваш договор.</p>
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[11px] text-gray-500 leading-relaxed">
+                    Внимание! Активация договора Вас ни к чему не обязывает, для полноценной работы доставки добавьте интересующие Вас города в настройках и оплатите подписку на сервис.
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={async () => {
+                      if (!activateWh) { setNotice('Выберите склад'); return; }
+                      const err = await post({ warehouseId: activateWh, status: 'Ждёт активации' });
+                      if (err) setNotice(err);
+                      else { setNotice('Заявка на активацию отправлена'); setActivateOpen(false); loadDeliveryInfo(); }
+                    }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Активировать</button>
+                    <button type="button" onClick={() => setActivateOpen(false)} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отменить</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {lkTab === 'dashboard' && (() => {
               const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
@@ -835,7 +862,7 @@ export default function SupplierServicePage() {
                     <div className="flex gap-1">
                       {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
                         <span key={d}
-                          className={`w-6 h-5 text-[9px] rounded-md border flex items-center justify-center ${((deliveryInfo?.routeDays as string[]) || []).includes(d) ? 'bg-green-50 border-green-300 text-green-700 font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>
+                          className={`w-6 h-5 text-[9px] rounded-md border flex items-center justify-center ${((deliveryInfo?.routeDays as string[]) || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>
                           {d}
                         </span>
                       ))}
@@ -845,9 +872,7 @@ export default function SupplierServicePage() {
                     Активных городов: <b className="text-gray-900 tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : '—'}</b>
                   </div>
                   <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
-                    <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span> <b className="text-gray-900">{String(deliveryInfo?.status || '') || '—'}</b>
-                      {deliveryInfo?.contractNumber && <span className="text-gray-500">№ {String(deliveryInfo.contractNumber)}{deliveryInfo?.contractDate ? ` от ${String(deliveryInfo.contractDate)}` : ''}</span>}
-                    </span>
+                    <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span>{deliveryInfo?.contractNumber ? <span className="text-gray-900 font-semibold">№ {String(deliveryInfo.contractNumber)}{deliveryInfo?.contractDate ? ` от ${String(deliveryInfo.contractDate)}` : ''}</span> : <b className="text-gray-900">—</b>}</span>
                     {deliveryInfo?.status ? (
                       <span className={`ml-1 inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md ${deliveryInfo.status === 'Активный' ? 'bg-green-50 text-green-700' : deliveryInfo.status === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'}`}>
                         {String(deliveryInfo.status)}

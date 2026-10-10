@@ -126,7 +126,7 @@ export default function DeliveryPage() {
     s.deliveryAccess?.enabled && s.deliveryAccess?.token ? 'Активный' :
     s.deliveryAccess && !s.deliveryAccess.enabled ? 'Аннулирован' : 'Ждёт активации';
 
-  const filtered = suppliers.filter(s => {
+  const filtered = [...suppliers].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).filter(s => {
     if (fSearch && !(s.tradeName || '').toLowerCase().includes(fSearch.toLowerCase()) && !(s.legalName || '').toLowerCase().includes(fSearch.toLowerCase())) return false;
     if (fSupplier && s.id !== fSupplier) return false;
     if (fResp && s.responsibleId !== fResp) return false;

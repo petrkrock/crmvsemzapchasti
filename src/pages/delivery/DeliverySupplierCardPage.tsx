@@ -15,6 +15,8 @@ export default function DeliverySupplierCardPage() {
   const supplier = store.suppliers.find(s => s.id === id && !s.deletedAt);
   const [dboTab, setDboTab] = useState(0);
   const [dboComment, setDboComment] = useState('');
+  const [dboEditMode, setDboEditMode] = useState(false);
+  const [dboDraft, setDboDraft] = useState<Record<string, unknown>>({});
 
   if (!supplier) {
     return (
@@ -81,6 +83,34 @@ export default function DeliverySupplierCardPage() {
         </div>
 
         {dboTab === 0 && (
+          <>
+          <div className="flex items-center gap-2 mb-2">
+            {!dboEditMode ? (
+              <button type="button" onClick={() => { setDboDraft({ ...dc }); setDboEditMode(true); }}
+                className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                <Pencil size={10} /> Редактировать
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={() => {
+                  const merged = { ...dc, ...dboDraft };
+                  if (merged.status === 'Активный' && (!merged.contractNumber?.trim() || !merged.contractDate?.trim())) { toast.error('Для активации введите номер и дату договора'); return; }
+                  patchDeliveryContract(dboDraft);
+                  if (merged.status === 'Активный' && !(supplier.services || []).includes('DBO')) {
+                    updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, services: [...(x.services || []), 'DBO'], updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
+                    toast.success('Сервис DBO включён в сервисы продаж поставщика');
+                  }
+                  if (merged.status === 'Аннулирован' && (supplier.services || []).includes('DBO')) {
+                    updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, services: (x.services || []).filter(v => v !== 'DBO'), updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
+                    toast.success('Сервис DBO отключён в сервисах продаж поставщика');
+                  }
+                  setDboEditMode(false);
+                }} className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
+                <button type="button" onClick={() => setDboEditMode(false)}
+                  className="text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Отменить</button>
+              </>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
 
@@ -99,7 +129,7 @@ export default function DeliverySupplierCardPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600">Склад</label>
-                <select className="form-input text-xs mt-1" value={dc.warehouseId || ''} onChange={e => patchDeliveryContract({ warehouseId: e.target.value })}>
+                <select className="form-input text-xs mt-1" disabled={!dboEditMode} value={dboEditMode ? String(dboDraft.warehouseId ?? dc.warehouseId ?? '') : (dc.warehouseId || '')} onChange={e => setDboDraft({ ...dboDraft, warehouseId: e.target.value })}>
                   <option value="">— выберите склад —</option>
                   {(supplier.warehouseLocations || []).map((w, i) => <option key={w.id || i} value={w.id || String(i)}>{w.city}{w.address ? `, ${w.address}` : ''}</option>)}
                 </select>
@@ -118,29 +148,30 @@ export default function DeliverySupplierCardPage() {
               <div>
                 <label className="text-xs font-semibold text-gray-600">Статус договора</label>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <select className="form-input text-xs w-auto" value={dc.status || dcStatus} onChange={e => changeContractStatus(e.target.value)}>
+                  <select className="form-input text-xs w-auto" disabled={!dboEditMode} value={dboEditMode ? String(dboDraft.status ?? dc.status ?? dcStatus) : (dc.status || dcStatus)} onChange={e => setDboDraft({ ...dboDraft, status: e.target.value })}>
                     {dcStatuses.map(st => <option key={st} value={st}>{st}</option>)}
                   </select>
-                  <input className="form-input text-xs w-32" placeholder="№ договора" value={dc.contractNumber || ''} onChange={e => patchDeliveryContract({ contractNumber: e.target.value })} />
-                  <input type="date" className="form-input text-xs w-auto" value={dc.contractDate || ''} onChange={e => patchDeliveryContract({ contractDate: e.target.value })} />
+                  <input className="form-input text-xs w-32" placeholder="№ договора" disabled={!dboEditMode} value={dboEditMode ? String(dboDraft.contractNumber ?? dc.contractNumber ?? '') : (dc.contractNumber || '')} onChange={e => setDboDraft({ ...dboDraft, contractNumber: e.target.value })} />
+                  <input type="date" className="form-input text-xs w-auto" disabled={!dboEditMode} value={dboEditMode ? String(dboDraft.contractDate ?? dc.contractDate ?? '') : (dc.contractDate || '')} onChange={e => setDboDraft({ ...dboDraft, contractDate: e.target.value })} />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600">Тариф сервиса</label>
-                <select className="form-input text-xs mt-1" value={dc.serviceTariff || ''} onChange={e => patchDeliveryContract({ serviceTariff: e.target.value })}>
+                <select className="form-input text-xs mt-1" disabled={!dboEditMode} value={dboEditMode ? String(dboDraft.serviceTariff ?? dc.serviceTariff ?? '') : (dc.serviceTariff || '')} onChange={e => setDboDraft({ ...dboDraft, serviceTariff: e.target.value })}>
                   <option value="">— выберите тариф —</option>
                   {serviceTariffs.map(t => <option key={t.id} value={t.id}>{t.name} · {t.pricePerMonth} ₽/мес</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600">Тариф за Город</label>
-                <select className="form-input text-xs mt-1" value={dc.cityTariff || ''} onChange={e => patchDeliveryContract({ cityTariff: e.target.value })}>
+                <select className="form-input text-xs mt-1" disabled={!dboEditMode} value={dboEditMode ? String(dboDraft.cityTariff ?? dc.cityTariff ?? '') : (dc.cityTariff || '')} onChange={e => setDboDraft({ ...dboDraft, cityTariff: e.target.value })}>
                   <option value="">— выберите тариф —</option>
                   {cityTariffs.map(t => <option key={t.id} value={t.id}>{t.name} · {t.pricePerMonth} ₽/мес</option>)}
                 </select>
               </div>
             </div>
           </div>
+          </>
         )}
 
                   {([1, 2, 3, 5].includes(dboTab)) && (
