@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pencil } from 'lucide-react';
 import { getStore, useStoreVersion, updateStore } from '@/lib/store';
 import { getCurrentUser } from '@/lib/auth';
 import { toast } from 'sonner';
