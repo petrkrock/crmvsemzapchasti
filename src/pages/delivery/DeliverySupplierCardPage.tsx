@@ -206,7 +206,7 @@ export default function DeliverySupplierCardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDboDeleteOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-bold text-gray-900">Удалить договор доставки?</h3>
+            <h3 className="text-base font-bold text-gray-900">Удалить поставщика из сервиса доставки?</h3>
             <p className="text-xs text-gray-500">Действие необратимо. Для подтверждения введите слово <b className="text-red-600">удалить</b>.</p>
             <input className="form-input text-sm" placeholder="удалить" value={dboDeleteText} onChange={e => setDboDeleteText(e.target.value)} />
             <div className="flex gap-2">
@@ -214,10 +214,10 @@ export default function DeliverySupplierCardPage() {
                 if (dboDeleteText.trim() !== 'удалить') { toast.error('Введите слово удалить'); return; }
                 updateStore(s => ({
                   ...s,
-                  suppliers: s.suppliers.map(x => x.id === id ? { ...x, deliveryAccess: undefined, deliveryContract: undefined, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x),
+                  suppliers: s.suppliers.map(x => x.id === id ? { ...x, deliveryAccess: undefined, deliveryContract: undefined, services: (x.services || []).filter(v => v !== 'DBO'), updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x),
                   settings: { ...s.settings, deliveryRoutes: (s.settings.deliveryRoutes || []).map(r => ({ ...r, stops: (r.stops || []).filter(st => st.supplierId !== id) })) },
                 }));
-                toast.success('Поставщик полностью удалён из сервиса доставки');
+                toast.success('Поставщик удалён из сервиса доставки, сервис DBO отключён');
                 setDboDeleteOpen(false); setDboDeleteText('');
               }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Удалить</button>
               <button type="button" onClick={() => setDboDeleteOpen(false)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
