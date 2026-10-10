@@ -273,10 +273,13 @@ async function handlePost(req: Request) {
   if (body.addDeliveryCity !== undefined) {
     const cityName = String(body.addDeliveryCity || '').slice(0, 100);
     if (!cityName) return json({ error: 'Укажите город' }, 400);
-    const rows = [...((dset.deliveryCityRows as Array<Record<string, unknown>>) || [])];
+    const { data: stRow } = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
+    const st = (stRow?.settings || {}) as Record<string, unknown>;
+    const rows = [...((st.deliveryCityRows as Array<Record<string, unknown>>) || [])];
     if (!rows.some(r => String(r.supplierId) === String(supplier.id) && String(r.city) === cityName)) {
       rows.push({ id: `dcr-${Date.now()}`, city: cityName, supplierId: String(supplier.id), status: 'Ждёт активации', history: [{ at: new Date().toISOString(), by: 'Поставщик (ЛК)', action: `Город «${cityName}» добавлен в доставку` }] });
-      await client.from('app_settings').update({ settings: { ...dset, deliveryCityRows: rows } }).eq('id', 'global');
+      const { error: upErr } = await client.from('app_settings').update({ settings: { ...st, deliveryCityRows: rows } }).eq('id', 'global');
+      if (upErr) return json({ error: upErr.message }, 500);
     }
     return json({ ok: true });
   }
