@@ -284,6 +284,7 @@ async function handlePost(req: Request) {
       route: dc.route || '',
       routeNumber: rt ? String(rt.number || '') : '',
       routeDays: rt ? ((rt.scheduleDays as string[]) || []) : [],
+      routeStopTime: rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : '',
       schedule: rt ? [((rt.scheduleDays as string[]) || []).join(' '), rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : ''].filter(Boolean).join(' · ') : '',
       warehouse: dWh ? `${dWh.city || ''}${dWh.city && dWh.address ? ', ' : ''}${dWh.address || ''}` : '',
       citiesCount: ((dc.cities as string[]) || []).length,
