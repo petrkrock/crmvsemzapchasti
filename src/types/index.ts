@@ -674,6 +674,17 @@ export interface DeliveryTariff {
   createdAt: string;
 }
 
+/** v1.30.23: Строка таблицы городов доставки */
+export interface DeliveryCityRow {
+  id: string;
+  city: string;
+  supplierId: string;
+  status?: string;
+  activatedAt?: string;
+  tariff?: string;
+  history?: { at: string; by: string; action: string }[];
+}
+
 /** v1.29.0: Оператор доставки (DBO) */
 export interface DeliveryOperator {
   id: string;
@@ -732,6 +743,10 @@ export interface AppSettings {
   edoOperators?: string[];
   /** v1.30.22: МКП (мин. количество поставщиков) по городам доставки — только для CRM */
   deliveryCityMinSuppliers?: Record<string, number>;
+  /** v1.30.23: Таблица «Города доставки» (город × поставщик) */
+  deliveryCityRows?: DeliveryCityRow[];
+  /** v1.30.23: Таблица «Города доставки» (город × поставщик) */
+  deliveryCityRows?: DeliveryCityRow[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

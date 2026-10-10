@@ -45,6 +45,27 @@ export default function DeliveryPage() {
   const [deleteRouteId, setDeleteRouteId] = useState<string | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [historyRouteId, setHistoryRouteId] = useState<string | null>(null);
+  // v1.30.23: таблица городов доставки
+  const [dcRowCity, setDcRowCity] = useState('');
+  const [dcRowSupplier, setDcRowSupplier] = useState('');
+  const [dcRowEditingId, setDcRowEditingId] = useState<string | null>(null);
+  const [dcRowHistoryId, setDcRowHistoryId] = useState<string | null>(null);
+
+  function saveCityRow() {
+    if (!dcRowCity) { toast.error('Выберите город'); return; }
+    if (!dcRowSupplier) { toast.error('Выберите поставщика'); return; }
+    const userName = getCurrentUser()?.name || '';
+    const rows = store.settings.deliveryCityRows || [];
+    if (dcRowEditingId) {
+      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityRows: rows.map(r => r.id === dcRowEditingId ? { ...r, city: dcRowCity, supplierId: dcRowSupplier, history: [...(r.history || []), { at: new Date().toISOString(), by: userName, action: 'Строка отредактирована' }] } : r) } }));
+      toast.success('Сохранено');
+    } else {
+      const row = { id: `dcr-${Date.now()}`, city: dcRowCity, supplierId: dcRowSupplier, history: [{ at: new Date().toISOString(), by: userName, action: 'Строка создана' }] };
+      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityRows: [...(s.settings.deliveryCityRows || []), row] } }));
+      toast.success('Строка добавлена');
+    }
+    setDcRowEditingId(null); setDcRowCity(''); setDcRowSupplier('');
+  }
 
   function startEditRoute(r: (typeof store.settings.deliveryRoutes)[number]) {
     setEditingRouteId(r.id);
@@ -426,6 +447,98 @@ export default function DeliveryPage() {
               <p className="text-xs text-gray-400">Города не добавлены (Настройки → Доставка → Города).</p>
             )}
           </div>
+
+          {/* ТАБЛИЦА ГОРОДОВ ДОСТАВКИ (v1.30.23) */}
+          <div className="card-base p-5 space-y-4">
+            <h3 className="section-title">Города доставки</h3>
+            <div className="flex flex-wrap gap-2 items-end">
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Город</label>
+                <select className="form-input text-xs mt-1 w-44" value={dcRowCity} onChange={e => setDcRowCity(e.target.value)}>
+                  <option value="">— выберите город —</option>
+                  {(store.settings.cities || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Поставщик в доставке</label>
+                <select className="form-input text-xs mt-1 w-52" value={dcRowSupplier} onChange={e => setDcRowSupplier(e.target.value)}>
+                  <option value="">— выберите поставщика —</option>
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
+                </select>
+              </div>
+              <button type="button" onClick={saveCityRow} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">{dcRowEditingId ? 'Сохранить' : 'Добавить'}</button>
+              {dcRowEditingId && <button type="button" onClick={() => { setDcRowEditingId(null); setDcRowCity(''); setDcRowSupplier(''); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Отмена</button>}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="table-header text-left">Город</th>
+                    <th className="table-header text-left">Поставщик в доставке</th>
+                    <th className="table-header text-left">Статус</th>
+                    <th className="table-header text-left">Дата активации</th>
+                    <th className="table-header text-left">Тариф</th>
+                    <th className="table-header text-right">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(store.settings.deliveryCityRows || []).map(r => (
+                    <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="table-cell font-medium text-gray-800">{r.city}</td>
+                      <td className="table-cell text-gray-600">{suppliers.find(s => s.id === r.supplierId)?.tradeName || '—'}</td>
+                      <td className="table-cell">
+                        <select className="form-input text-xs w-36" value={r.status || ''} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityRows: (s.settings.deliveryCityRows || []).map(x => x.id === r.id ? { ...x, status: e.target.value, history: [...(x.history || []), { at: new Date().toISOString(), by: getCurrentUser()?.name || '', action: `Статус: ${e.target.value || '—'}` }] } : x) } })); }}>
+                          <option value="">—</option>
+                          <option>Ждёт активации</option>
+                          <option>Активный</option>
+                          <option>Заморожен</option>
+                        </select>
+                      </td>
+                      <td className="table-cell">
+                        <input type="date" className="form-input text-xs w-auto" value={r.activatedAt || ''} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityRows: (s.settings.deliveryCityRows || []).map(x => x.id === r.id ? { ...x, activatedAt: e.target.value } : x) } })); }} />
+                      </td>
+                      <td className="table-cell text-gray-400">—</td>
+                      <td className="table-cell text-right whitespace-nowrap">
+                        <button type="button" title="Редактировать" onClick={() => { setDcRowEditingId(r.id); setDcRowCity(r.city); setDcRowSupplier(r.supplierId); }}
+                          className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Pencil size={14} /></button>
+                        <button type="button" title="История" onClick={() => setDcRowHistoryId(r.id)}
+                          className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
+                        <button type="button" title="Удалить" onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityRows: (s.settings.deliveryCityRows || []).filter(x => x.id !== r.id) } })); toast.success('Строка удалена'); }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                  {!(store.settings.deliveryCityRows || []).length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={6}>Строки не добавлены.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* МОДАЛКА ИСТОРИИ СТРОКИ ГОРОДА */}
+          {dcRowHistoryId && (() => {
+            const hr = (store.settings.deliveryCityRows || []).find(r => r.id === dcRowHistoryId);
+            if (!hr) return null;
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDcRowHistoryId(null)}>
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-gray-900">История: {hr.city}</h3>
+                    <button type="button" onClick={() => setDcRowHistoryId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                  </div>
+                  <div className="space-y-2">
+                    {[...(hr.history || [])].reverse().map((hEntry, i) => (
+                      <div key={i} className="border border-gray-100 rounded-xl px-3 py-2 text-xs">
+                        <p className="text-gray-800">{hEntry.action}</p>
+                        <p className="text-gray-400 mt-0.5">{new Date(hEntry.at).toLocaleString('ru-RU')} · {hEntry.by || '—'}</p>
+                      </div>
+                    ))}
+                    {!(hr.history || []).length && <p className="text-xs text-gray-400">История пуста.</p>}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
