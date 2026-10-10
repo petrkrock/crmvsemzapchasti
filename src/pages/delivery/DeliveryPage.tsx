@@ -127,6 +127,7 @@ export default function DeliveryPage() {
     s.deliveryAccess && !s.deliveryAccess.enabled ? 'Аннулирован' : 'Ждёт активации';
 
   const filtered = [...suppliers].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).filter(s => {
+    if (!(s.deliveryAccess?.token || (s.deliveryContract && Object.keys(s.deliveryContract).length))) return false;
     if (fSearch && !(s.tradeName || '').toLowerCase().includes(fSearch.toLowerCase()) && !(s.legalName || '').toLowerCase().includes(fSearch.toLowerCase())) return false;
     if (fSupplier && s.id !== fSupplier) return false;
     if (fResp && s.responsibleId !== fResp) return false;
