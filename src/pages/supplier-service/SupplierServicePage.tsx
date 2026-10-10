@@ -522,14 +522,18 @@ export default function SupplierServicePage() {
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
-                            <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['delivery'] && window.open(lkLinks['delivery'], '_blank', 'noreferrer')} title={lkLinks['delivery'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button>
+                            <p className="flex items-center gap-1.5">
                               {deliveryInfo?.status ? (
                                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${deliveryInfo.status === 'Активный' ? 'bg-green-50 text-green-700' : deliveryInfo.status === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'}`}>{String(deliveryInfo.status)}</span>
                               ) : (
-                                <button type="button" title="Активировать" onClick={() => { setActivateWh(String(deliveryInfo?.warehouseId || '')); setActivateOpen(true); }}
-                                  className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button>
-                              )}</p>
+                                <>
+                                  <button type="button" onClick={() => lkLinks['delivery'] && window.open(lkLinks['delivery'], '_blank', 'noreferrer')} title={lkLinks['delivery'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
+                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button>
+                                  <button type="button" title="Активировать" onClick={() => { setActivateWh(String(deliveryInfo?.warehouseId || '')); setActivateOpen(true); }}
+                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button>
+                                </>
+                              )}
+                            </p>
                           </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>

@@ -114,7 +114,8 @@ export default function DeliveryPage() {
   const findRoute = (supplierId: string) => (store.settings.deliveryRoutes || []).find(r => (r.stops || []).some(st => st.supplierId === supplierId));
 
   // v1.29.0: в раздел попадают поставщики с выданной ссылкой на ЛК доставки
-  const suppliers = store.suppliers.filter(s => !s.deletedAt && s.deliveryAccess?.token);
+  // v1.30.19: единый ЛК — токен может жить в serviceAccess (после ресофта) или deliveryAccess
+  const suppliers = store.suppliers.filter(s => !s.deletedAt && (s.deliveryAccess?.token || s.serviceAccess?.token));
   const deliveryCities = store.settings.deliveryCities || [];
   const operators = store.settings.deliveryOperators || [];
   const statuses = store.settings.deliveryContractStatuses || ['Ждёт активации', 'Активный', 'Аннулирован'];
