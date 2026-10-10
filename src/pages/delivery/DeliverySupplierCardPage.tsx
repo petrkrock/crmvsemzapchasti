@@ -212,8 +212,12 @@ export default function DeliverySupplierCardPage() {
             <div className="flex gap-2">
               <button type="button" onClick={() => {
                 if (dboDeleteText.trim() !== 'удалить') { toast.error('Введите слово удалить'); return; }
-                updateStore(s => ({ ...s, suppliers: s.suppliers.map(x => x.id === id ? { ...x, deliveryAccess: undefined, deliveryContract: undefined, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x) }));
-                toast.success('Поставщик удалён из раздела Доставка');
+                updateStore(s => ({
+                  ...s,
+                  suppliers: s.suppliers.map(x => x.id === id ? { ...x, deliveryAccess: undefined, deliveryContract: undefined, updatedAt: new Date().toISOString(), updatedBy: getCurrentUser()?.name || '' } : x),
+                  settings: { ...s.settings, deliveryRoutes: (s.settings.deliveryRoutes || []).map(r => ({ ...r, stops: (r.stops || []).filter(st => st.supplierId !== id) })) },
+                }));
+                toast.success('Поставщик полностью удалён из сервиса доставки');
                 setDboDeleteOpen(false); setDboDeleteText('');
               }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Удалить</button>
               <button type="button" onClick={() => setDboDeleteOpen(false)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>

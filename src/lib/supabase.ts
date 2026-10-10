@@ -205,8 +205,8 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.requisites !== undefined) db.requisites = s.requisites;
   if (s.serviceSearch !== undefined) db.service_search = s.serviceSearch;
   if (s.serviceAccess !== undefined) db.service_access = s.serviceAccess;
-  if (s.deliveryAccess !== undefined) db.delivery_access = s.deliveryAccess;
-  if (s.deliveryContract !== undefined) db.delivery_contract = s.deliveryContract;
+  db.delivery_access = s.deliveryAccess || null; // v1.30.20: null при удалении, иначе серверная копия не очищалась
+  db.delivery_contract = s.deliveryContract || null;
   if (s.history !== undefined) db.history = s.history;
   if (s.additionalContacts !== undefined) db.additional_contacts = orNull(s.additionalContacts);
   if (s.additionalComment !== undefined) db.additional_comment = orNull(s.additionalComment);
