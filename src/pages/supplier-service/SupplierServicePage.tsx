@@ -68,6 +68,7 @@ export default function SupplierServicePage() {
   const [whMsHint, setWhMsHint] = useState(false); // подсказка мультисклада
   const [faqHint, setFaqHint] = useState(false); // подсказка «Вопрос» в проценке
   const [activateOpen, setActivateOpen] = useState(false); // модалка активации доставки
+  const [citiesHint, setCitiesHint] = useState(false); // подсказка «Мои города доставки»
   const [activateWh, setActivateWh] = useState('');
   const [whSkuHint, setWhSkuHint] = useState(false); // подсказка «Склад» в разделе Склад
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
@@ -402,9 +403,8 @@ export default function SupplierServicePage() {
                         setWhErr(errs);
                         if (errs.city || errs.address || errs.sku) { setNotice('Заполните все поля'); return; }
                         if (!editingWhId && !data?.multiWarehouse && (data?.warehouses || []).length >= 1) { setNotice('Мультисклад не подключён. Для добавления второго склада обратитесь в поддержку.'); return; }
-                        const before = (data?.warehouses || []).length;
                         await addWarehouse();
-                        if (editingWhId || (data?.warehouses || []).length > before) { setWhModal(false); setWhErr({}); setEditingWhId(null); }
+                        setWhModal(false); setWhErr({}); setEditingWhId(null);
                       }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
                       <button type="button" onClick={() => { setWhModal(false); setWhErr({}); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
                     </div>
@@ -892,18 +892,31 @@ export default function SupplierServicePage() {
                 {dlTab === 'mycities' && (
                   <>
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-                      <div>
-                        <h3 className="section-title">Мои города доставки</h3>
-                        <p className="text-xs text-gray-400 mt-1">Города, в которых вы доставляете заказы.</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="section-title">Мои города доставки</h3>
+                          <p className="text-sm text-gray-400 mt-1">Шаг 1. Выберите интересующий Вас город или города, из доступных городов доставки.</p>
+                        </div>
+                        <span className="relative inline-block shrink-0">
+                          <button type="button" onClick={() => setCitiesHint(v => !v)} title="Подсказка"
+                            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${citiesHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                            ?
+                          </button>
+                          {citiesHint && (
+                            <span className="absolute right-0 top-full mt-2 z-30 w-80 max-w-[calc(100vw-4rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2 block" onClick={e => e.stopPropagation()}>
+                              <p><b className="text-red-700">Шаг 1.</b> Активируйте договор доставки.</p>
+                              <p><b className="text-red-700">Шаг 2.</b> Оплатите подписку на сервис доставки.</p>
+                              <p><b className="text-red-700">Шаг 3.</b> Выберите города доставки и дождитесь модерации.</p>
+                            </span>
+                          )}
+                        </span>
                       </div>
-                      <p className="text-xs text-gray-400">Города не добавлены.</p>
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div>
                           <h3 className="section-title">Доступные города доставки</h3>
-                          <p className="text-xs text-gray-400 mt-1">Города, в которых доступна доставка.</p>
                         </div>
                         <div className="flex items-center gap-4 text-xs pt-1">
                           <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span> <b className="text-gray-900">{dlCities.length}</b></span>
@@ -911,11 +924,10 @@ export default function SupplierServicePage() {
                         </div>
                       </div>
                       {dlCities.length ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
                           {dlCities.map(c => (
-                            <div key={c} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors">
-                              <MapPin size={14} className="text-red-500 shrink-0" />
-                              <span className="text-sm text-gray-800 truncate">{c}</span>
+                            <div key={c} className="px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 text-gray-700 hover:border-blue-400 transition-colors">
+                              <span className="text-sm truncate block">{c}</span>
                             </div>
                           ))}
                         </div>
@@ -1134,7 +1146,7 @@ export default function SupplierServicePage() {
                 const filtered = cities.filter(c => cityFilter === 'all' ? true : cityFilter === 'covered' ? isCov(c) : !isCov(c));
                 if (!filtered.length) return <p className="text-xs text-gray-400 mt-3">Городов по выбранному фильтру нет.</p>;
                 return (
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 mt-3">
                     {filtered.map(c => {
                       // ТЗ v1.25.7: уникальность ПАРОЙ склад+город — один склад покрывает все города
                       const idx = list.findIndex(x => (x.city || '').toLowerCase() === c.toLowerCase() && (x.warehouseName || '') === selectedWh);
