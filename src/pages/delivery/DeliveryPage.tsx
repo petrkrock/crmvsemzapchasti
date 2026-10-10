@@ -451,30 +451,12 @@ export default function DeliveryPage() {
           {/* ТАБЛИЦА ГОРОДОВ ДОСТАВКИ (v1.30.23) */}
           <div className="card-base p-5 space-y-4">
             <h3 className="section-title">Города доставки</h3>
-            <div className="flex flex-wrap gap-2 items-end">
-              <div>
-                <label className="text-xs font-semibold text-gray-600">Город</label>
-                <select className="form-input text-xs mt-1 w-44" value={dcRowCity} onChange={e => setDcRowCity(e.target.value)}>
-                  <option value="">— выберите город —</option>
-                  {(store.settings.cities || []).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600">Поставщик в доставке</label>
-                <select className="form-input text-xs mt-1 w-52" value={dcRowSupplier} onChange={e => setDcRowSupplier(e.target.value)}>
-                  <option value="">— выберите поставщика —</option>
-                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
-                </select>
-              </div>
-              <button type="button" onClick={saveCityRow} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">{dcRowEditingId ? 'Сохранить' : 'Добавить'}</button>
-              {dcRowEditingId && <button type="button" onClick={() => { setDcRowEditingId(null); setDcRowCity(''); setDcRowSupplier(''); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Отмена</button>}
-            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr>
                     <th className="table-header text-left">Город</th>
-                    <th className="table-header text-left">Поставщик в доставке</th>
+                    <th className="table-header text-left">Поставщики в доставке</th>
                     <th className="table-header text-left">Статус</th>
                     <th className="table-header text-left">Дата активации</th>
                     <th className="table-header text-left">Тариф</th>
@@ -499,8 +481,6 @@ export default function DeliveryPage() {
                       </td>
                       <td className="table-cell text-gray-400">—</td>
                       <td className="table-cell text-right whitespace-nowrap">
-                        <button type="button" title="Редактировать" onClick={() => { setDcRowEditingId(r.id); setDcRowCity(r.city); setDcRowSupplier(r.supplierId); }}
-                          className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Pencil size={14} /></button>
                         <button type="button" title="История" onClick={() => setDcRowHistoryId(r.id)}
                           className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
                         <button type="button" title="Удалить" onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityRows: (s.settings.deliveryCityRows || []).filter(x => x.id !== r.id) } })); toast.success('Строка удалена'); }}

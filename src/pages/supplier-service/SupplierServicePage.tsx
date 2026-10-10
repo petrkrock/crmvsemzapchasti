@@ -69,6 +69,8 @@ export default function SupplierServicePage() {
   const [faqHint, setFaqHint] = useState(false); // подсказка «Вопрос» в проценке
   const [activateOpen, setActivateOpen] = useState(false); // модалка активации доставки
   const [citiesHint, setCitiesHint] = useState(false); // подсказка «Мои города доставки»
+  const [myCities, setMyCities] = useState<Array<{ rowId: string; city: string; status: string }>>([]); // v1.30.24
+  const [addCityModal, setAddCityModal] = useState<string | null>(null); // город на добавление
   const [activateWh, setActivateWh] = useState('');
   const [whSkuHint, setWhSkuHint] = useState(false); // подсказка «Склад» в разделе Склад
   // v1.29.0: единый кабинет — меню и данные доставки (DBO)
@@ -172,6 +174,7 @@ export default function SupplierServicePage() {
       if (r.ok && d?.delivery) { setDeliveryInfo(d.delivery); setDlCities(d.deliveryCities || []); }
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
+      if (r.ok && d?.delivery?.myCities) setMyCities(d.delivery.myCities);
     } catch { /* останется null — покажем «—» */ }
   }
 
@@ -698,6 +701,24 @@ export default function SupplierServicePage() {
                 </div>
               )}
 
+              {/* МОДАЛКА ДОБАВЛЕНИЯ ГОРОДА В ДОСТАВКУ (v1.30.24) */}
+              {addCityModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAddCityModal(null)}>
+                  <div className="absolute inset-0 bg-black/50" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-base font-bold text-gray-900">Добавить город {addCityModal} в Мои города доставки?</h3>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={async () => {
+                        const err = await post({ addDeliveryCity: addCityModal });
+                        if (err) setNotice(err);
+                        else { setNotice('Город добавлен в доставку'); setAddCityModal(null); loadDeliveryInfo(); }
+                      }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Добавить</button>
+                      <button type="button" onClick={() => setAddCityModal(null)} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отменить</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* МОДАЛКА ПОЛНОГО ТЕКСТА НОВОСТИ */}
               {newsModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setNewsModal(null)}>
@@ -911,6 +932,21 @@ export default function SupplierServicePage() {
                           )}
                         </span>
                       </div>
+                      {myCities.length ? (
+                        <div className="space-y-2">
+                          {myCities.map(mc => {
+                            const st = mc.status || 'Ждёт активации';
+                            const stCls = st === 'Активный' ? 'bg-green-100 text-green-700' : st === 'Заморожен' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700';
+                            return (
+                              <div key={mc.rowId} className="border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-4 hover:border-gray-300 transition-colors bg-white">
+                                <MapPin size={16} className="text-gray-400 shrink-0" />
+                                <p className="text-sm font-semibold text-gray-800 flex-1 truncate">{mc.city}</p>
+                                <span className={`text-[11px] font-semibold px-2 py-1 rounded-md w-32 shrink-0 text-center ${stCls}`}>{st}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
@@ -926,9 +962,10 @@ export default function SupplierServicePage() {
                       {dlCities.length ? (
                         <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
                           {dlCities.map(c => (
-                            <div key={c} className="px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 text-gray-700 hover:border-blue-400 transition-colors">
+                            <button key={c} type="button" onClick={() => setAddCityModal(c)}
+                              className="px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 text-gray-700 hover:border-blue-400 transition-colors text-left">
                               <span className="text-sm truncate block">{c}</span>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       ) : (
