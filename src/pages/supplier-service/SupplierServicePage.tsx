@@ -445,6 +445,8 @@ export default function SupplierServicePage() {
               </div>
             )}
 
+              {/* МОДАЛКА ДОБАВЛЕНИЯ ГОРОДА В ДОСТАВКУ (v1.30.24) */}
+
             {lkTab === 'dashboard' && (() => {
               const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
               const lkLinks = (dash?.lkLinks as Record<string, string>) || {};
@@ -701,7 +703,7 @@ export default function SupplierServicePage() {
                 </div>
               )}
 
-              {/* МОДАЛКА ДОБАВЛЕНИЯ ГОРОДА В ДОСТАВКУ (v1.30.24) */}
+
               {addCityModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAddCityModal(null)}>
                   <div className="absolute inset-0 bg-black/50" />
