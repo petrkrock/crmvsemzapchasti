@@ -269,6 +269,17 @@ async function handlePost(req: Request) {
     if (body.warehouseId !== undefined) dc.warehouseId = String(body.warehouseId ?? '').slice(0, 60);
     patch.delivery_contract = dc;
   }
+  // v1.30.24: поставщик добавляет город доставки из ЛК
+  if (body.addDeliveryCity !== undefined) {
+    const cityName = String(body.addDeliveryCity || '').slice(0, 100);
+    if (!cityName) return json({ error: 'Укажите город' }, 400);
+    const rows = [...((dset.deliveryCityRows as Array<Record<string, unknown>>) || [])];
+    if (!rows.some(r => String(r.supplierId) === String(supplier.id) && String(r.city) === cityName)) {
+      rows.push({ id: `dcr-${Date.now()}`, city: cityName, supplierId: String(supplier.id), status: 'Ждёт активации', history: [{ at: new Date().toISOString(), by: 'Поставщик (ЛК)', action: `Город «${cityName}» добавлен в доставку` }] });
+      await client.from('app_settings').update({ settings: { ...dset, deliveryCityRows: rows } }).eq('id', 'global');
+    }
+    return json({ ok: true });
+  }
   if (!Object.keys(patch).length) {
     // v1.29.0: данные доставки (DBO) для единого кабинета — после проверки PIN
     const dsetRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
@@ -285,6 +296,9 @@ async function handlePost(req: Request) {
       routeNumber: rt ? String(rt.number || '') : '',
       routeDays: rt ? ((rt.scheduleDays as string[]) || []) : [],
       routeStopTime: rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : '',
+      supplierId: String(supplier.id),
+      myCities: (((dset.deliveryCityRows as Array<Record<string, unknown>>) || []).filter(r => String(r.supplierId) === String(supplier.id)))
+        .map(r => ({ rowId: String(r.id), city: String(r.city || ''), status: String(r.status || '') })),
       schedule: rt ? [((rt.scheduleDays as string[]) || []).join(' '), rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : ''].filter(Boolean).join(' · ') : '',
       warehouse: dWh ? `${dWh.city || ''}${dWh.city && dWh.address ? ', ' : ''}${dWh.address || ''}` : '',
       citiesCount: ((dc.cities as string[]) || []).length,
