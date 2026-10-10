@@ -856,7 +856,10 @@ export default function SupplierServicePage() {
                     ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
                   </div>
                   <div className="self-center">
-                    <h2 className="text-sm font-semibold text-gray-900">{deliveryInfo?.routeNumber ? `№${String(deliveryInfo.routeNumber)}` : '—'}</h2>
+                    <h2 className="text-sm font-semibold text-gray-900">
+                      {deliveryInfo?.routeNumber ? `№${String(deliveryInfo.routeNumber)}` : '—'}
+                      {deliveryInfo?.routeStopTime ? <span className="text-xs font-normal text-gray-500"> · На поставщике: {String(deliveryInfo.routeStopTime)}</span> : null}
+                    </h2>
                   </div>
                   <div>
                     <div className="flex gap-1">

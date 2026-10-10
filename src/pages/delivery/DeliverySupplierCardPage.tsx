@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { getStore, useStoreVersion, updateStore } from '@/lib/store';
 import { getCurrentUser } from '@/lib/auth';
 import { toast } from 'sonner';
@@ -17,6 +17,8 @@ export default function DeliverySupplierCardPage() {
   const [dboComment, setDboComment] = useState('');
   const [dboEditMode, setDboEditMode] = useState(false);
   const [dboDraft, setDboDraft] = useState<Record<string, unknown>>({});
+  const [dboDeleteOpen, setDboDeleteOpen] = useState(false);
+  const [dboDeleteText, setDboDeleteText] = useState('');
 
   if (!supplier) {
     return (
@@ -86,10 +88,16 @@ export default function DeliverySupplierCardPage() {
           <>
           <div className="flex items-center gap-2 mb-2">
             {!dboEditMode ? (
-              <button type="button" onClick={() => { setDboDraft({ ...dc }); setDboEditMode(true); }}
-                className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                <Pencil size={10} /> Редактировать
-              </button>
+              <>
+                <button type="button" onClick={() => { setDboDraft({ ...dc }); setDboEditMode(true); }}
+                  className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                  <Pencil size={10} /> Редактировать
+                </button>
+                <button type="button" onClick={() => { setDboDeleteText(''); setDboDeleteOpen(true); }}
+                  className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-red-600 hover:bg-red-50 transition-colors">
+                  <Trash2 size={10} /> Удалить
+                </button>
+              </>
             ) : (
               <>
                 <button type="button" onClick={() => {
@@ -192,6 +200,27 @@ export default function DeliverySupplierCardPage() {
           </div>
         )}
       </div>
+
+      {/* МОДАЛКА УДАЛЕНИЯ ДОГОВОРА ДОСТАВКИ */}
+      {dboDeleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDboDeleteOpen(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-gray-900">Удалить договор доставки?</h3>
+            <p className="text-xs text-gray-500">Действие необратимо. Для подтверждения введите слово <b className="text-red-600">удалить</b>.</p>
+            <input className="form-input text-sm" placeholder="удалить" value={dboDeleteText} onChange={e => setDboDeleteText(e.target.value)} />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => {
+                if (dboDeleteText.trim() !== 'удалить') { toast.error('Введите слово удалить'); return; }
+                patchDeliveryContract({ status: '', warehouseId: '', contractNumber: '', contractDate: '', serviceTariff: '', cityTariff: '', operatorId: '', comment: '' });
+                toast.success('Договор доставки удалён');
+                setDboDeleteOpen(false); setDboDeleteText('');
+              }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Удалить</button>
+              <button type="button" onClick={() => setDboDeleteOpen(false)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
