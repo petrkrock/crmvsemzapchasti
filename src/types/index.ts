@@ -730,6 +730,8 @@ export interface AppSettings {
   lkLinks?: { delivery?: string; crossdock?: string; promo?: string };
   /** v1.29.33: Справочник операторов ЭДО (Настройки → Источники) */
   edoOperators?: string[];
+  /** v1.30.22: МКП (мин. количество поставщиков) по городам доставки — только для CRM */
+  deliveryCityMinSuppliers?: Record<string, number>;
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];

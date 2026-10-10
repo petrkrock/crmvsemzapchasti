@@ -400,7 +400,36 @@ export default function DeliveryPage() {
         </>
       )}
 
-      {view !== 'suppliers' && view !== 'pickup' && (
+      {view === 'cities' && (
+        <div className="space-y-4">
+          <div className="card-base p-5 space-y-4">
+            <h3 className="section-title">Доступные города доставки</h3>
+            {deliveryCities.length ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {deliveryCities.map(c => {
+                  const mkp = (store.settings.deliveryCityMinSuppliers || {})[c] || 0;
+                  const cnt = store.suppliers.filter(s => !s.deletedAt && (s.deliveryContract?.cities || []).includes(c)).length;
+                  const left = Math.max(0, mkp - cnt);
+                  return (
+                    <div key={c} className="border border-gray-200 rounded-2xl p-4 space-y-2">
+                      <p className="text-sm font-bold text-gray-900">{c}</p>
+                      <p className="text-xs text-gray-500">МКП: <b className="text-gray-900 tabular-nums">{mkp || '—'}</b></p>
+                      <p className="text-xs text-gray-500">Поставщиков: <b className="text-gray-900 tabular-nums">{cnt}</b></p>
+                      <p className={`text-[11px] font-semibold ${left === 0 && mkp > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {mkp > 0 ? (left === 0 ? 'Готов к доставке' : `До готовности: ${left}`) : 'МКП не задан'}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">Города не добавлены (Настройки → Доставка → Города).</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {view !== 'suppliers' && view !== 'pickup' && view !== 'cities' && (
         <div className="card-base p-8 text-center space-y-3">
           <p className="text-sm font-semibold text-gray-700">{VIEWS.find(v => v.key === view)?.label}</p>
           <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>

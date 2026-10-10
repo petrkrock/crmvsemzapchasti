@@ -1447,6 +1447,15 @@ const [tab, setTab] = useState('Статусы');
             {deliveryTab === 'statuses' && (
             <div className="card-base p-5 space-y-4">
               <div>
+                <h3 className="text-sm font-semibold text-gray-800 mb-1">Статусы городов</h3>
+                <p className="text-xs text-gray-400">Системные статусы городов доставки. Удаление недоступно.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {['Ждёт активации', 'Активный', 'Заморожен'].map(c => (
+                  <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span></span>
+                ))}
+              </div>
+              <div>
                 <h3 className="text-sm font-semibold text-gray-800 mb-1">Статусы договоров</h3>
                 <p className="text-xs text-gray-400">Системные статусы договоров доставки (DBO). Удаление недоступно.</p>
               </div>
@@ -1467,7 +1476,17 @@ const [tab, setTab] = useState('Статусы');
                 <button onClick={addDeliveryCity} className="btn-primary text-xs whitespace-nowrap">Добавить</button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(store.settings.deliveryCities || []).map(c => <span key={c} className="inline-flex items-center gap-1 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<ChipDelete inUse={false} onClick={() => removeDeliveryCity(c)} /></span>)}
+                {(store.settings.deliveryCities || []).map(c => (
+                  <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">
+                    {c}
+                    <span className="inline-flex items-center gap-1 text-[10px] text-gray-400" title="МКП — мин. количество поставщиков для готовности города">
+                      МКП
+                      <input className="form-input !w-12 !px-1 !py-0.5 text-[11px]" inputMode="numeric" value={(store.settings.deliveryCityMinSuppliers || {})[c] ?? ''} placeholder="—"
+                        onChange={e => { const v = e.target.value.replace(/\D/g, ''); updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityMinSuppliers: { ...(s.settings.deliveryCityMinSuppliers || {}), [c]: v ? Math.max(0, parseInt(v, 10)) : 0 } } })); forceUpdate(n => n + 1); }} />
+                    </span>
+                    <ChipDelete inUse={false} onClick={() => removeDeliveryCity(c)} />
+                  </span>
+                ))}
                 {!(store.settings.deliveryCities || []).length && <p className="text-xs text-gray-400">Города не добавлены.</p>}
               </div>
             </div>
