@@ -361,6 +361,9 @@ const [tab, setTab] = useState('Статусы');
   const [newSourceName, setNewSourceName] = useState('');
   // v1.29.33: справочник операторов ЭДО (Источники)
   const [newEdoOp, setNewEdoOp] = useState('');
+  // v1.30.26-FIX: черновики и модалка удаления города доставки
+  const [cityDraft, setCityDraft] = useState<Record<string, { days: string[]; from: string; to: string; mkp: number | '' }>>({});
+  const [dcDeleteCity, setDcDeleteCity] = useState<string | null>(null);
   function addEdoOperator() {
     const v = newEdoOp.trim();
     if (!v) return;
@@ -1476,42 +1479,92 @@ const [tab, setTab] = useState('Статусы');
                 <button onClick={addDeliveryCity} className="btn-primary text-xs whitespace-nowrap">Добавить</button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(store.settings.deliveryCities || []).map(c => (
-                  <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">
-                    {c}
-                    <span className="inline-flex items-center gap-1 text-[10px] text-gray-400" title="МКП — мин. количество поставщиков для готовности города">
-                      МКП
-                      <input className="form-input !w-12 !px-1 !py-0.5 text-[11px]" inputMode="numeric" value={(store.settings.deliveryCityMinSuppliers || {})[c] ?? ''} placeholder="—"
-                        onChange={e => { const v = e.target.value.replace(/\D/g, ''); updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityMinSuppliers: { ...(s.settings.deliveryCityMinSuppliers || {}), [c]: v ? Math.max(0, parseInt(v, 10)) : 0 } } })); forceUpdate(n => n + 1); }} />
-                    </span>
-                    <ChipDelete inUse={false} onClick={() => removeDeliveryCity(c)} />
-                  </span>
-                ))}
-                {!(store.settings.deliveryCities || []).length && <p className="text-xs text-gray-400">Города не добавлены.</p>}
                 {(store.settings.deliveryCities || []).length > 0 && (
-                  <div className="space-y-2 border-t border-gray-100 pt-3">
-                    <p className="text-[11px] font-semibold text-gray-600">График и время развоза</p>
-                    {(store.settings.deliveryCities || []).map(c => {
-                      const sch = (store.settings.deliveryCitySchedules || {})[c] || { days: [], from: '', to: '' };
-                      const setSch = (patch: Partial<{ days: string[]; from: string; to: string }>) => {
-                        updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCitySchedules: { ...(s.settings.deliveryCitySchedules || {}), [c]: { days: sch.days, from: sch.from, to: sch.to, ...patch } } } }));
-                        forceUpdate(n => n + 1);
-                      };
-                      return (
-                        <div key={c} className="flex items-center gap-2 flex-wrap border border-gray-100 rounded-xl px-3 py-2">
-                          <span className="text-xs font-semibold text-gray-700 w-28 truncate">{c}</span>
-                          <span className="flex gap-0.5">
-                            {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                              <button key={d} type="button" onClick={() => setSch({ days: sch.days.includes(d) ? sch.days.filter(x => x !== d) : [...sch.days, d] })}
-                                className={`w-6 h-5 text-[9px] rounded border transition-colors ${sch.days.includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400 hover:border-green-300'}`}>{d}</button>
-                            ))}
-                          </span>
-                          <input type="time" className="form-input text-xs w-auto" value={sch.from} onChange={ev => setSch({ from: ev.target.value })} />
-                          <span className="text-xs text-gray-400">—</span>
-                          <input type="time" className="form-input text-xs w-auto" value={sch.to} onChange={ev => setSch({ to: ev.target.value })} />
-                        </div>
-                      );
-                    })}
+                  <div className="overflow-x-auto border border-gray-100 rounded-xl">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="table-header text-left">Город</th>
+                          <th className="table-header text-left">График развоза</th>
+                          <th className="table-header text-left">(с - до)</th>
+                          <th className="table-header text-left">МКП</th>
+                          <th className="table-header text-right">Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(store.settings.deliveryCities || []).map(c => {
+                          const sch = (store.settings.deliveryCitySchedules || {})[c] || { days: [], from: '', to: '' };
+                          const mkpCur = (store.settings.deliveryCityMinSuppliers || {})[c] ?? '';
+                          const draft = cityDraft[c];
+                          const val = draft || { days: sch.days, from: sch.from, to: sch.to, mkp: mkpCur };
+                          const setD = (patch: Partial<{ days: string[]; from: string; to: string; mkp: number | '' }>) => setCityDraft(d => ({ ...d, [c]: { ...val, ...patch } }));
+                          const dirty = !!draft;
+                          return (
+                            <tr key={c} className="border-t border-gray-100">
+                              <td className="table-cell font-medium text-gray-800">{c}</td>
+                              <td className="table-cell">
+                                <span className="flex gap-0.5">
+                                  {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                                    <button key={d} type="button" onClick={() => setD({ days: val.days.includes(d) ? val.days.filter(x => x !== d) : [...val.days, d] })}
+                                      className={`w-6 h-5 text-[9px] rounded border transition-colors ${val.days.includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400 hover:border-green-300'}`}>{d}</button>
+                                  ))}
+                                </span>
+                              </td>
+                              <td className="table-cell whitespace-nowrap">
+                                <input type="time" className="form-input text-xs w-auto" value={val.from} onChange={ev => setD({ from: ev.target.value })} />
+                                <span className="text-xs text-gray-400 mx-1">—</span>
+                                <input type="time" className="form-input text-xs w-auto" value={val.to} onChange={ev => setD({ to: ev.target.value })} />
+                              </td>
+                              <td className="table-cell">
+                                <input className="form-input text-xs w-16" inputMode="numeric" value={val.mkp === '' ? '' : String(val.mkp)} placeholder="—"
+                                  onChange={ev => setD({ mkp: ev.target.value.replace(/\D/g, '') === '' ? '' : Math.max(0, parseInt(ev.target.value.replace(/\D/g, ''), 10)) })} />
+                              </td>
+                              <td className="table-cell text-right whitespace-nowrap">
+                                <button type="button" disabled={!dirty} onClick={() => {
+                                  updateStore(s => ({ ...s, settings: { ...s.settings,
+                                    deliveryCitySchedules: { ...(s.settings.deliveryCitySchedules || {}), [c]: { days: val.days, from: val.from, to: val.to } },
+                                    deliveryCityMinSuppliers: { ...(s.settings.deliveryCityMinSuppliers || {}), [c]: val.mkp === '' ? 0 : val.mkp },
+                                  } }));
+                                  setCityDraft(d => { const x = { ...d }; delete x[c]; return x; });
+                                  forceUpdate(n => n + 1); toast.success('Сохранено');
+                                }} className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-40">Сохранить</button>{' '}
+                                <button type="button" onClick={() => {
+                                  updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCities: (s.settings.deliveryCities || []).filter(x => x !== c) } }));
+                                  forceUpdate(n => n + 1); toast.success(`Город ${c} остановлен (убран из всех доступных мест)`);
+                                }} className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Остановить</button>{' '}
+                                <button type="button" title="Удалить навсегда" onClick={() => setDcDeleteCity(c)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={13} /></button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {!(store.settings.deliveryCities || []).length && <p className="text-xs text-gray-400">Города не добавлены.</p>}
+
+                {/* МОДАЛКА УДАЛЕНИЯ ГОРОДА ДОСТАВКИ */}
+                {dcDeleteCity && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDcDeleteCity(null)}>
+                    <div className="absolute inset-0 bg-black/50" />
+                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                      <h3 className="text-base font-bold text-gray-900">Удалить город {dcDeleteCity} навсегда?</h3>
+                      <p className="text-xs text-gray-500">Город будет удалён из списка доставки вместе с настройками (график, МКП).</p>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => {
+                          const c = dcDeleteCity;
+                          updateStore(s => {
+                            const sch = { ...(s.settings.deliveryCitySchedules || {}) }; delete sch[c];
+                            const mk = { ...(s.settings.deliveryCityMinSuppliers || {}) }; delete mk[c];
+                            return { ...s, settings: { ...s.settings, deliveryCities: (s.settings.deliveryCities || []).filter(x => x !== c), deliveryCitySchedules: sch, deliveryCityMinSuppliers: mk } };
+                          });
+                          forceUpdate(n => n + 1); toast.success(`Город ${c} удалён`);
+                          setDcDeleteCity(null);
+                        }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Удалить</button>
+                        <button type="button" onClick={() => setDcDeleteCity(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

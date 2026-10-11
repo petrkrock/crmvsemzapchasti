@@ -451,7 +451,7 @@ export default function SupplierServicePage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAddCityModal(null)}>
                   <div className="absolute inset-0 bg-black/50" />
                   <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-base font-bold text-gray-900">Добавить город {addCityModal} в Мои города доставки?</h3>
+                    <h3 className="text-base font-bold text-gray-900">Добавить город {addCityModal} в доставку?</h3>
                   {(() => {
                     const sch = citySchedules[addCityModal];
                     return sch ? (
@@ -465,12 +465,12 @@ export default function SupplierServicePage() {
                           </span>
                           <span className="text-xs text-gray-600">с {sch.from || '—'} до {sch.to || '—'}</span>
                         </div>
-                        <p className="text-xs text-gray-600">Доставка — ЗАВТРА, ПОСЛЕЗАВТРА.</p>
                       </div>
                     ) : null;
                   })()}
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[11px] text-gray-500 leading-relaxed">
-                    Внимание! Все заказы которые Мы забрали сегодня – доставляются завтра.
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[11px] text-gray-500 leading-relaxed space-y-1">
+                    <p>Внимание! Все заказы, принятые сегодня, будут доставлены получателям завтра.</p>
+                    <p>Для покупателей срок поставки всегда составляет 1 день (сегодня заказ - завтра доставка).</p>
                   </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={async () => {
