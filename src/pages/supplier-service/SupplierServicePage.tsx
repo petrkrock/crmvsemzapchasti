@@ -69,7 +69,7 @@ export default function SupplierServicePage() {
   const [faqHint, setFaqHint] = useState(false); // подсказка «Вопрос» в проценке
   const [activateOpen, setActivateOpen] = useState(false); // модалка активации доставки
   const [citiesHint, setCitiesHint] = useState(false); // подсказка «Мои города доставки»
-  const [myCities, setMyCities] = useState<Array<{ rowId: string; city: string; status: string }>>([]); // v1.30.24
+  const [myCities, setMyCities] = useState<Array<{ rowId: string; city: string; status: string; activatedAt?: string; days?: string[]; from?: string; to?: string }>>([]); // v1.30.24+
   const [citySchedules, setCitySchedules] = useState<Record<string, { days: string[]; from: string; to: string }>>({}); // v1.30.26
   const [addCityModal, setAddCityModal] = useState<string | null>(null); // город на добавление
   const [activateWh, setActivateWh] = useState('');
@@ -456,8 +456,8 @@ export default function SupplierServicePage() {
                     const sch = citySchedules[addCityModal];
                     return sch ? (
                       <div className="space-y-2">
+                        <p className="text-xs text-gray-500">График и время развоза:</p>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-gray-500">График и время развоза:</span>
                           <span className="flex gap-0.5">
                             {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
                               <span key={d} className={`w-6 h-5 text-[9px] rounded border flex items-center justify-center ${(sch.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
@@ -951,12 +951,15 @@ export default function SupplierServicePage() {
                       </div>
                       {dlCities.length ? (
                         <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
-                          {dlCities.map(c => (
-                            <button key={c} type="button" onClick={() => setAddCityModal(c)}
-                              className="px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 text-gray-700 hover:border-blue-400 transition-colors text-left">
-                              <span className="text-sm truncate block">{c}</span>
-                            </button>
-                          ))}
+                          {dlCities.map(c => {
+                            const taken = myCities.some(mc => mc.city === c);
+                            return (
+                              <button key={c} type="button" disabled={taken} onClick={() => setAddCityModal(c)}
+                                className={`px-3 py-2.5 rounded-xl border text-left transition-colors ${taken ? 'bg-green-50 border-green-300 text-green-700 cursor-default' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-blue-400'}`}>
+                                <span className="text-sm truncate block">{c}</span>
+                              </button>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-xs text-gray-400">Список городов появится после настройки (Настройки → Доставка → Города).</p>
@@ -975,7 +978,9 @@ export default function SupplierServicePage() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h3 className="section-title">Мои города доставки</h3>
-                          <p className="text-sm text-gray-400 mt-1">Шаг 1. Выберите интересующий Вас город или города, из доступных городов доставки.</p>
+                          {myCities.length === 0 && (
+                            <p className="text-sm text-gray-400 mt-1">Шаг 1. Выберите интересующий Вас город или города, из доступных городов доставки.</p>
+                          )}
                         </div>
                         <span className="relative inline-block shrink-0">
                           <button type="button" onClick={() => setCitiesHint(v => !v)} title="Подсказка"
@@ -992,18 +997,38 @@ export default function SupplierServicePage() {
                         </span>
                       </div>
                       {myCities.length ? (
-                        <div className="space-y-2">
-                          {myCities.map(mc => {
-                            const st = mc.status || 'Ждёт активации';
-                            const stCls = st === 'Активный' ? 'bg-green-100 text-green-700' : st === 'Заморожен' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700';
-                            return (
-                              <div key={mc.rowId} className="border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-4 hover:border-gray-300 transition-colors bg-white">
-                                <MapPin size={16} className="text-gray-400 shrink-0" />
-                                <p className="text-sm font-semibold text-gray-800 flex-1 truncate">{mc.city}</p>
-                                <span className={`text-[11px] font-semibold px-2 py-1 rounded-md w-32 shrink-0 text-center ${stCls}`}>{st}</span>
-                              </div>
-                            );
-                          })}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="table-header text-left">Город</th>
+                                <th className="table-header text-left">График развоза (с - до)</th>
+                                <th className="table-header text-left">Статус</th>
+                                <th className="table-header text-left">Дата активации</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {myCities.map(mc => {
+                                const st = mc.status || 'Ждёт активации';
+                                const stCls = st === 'Активный' ? 'bg-green-100 text-green-700' : st === 'Заморожен' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700';
+                                return (
+                                  <tr key={mc.rowId} className="border-t border-gray-100">
+                                    <td className="table-cell font-medium text-gray-800">{mc.city}</td>
+                                    <td className="table-cell whitespace-nowrap">
+                                      <span className="flex gap-0.5 align-middle">
+                                        {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                                          <span key={d} className={`w-6 h-5 text-[9px] rounded border flex items-center justify-center ${(mc.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
+                                        ))}
+                                      </span>
+                                      <span className="text-xs text-gray-600 ml-2">с {mc.from || '—'} до {mc.to || '—'}</span>
+                                    </td>
+                                    <td className="table-cell"><span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${stCls}`}>{st}</span></td>
+                                    <td className="table-cell text-gray-600">{mc.activatedAt || '—'}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       ) : null}
                     </div>
