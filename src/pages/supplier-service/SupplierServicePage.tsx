@@ -70,6 +70,7 @@ export default function SupplierServicePage() {
   const [activateOpen, setActivateOpen] = useState(false); // модалка активации доставки
   const [citiesHint, setCitiesHint] = useState(false); // подсказка «Мои города доставки»
   const [myCities, setMyCities] = useState<Array<{ rowId: string; city: string; status: string }>>([]); // v1.30.24
+  const [citySchedules, setCitySchedules] = useState<Record<string, { days: string[]; from: string; to: string }>>({}); // v1.30.26
   const [addCityModal, setAddCityModal] = useState<string | null>(null); // город на добавление
   const [activateWh, setActivateWh] = useState('');
   const [whSkuHint, setWhSkuHint] = useState(false); // подсказка «Склад» в разделе Склад
@@ -175,6 +176,7 @@ export default function SupplierServicePage() {
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
       if (r.ok && d?.delivery?.myCities) setMyCities(d.delivery.myCities);
+      if (r.ok && d?.delivery?.citySchedules) setCitySchedules(d.delivery.citySchedules);
     } catch { /* останется null — покажем «—» */ }
   }
 
@@ -450,6 +452,26 @@ export default function SupplierServicePage() {
                   <div className="absolute inset-0 bg-black/50" />
                   <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
                     <h3 className="text-base font-bold text-gray-900">Добавить город {addCityModal} в Мои города доставки?</h3>
+                  {(() => {
+                    const sch = citySchedules[addCityModal];
+                    return sch ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-gray-500">График и время развоза:</span>
+                          <span className="flex gap-0.5">
+                            {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                              <span key={d} className={`w-6 h-5 text-[9px] rounded border flex items-center justify-center ${(sch.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
+                            ))}
+                          </span>
+                          <span className="text-xs text-gray-600">с {sch.from || '—'} до {sch.to || '—'}</span>
+                        </div>
+                        <p className="text-xs text-gray-600">Доставка — ЗАВТРА, ПОСЛЕЗАВТРА.</p>
+                      </div>
+                    ) : null;
+                  })()}
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[11px] text-gray-500 leading-relaxed">
+                    Внимание! Все заказы которые Мы забрали сегодня – доставляются завтра.
+                  </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={async () => {
                         const err = await post({ addDeliveryCity: addCityModal });

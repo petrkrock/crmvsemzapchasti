@@ -745,6 +745,8 @@ export interface AppSettings {
   deliveryCityMinSuppliers?: Record<string, number>;
   /** v1.30.23: Таблица «Города доставки» (город × поставщик) */
   deliveryCityRows?: DeliveryCityRow[];
+  /** v1.30.26: График и время развоза по городам доставки */
+  deliveryCitySchedules?: Record<string, { days: string[]; from: string; to: string }>;
   /** v1.30.23: Таблица «Города доставки» (город × поставщик) */
   deliveryCityRows?: DeliveryCityRow[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */

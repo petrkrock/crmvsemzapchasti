@@ -1488,6 +1488,32 @@ const [tab, setTab] = useState('Статусы');
                   </span>
                 ))}
                 {!(store.settings.deliveryCities || []).length && <p className="text-xs text-gray-400">Города не добавлены.</p>}
+                {(store.settings.deliveryCities || []).length > 0 && (
+                  <div className="space-y-2 border-t border-gray-100 pt-3">
+                    <p className="text-[11px] font-semibold text-gray-600">График и время развоза</p>
+                    {(store.settings.deliveryCities || []).map(c => {
+                      const sch = (store.settings.deliveryCitySchedules || {})[c] || { days: [], from: '', to: '' };
+                      const setSch = (patch: Partial<{ days: string[]; from: string; to: string }>) => {
+                        updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCitySchedules: { ...(s.settings.deliveryCitySchedules || {}), [c]: { days: sch.days, from: sch.from, to: sch.to, ...patch } } } }));
+                        forceUpdate(n => n + 1);
+                      };
+                      return (
+                        <div key={c} className="flex items-center gap-2 flex-wrap border border-gray-100 rounded-xl px-3 py-2">
+                          <span className="text-xs font-semibold text-gray-700 w-28 truncate">{c}</span>
+                          <span className="flex gap-0.5">
+                            {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                              <button key={d} type="button" onClick={() => setSch({ days: sch.days.includes(d) ? sch.days.filter(x => x !== d) : [...sch.days, d] })}
+                                className={`w-6 h-5 text-[9px] rounded border transition-colors ${sch.days.includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400 hover:border-green-300'}`}>{d}</button>
+                            ))}
+                          </span>
+                          <input type="time" className="form-input text-xs w-auto" value={sch.from} onChange={ev => setSch({ from: ev.target.value })} />
+                          <span className="text-xs text-gray-400">—</span>
+                          <input type="time" className="form-input text-xs w-auto" value={sch.to} onChange={ev => setSch({ to: ev.target.value })} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
             </div>
