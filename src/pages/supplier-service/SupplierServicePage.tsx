@@ -1487,14 +1487,6 @@ export default function SupplierServicePage() {
                   
                 </div>
               )}
-                <div className="hidden lg:grid grid-cols-[180px_210px_minmax(220px,1fr)_170px_110px_44px] gap-x-4 px-4 pb-1 text-[10px] uppercase tracking-wide text-gray-400 whitespace-nowrap">
-                  <span>Склад / Город</span>
-                  <span>График доставки</span>
-                  <span>Условия доставки</span>
-                  <span>Представитель</span>
-                  <span className="text-center">Статус</span>
-                  <span />
-                </div>
                 {(() => {
                   const list = data.serviceSearch || [];
                   const filtered = list.filter(c => (statusFilter === 'all' || (c.status || 'Новое') === statusFilter) && (!selectedWh || c.warehouseName === selectedWh) && (!pendingCity || c.city === pendingCity)); // ТЗ v1.23.23: фильтр склад+город

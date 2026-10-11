@@ -449,7 +449,7 @@ const [tab, setTab] = useState('Статусы');
   // v1.29.0: города доставки (DBO) — вкладка Доставка
   const [newDeliveryCity, setNewDeliveryCity] = useState('');
   // v1.29.0: под-вкладки Доставки + форма оператора
-  const [deliveryTab, setDeliveryTab] = useState<'cities' | 'statuses' | 'serviceTariffs' | 'cityTariffs'>('cities');
+  const [deliveryTab, setDeliveryTab] = useState<'cities' | 'statuses' | 'serviceTariffs'>('cities');
   // v1.30.0: подвкладки «ЛК Поставщик»
   const [lkTab, setLkTab] = useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('manager');
   const [lkBannerImg, setLkBannerImg] = useState('');
@@ -501,12 +501,15 @@ const [tab, setTab] = useState('Статусы');
   const [opUserId, setOpUserId] = useState('');
   // v1.29.0: тарифы доставки
   const [tariffName, setTariffName] = useState('');
+  const [tariffCityRate, setTariffCityRate] = useState('');
+  const [tariffPoints, setTariffPoints] = useState('');
+  const [tariffExtraPoint, setTariffExtraPoint] = useState('');
   const [tariffPrice, setTariffPrice] = useState('');
   function addTariff(field: 'deliveryServiceTariffs' | 'deliveryCityTariffs') {
     if (!tariffName.trim()) { toast.error('Укажите название тарифа'); return; }
-    const tariff = { id: `dt-${Date.now()}`, name: tariffName.trim(), pricePerMonth: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), createdAt: new Date().toISOString() };
+    const tariff = { id: `dt-${Date.now()}`, name: tariffName.trim(), pricePerMonth: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), basePackage: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), cityRate: Math.max(0, parseFloat(tariffCityRate.replace(',', '.')) || 0), pointsIncluded: Math.max(0, parseInt(tariffPoints, 10) || 0), extraPointPrice: Math.max(0, parseFloat(tariffExtraPoint.replace(',', '.')) || 0), createdAt: new Date().toISOString() };
     updateStore(s => ({ ...s, settings: { ...s.settings, [field]: [...(s.settings[field] || []), tariff] } }));
-    setTariffName(''); setTariffPrice('');
+    setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint('');
     forceUpdate(n => n + 1); toast.success('Тариф создан');
   }
   function removeTariff(field: 'deliveryServiceTariffs' | 'deliveryCityTariffs', id: string) {
@@ -1421,32 +1424,48 @@ const [tab, setTab] = useState('Статусы');
             <div className="flex gap-2 flex-wrap">
               <button onClick={() => setDeliveryTab('cities')} className={`btn-secondary text-xs ${deliveryTab === 'cities' ? '!border-red-600 !text-red-600' : ''}`}>Города</button>
               <button onClick={() => setDeliveryTab('statuses')} className={`btn-secondary text-xs ${deliveryTab === 'statuses' ? '!border-red-600 !text-red-600' : ''}`}>Статусы</button>
-              <button onClick={() => setDeliveryTab('serviceTariffs')} className={`btn-secondary text-xs ${deliveryTab === 'serviceTariffs' ? '!border-red-600 !text-red-600' : ''}`}>Тариф сервиса</button>
-              <button onClick={() => setDeliveryTab('cityTariffs')} className={`btn-secondary text-xs ${deliveryTab === 'cityTariffs' ? '!border-red-600 !text-red-600' : ''}`}>Тариф за Город</button>
+              <button onClick={() => setDeliveryTab('serviceTariffs')} className={`btn-secondary text-xs ${deliveryTab === 'serviceTariffs' ? '!border-red-600 !text-red-600' : ''}`}>Тарифы DBO</button>
             </div>
-            {(deliveryTab === 'serviceTariffs' || deliveryTab === 'cityTariffs') && (() => {
-              const field = deliveryTab === 'serviceTariffs' ? 'deliveryServiceTariffs' : 'deliveryCityTariffs';
-              return (
-                <div className="card-base p-5 space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-800 mb-1">{deliveryTab === 'serviceTariffs' ? 'Тариф сервиса' : 'Тариф за Город'}</h3>
-                  <div className="flex gap-2 flex-wrap">
-                    <input className="form-input flex-1 min-w-[200px]" placeholder="Название" value={tariffName} onChange={e => setTariffName(e.target.value)} />
-                    <input className="form-input w-36" placeholder="Стоимость в Мес." inputMode="decimal" value={tariffPrice} onChange={e => setTariffPrice(e.target.value.replace(/[^\d.,]/g, ''))} onKeyDown={e => e.key === 'Enter' && addTariff(field)} />
-                    <button onClick={() => addTariff(field)} className="btn-primary text-xs whitespace-nowrap">Создать тариф</button>
+            {deliveryTab === 'serviceTariffs' && (
+              <div className="card-base p-5 space-y-4">
+                <h3 className="text-sm font-semibold text-gray-800 mb-1">Тарифы DBO</h3>
+                <div className="space-y-3">
+                  <div className="border border-gray-100 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 1. Идентификация</p>
+                    <input className="form-input text-xs" placeholder="Название тарифа" value={tariffName} onChange={e => setTariffName(e.target.value)} />
+                    <p className="text-[10px] text-gray-400">Название тарифа в системе и в счетах клиента</p>
                   </div>
-                  <div className="space-y-2">
-                    {(store.settings[field] || []).map(tf => (
-                      <div key={tf.id} className="flex items-center gap-3 border border-gray-200 rounded-xl px-3 py-2.5">
-                        <span className="text-sm font-medium text-gray-800">{tf.name}</span>
-                        <span className="text-xs text-gray-500">{tf.pricePerMonth} ₽/мес</span>
-                        <button onClick={() => removeTariff(field, tf.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
-                      </div>
-                    ))}
-                    {!(store.settings[field] || []).length && <p className="text-xs text-gray-400">Тарифы не созданы.</p>}
+                  <div className="border border-gray-100 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 2. Фиксированный платёж</p>
+                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Базовый пакет (₽/мес)" value={tariffPrice} onChange={e => setTariffPrice(e.target.value.replace(/[^\d.,]/g, ''))} />
+                    <p className="text-[10px] text-gray-400">Ежедневный самовывоз со склада, Персональный менеджер, приёмка и обработка документов, возвратов. Списывается один раз в месяц и не зависит от количества городов и доставок.</p>
                   </div>
+                  <div className="border border-gray-100 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 3. Переменные платежи</p>
+                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Ставка за город (₽/день)" value={tariffCityRate} onChange={e => setTariffCityRate(e.target.value.replace(/[^\d.,]/g, ''))} />
+                    <p className="text-[10px] text-gray-400">Списывается за каждый день, когда в городе была хотя бы одна доставка. Городов можно подключить любое количество — по каждому ставка считается отдельно</p>
+                    <input className="form-input text-xs w-44" inputMode="numeric" placeholder="Точек доставки включено (шт)" value={tariffPoints} onChange={e => setTariffPoints(e.target.value.replace(/\D/g, ''))} />
+                    <p className="text-[10px] text-gray-400">Входит в ставку за город. Если точек в городе меньше лимита — доплата не берётся. Область действия: на каждый город</p>
+                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Стоимость последующей точки (₽/шт)" value={tariffExtraPoint} onChange={e => setTariffExtraPoint(e.target.value.replace(/[^\d.,]/g, ''))} />
+                    <p className="text-[10px] text-gray-400">Начисляется только за точки сверх включённого лимита. Считается по каждому городу отдельно</p>
+                  </div>
+                  <button onClick={addTariff} className="btn-primary text-xs">Создать тариф</button>
                 </div>
-              );
-            })()}
+                <div className="space-y-2">
+                  {(store.settings.deliveryServiceTariffs || []).map(tf => (
+                    <div key={tf.id} className="flex items-center gap-3 border border-gray-200 rounded-xl px-3 py-2.5 flex-wrap">
+                      <span className="text-sm font-medium text-gray-800 flex-1">{tf.name}</span>
+                      <span className="text-xs text-gray-500">Базовый: <b>{tf.basePackage ?? tf.pricePerMonth} ₽/мес</b></span>
+                      <span className="text-xs text-gray-500">Город: <b>{tf.cityRate ?? '—'} ₽/день</b></span>
+                      <span className="text-xs text-gray-500">Точек: <b>{tf.pointsIncluded ?? '—'}</b> · сверх: <b>{tf.extraPointPrice ?? '—'} ₽</b></span>
+                      <button onClick={() => removeTariff('deliveryServiceTariffs', tf.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
+                    </div>
+                  ))}
+                  {!(store.settings.deliveryServiceTariffs || []).length && <p className="text-xs text-gray-400">Тарифы не созданы.</p>}
+                </div>
+              </div>
+            )}
+
             {deliveryTab === 'statuses' && (
             <div className="card-base p-5 space-y-4">
               <div>

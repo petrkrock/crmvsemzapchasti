@@ -669,8 +669,16 @@ export interface DeliveryRoute {
 export interface DeliveryTariff {
   id: string;
   name: string;
-  /** Стоимость в месяц */
+  /** Стоимость в месяц (устарело — см. basePackage) */
   pricePerMonth: number;
+  /** v1.30.29: Базовый пакет (₽/мес) */
+  basePackage?: number;
+  /** Ставка за город (₽/день) */
+  cityRate?: number;
+  /** Точек доставки включено (шт) */
+  pointsIncluded?: number;
+  /** Стоимость последующей точки (₽/шт) */
+  extraPointPrice?: number;
   createdAt: string;
 }
 
