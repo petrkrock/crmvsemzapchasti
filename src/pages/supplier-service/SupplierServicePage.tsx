@@ -69,6 +69,8 @@ export default function SupplierServicePage() {
   const [faqHint, setFaqHint] = useState(false); // подсказка «Вопрос» в проценке
   const [activateOpen, setActivateOpen] = useState(false); // модалка активации доставки
   const [citiesHint, setCitiesHint] = useState(false); // подсказка «Мои города доставки»
+  const [tariffModal, setTariffModal] = useState(false); // таблица тарифа
+  const [myTariff, setMyTariff] = useState<Record<string, unknown> | null>(null); // v1.30.29
   const [myCities, setMyCities] = useState<Array<{ rowId: string; city: string; status: string; activatedAt?: string; days?: string[]; from?: string; to?: string }>>([]); // v1.30.24+
   const [citySchedules, setCitySchedules] = useState<Record<string, { days: string[]; from: string; to: string }>>({}); // v1.30.26
   const [addCityModal, setAddCityModal] = useState<string | null>(null); // город на добавление
@@ -177,6 +179,8 @@ export default function SupplierServicePage() {
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
       if (r.ok && d?.delivery?.myCities) setMyCities(d.delivery.myCities);
       if (r.ok && d?.delivery?.citySchedules) setCitySchedules(d.delivery.citySchedules);
+      if (r.ok && d?.delivery?.tariff !== undefined) setMyTariff(d.delivery.tariff);
+      if (r.ok && d?.delivery?.tariff !== undefined) setMyTariff(d.delivery.tariff);
     } catch { /* останется null — покажем «—» */ }
   }
 
@@ -418,7 +422,31 @@ export default function SupplierServicePage() {
               </div>
             )}
 
-              {/* {/* МОДАЛКА АКТИВАЦИИ ДОСТАВКИ */}
+              {/* МОДАЛКА ТАРИФА (v1.30.29) */}
+              {tariffModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setTariffModal(false)}>
+                  <div className="absolute inset-0 bg-black/50" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-bold text-gray-900">Подключенный тариф</h3>
+                      <button type="button" onClick={() => setTariffModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                    </div>
+                    {myTariff ? (
+                      <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 bg-gray-50 rounded-xl px-4 py-3 text-sm">
+                        <span className="text-gray-500">Тариф</span><b className="text-gray-900 text-right">{String(myTariff.name || '—')}</b>
+                        <span className="text-gray-500">Базовый пакет</span><b className="text-gray-900 text-right">{Number(myTariff.basePackage ?? myTariff.pricePerMonth) || 0} ₽/мес</b>
+                        <span className="text-gray-500">Ставка за город</span><b className="text-gray-900 text-right">{Number(myTariff.cityRate) || 0} ₽/день</b>
+                        <span className="text-gray-500">Точек включено</span><b className="text-gray-900 text-right">{Number(myTariff.pointsIncluded) || 0} шт</b>
+                        <span className="text-gray-500">Точка сверх лимита</span><b className="text-gray-900 text-right">{Number(myTariff.extraPointPrice) || 0} ₽/шт</b>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">Тариф не подключён.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* МОДАЛКА АКТИВАЦИИ ДОСТАВКИ */}
             {activateOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setActivateOpen(false)}>
                 <div className="absolute inset-0 bg-black/50" />
@@ -934,6 +962,28 @@ export default function SupplierServicePage() {
                         Активировать
                       </button>
                     )}
+                    <span className="inline-flex items-center gap-1.5 ml-1">
+                      <button type="button" onClick={() => setTariffModal(true)} title="Тариф"
+                        className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
+                        <FileText size={15} />
+                      </button>
+                      <button type="button" title="Инфо"
+                        onClick={() => { const u = (dash?.lkLinks as Record<string, string>)?.delivery; if (u) window.open(u, '_blank', 'noreferrer'); else setNotice('Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'); }}
+                        className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
+                        <Info size={15} />
+                      </button>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 ml-1">
+                      <button type="button" onClick={() => setTariffModal(true)} title="Тариф"
+                        className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
+                        <FileText size={15} />
+                      </button>
+                      <button type="button" title="Инфо"
+                        onClick={() => { const u = (dash?.lkLinks as Record<string, string>)?.delivery; if (u) window.open(u, '_blank', 'noreferrer'); else setNotice('Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'); }}
+                        className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
+                        <Info size={15} />
+                      </button>
+                    </span>
                   </div>
                 </div>
 
