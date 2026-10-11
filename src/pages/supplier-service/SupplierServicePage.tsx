@@ -917,7 +917,39 @@ export default function SupplierServicePage() {
 
                 {dlTab === 'mycities' && (
                   <>
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+                    <div className={`bg-white border border-gray-200 rounded-2xl p-5 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                          <h3 className="section-title">Доступные города доставки</h3>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs pt-1">
+                          <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span> <b className="text-gray-900">{dlCities.length}</b></span>
+                          <span className="flex items-center gap-2"><span className="text-gray-500">В доставке:</span> <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b></span>
+                        </div>
+                      </div>
+                      {dlCities.length ? (
+                        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
+                          {dlCities.map(c => (
+                            <button key={c} type="button" onClick={() => setAddCityModal(c)}
+                              className="px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 text-gray-700 hover:border-blue-400 transition-colors text-left">
+                              <span className="text-sm truncate block">{c}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-400">Список городов появится после настройки (Настройки → Доставка → Города).</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {dlTab !== 'mycities' && (
+                  <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+                    <p className="text-sm font-semibold text-gray-700">{DL_MENU.find(x => x.key === dlTab)?.label}</p>
+                    <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+                  </div>
+                )}
+              <div className={`bg-white border border-gray-200 rounded-2xl p-5 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h3 className="section-title">Мои города доставки</h3>
@@ -954,39 +986,7 @@ export default function SupplierServicePage() {
                       ) : null}
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div>
-                          <h3 className="section-title">Доступные города доставки</h3>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs pt-1">
-                          <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span> <b className="text-gray-900">{dlCities.length}</b></span>
-                          <span className="flex items-center gap-2"><span className="text-gray-500">В доставке:</span> <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b></span>
-                        </div>
-                      </div>
-                      {dlCities.length ? (
-                        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
-                          {dlCities.map(c => (
-                            <button key={c} type="button" onClick={() => setAddCityModal(c)}
-                              className="px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 text-gray-700 hover:border-blue-400 transition-colors text-left">
-                              <span className="text-sm truncate block">{c}</span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-400">Список городов появится после настройки (Настройки → Доставка → Города).</p>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {dlTab !== 'mycities' && (
-                  <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                    <p className="text-sm font-semibold text-gray-700">{DL_MENU.find(x => x.key === dlTab)?.label}</p>
-                    <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
-                  </div>
-                )}
-              </>
+                    </>
             )}
 
             {lkTab === 'cabinet' && (() => {
