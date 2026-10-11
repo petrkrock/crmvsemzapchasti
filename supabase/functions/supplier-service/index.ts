@@ -302,7 +302,11 @@ async function handlePost(req: Request) {
       supplierId: String(supplier.id),
       citySchedules: (dset.deliveryCitySchedules as Record<string, unknown>) || {},
       myCities: (((dset.deliveryCityRows as Array<Record<string, unknown>>) || []).filter(r => String(r.supplierId) === String(supplier.id)))
-        .map(r => ({ rowId: String(r.id), city: String(r.city || ''), status: String(r.status || '') })),
+        .map(r => {
+          const cityName = String(r.city || '');
+          const sch = ((dset.deliveryCitySchedules as Record<string, Record<string, unknown>>) || {})[cityName] || {};
+          return { rowId: String(r.id), city: cityName, status: String(r.status || ''), activatedAt: String(r.activatedAt || ''), days: (sch.days as string[]) || [], from: String(sch.from || ''), to: String(sch.to || '') };
+        }),
       schedule: rt ? [((rt.scheduleDays as string[]) || []).join(' '), rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : ''].filter(Boolean).join(' · ') : '',
       warehouse: dWh ? `${dWh.city || ''}${dWh.city && dWh.address ? ', ' : ''}${dWh.address || ''}` : '',
       citiesCount: ((dc.cities as string[]) || []).length,
