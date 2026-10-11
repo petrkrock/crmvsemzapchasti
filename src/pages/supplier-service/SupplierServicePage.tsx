@@ -939,7 +939,7 @@ export default function SupplierServicePage() {
 
                 {dlTab === 'mycities' && (
                   <>
-                    <div className={`bg-white border border-gray-200 rounded-2xl p-5 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
+                    <div className={`relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div>
                           <h3 className="section-title">Доступные города доставки</h3>
@@ -977,7 +977,7 @@ export default function SupplierServicePage() {
               <div className={`bg-white border border-gray-200 rounded-2xl p-5 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h3 className="section-title">Мои города доставки</h3>
+                          <h3 className="section-title">Мои города доставки (DBO)</h3>
                           {myCities.length === 0 && (
                             <p className="text-sm text-gray-400 mt-1">Шаг 1. Выберите интересующий Вас город или города, из доступных городов доставки.</p>
                           )}
@@ -1015,12 +1015,14 @@ export default function SupplierServicePage() {
                                   <tr key={mc.rowId} className="border-t border-gray-100">
                                     <td className="table-cell font-medium text-gray-800">{mc.city}</td>
                                     <td className="table-cell whitespace-nowrap">
-                                      <span className="flex gap-0.5 align-middle">
-                                        {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                                          <span key={d} className={`w-6 h-5 text-[9px] rounded border flex items-center justify-center ${(mc.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
-                                        ))}
+                                      <span className="flex items-center gap-2">
+                                        <span className="flex gap-0.5">
+                                          {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                                            <span key={d} className={`w-6 h-5 text-[9px] rounded border flex items-center justify-center ${(mc.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
+                                          ))}
+                                        </span>
+                                        <span className="text-xs text-gray-600">с {mc.from || '—'} до {mc.to || '—'}</span>
                                       </span>
-                                      <span className="text-xs text-gray-600 ml-2">с {mc.from || '—'} до {mc.to || '—'}</span>
                                     </td>
                                     <td className="table-cell"><span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${stCls}`}>{st}</span></td>
                                     <td className="table-cell text-gray-600">{mc.activatedAt || '—'}</td>
