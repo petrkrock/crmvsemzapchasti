@@ -164,19 +164,13 @@ export default function DeliverySupplierCardPage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600">Тариф сервиса</label>
+                <label className="text-xs font-semibold text-gray-600">Тарифы DBO</label>
                 <select className="form-input text-xs mt-1" disabled={!dboEditMode} value={dboEditMode ? String(dboDraft.serviceTariff ?? dc.serviceTariff ?? '') : (dc.serviceTariff || '')} onChange={e => setDboDraft({ ...dboDraft, serviceTariff: e.target.value })}>
                   <option value="">— выберите тариф —</option>
                   {serviceTariffs.map(t => <option key={t.id} value={t.id}>{t.name} · {t.pricePerMonth} ₽/мес</option>)}
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600">Тариф за Город</label>
-                <select className="form-input text-xs mt-1" disabled={!dboEditMode} value={dboEditMode ? String(dboDraft.cityTariff ?? dc.cityTariff ?? '') : (dc.cityTariff || '')} onChange={e => setDboDraft({ ...dboDraft, cityTariff: e.target.value })}>
-                  <option value="">— выберите тариф —</option>
-                  {cityTariffs.map(t => <option key={t.id} value={t.id}>{t.name} · {t.pricePerMonth} ₽/мес</option>)}
-                </select>
-              </div>
+
             </div>
           </div>
           </>
