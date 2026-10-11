@@ -1449,7 +1449,7 @@ const [tab, setTab] = useState('Статусы');
                     <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Стоимость последующей точки (₽/шт)" value={tariffExtraPoint} onChange={e => setTariffExtraPoint(e.target.value.replace(/[^\d.,]/g, ''))} />
                     <p className="text-[10px] text-gray-400">Начисляется только за точки сверх включённого лимита. Считается по каждому городу отдельно</p>
                   </div>
-                  <button onClick={addTariff} className="btn-primary text-xs">Создать тариф</button>
+                  <button onClick={() => addTariff('deliveryServiceTariffs')} className="btn-primary text-xs">Создать тариф</button>
                 </div>
                 <div className="space-y-2">
                   {(store.settings.deliveryServiceTariffs || []).map(tf => (

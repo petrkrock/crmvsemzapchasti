@@ -221,7 +221,7 @@ export default function DeliveryPage() {
                     <th className="table-header text-left">Города</th>
                     <th className="table-header text-left">Ответственный</th>
                     <th className="table-header text-left">Статус договора</th>
-                    <th className="table-header text-left">Тариф сервиса</th>
+                    <th className="table-header text-left">Тарифы DBO</th>
                   </tr>
                 </thead>
                 <tbody>
