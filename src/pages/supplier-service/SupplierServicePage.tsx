@@ -445,6 +445,24 @@ export default function SupplierServicePage() {
               </div>
             )}
 
+            {addCityModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAddCityModal(null)}>
+                  <div className="absolute inset-0 bg-black/50" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-base font-bold text-gray-900">Добавить город {addCityModal} в Мои города доставки?</h3>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={async () => {
+                        const err = await post({ addDeliveryCity: addCityModal });
+                        if (err) setNotice(err);
+                        else { setNotice('Город добавлен в доставку'); setAddCityModal(null); loadDeliveryInfo(); }
+                      }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Добавить</button>
+                      <button type="button" onClick={() => setAddCityModal(null)} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отменить</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
 
 
             {lkTab === 'dashboard' && (() => {
@@ -704,22 +722,7 @@ export default function SupplierServicePage() {
               )}
 
 
-              {addCityModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAddCityModal(null)}>
-                  <div className="absolute inset-0 bg-black/50" />
-                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-base font-bold text-gray-900">Добавить город {addCityModal} в Мои города доставки?</h3>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={async () => {
-                        const err = await post({ addDeliveryCity: addCityModal });
-                        if (err) setNotice(err);
-                        else { setNotice('Город добавлен в доставку'); setAddCityModal(null); loadDeliveryInfo(); }
-                      }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Добавить</button>
-                      <button type="button" onClick={() => setAddCityModal(null)} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отменить</button>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               {/* МОДАЛКА ПОЛНОГО ТЕКСТА НОВОСТИ */}
               {newsModal && (
