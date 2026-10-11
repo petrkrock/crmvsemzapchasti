@@ -445,7 +445,7 @@ export default function SupplierServicePage() {
               </div>
             )}
 
-              {/* МОДАЛКА ДОБАВЛЕНИЯ ГОРОДА В ДОСТАВКУ (v1.30.24) */}
+
 
             {lkTab === 'dashboard' && (() => {
               const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
