@@ -300,6 +300,7 @@ async function handlePost(req: Request) {
       routeDays: rt ? ((rt.scheduleDays as string[]) || []) : [],
       routeStopTime: rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : '',
       supplierId: String(supplier.id),
+      citySchedules: (dset.deliveryCitySchedules as Record<string, unknown>) || {},
       myCities: (((dset.deliveryCityRows as Array<Record<string, unknown>>) || []).filter(r => String(r.supplierId) === String(supplier.id)))
         .map(r => ({ rowId: String(r.id), city: String(r.city || ''), status: String(r.status || '') })),
       schedule: rt ? [((rt.scheduleDays as string[]) || []).join(' '), rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : ''].filter(Boolean).join(' · ') : '',
