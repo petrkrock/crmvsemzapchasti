@@ -996,43 +996,39 @@ export default function SupplierServicePage() {
                           )}
                         </span>
                       </div>
-                      {myCities.length ? (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="bg-gray-50">
-                                <th className="table-header text-left">Город</th>
-                                <th className="table-header text-left">График развоза (с - до)</th>
-                                <th className="table-header text-left">Статус</th>
-                                <th className="table-header text-left">Дата активации</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {myCities.map(mc => {
-                                const st = mc.status || 'Ждёт активации';
-                                const stCls = st === 'Активный' ? 'bg-green-100 text-green-700' : st === 'Заморожен' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700';
-                                return (
-                                  <tr key={mc.rowId} className="border-t border-gray-100">
-                                    <td className="table-cell font-medium text-gray-800">{mc.city}</td>
-                                    <td className="table-cell whitespace-nowrap">
-                                      <span className="flex items-center gap-2">
-                                        <span className="flex gap-0.5">
-                                          {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                                            <span key={d} className={`w-6 h-5 text-[9px] rounded border flex items-center justify-center ${(mc.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
-                                          ))}
-                                        </span>
-                                        <span className="text-xs text-gray-600">с {mc.from || '—'} до {mc.to || '—'}</span>
-                                      </span>
-                                    </td>
-                                    <td className="table-cell"><span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${stCls}`}>{st}</span></td>
-                                    <td className="table-cell text-gray-600">{mc.activatedAt || '—'}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : null}
+                      {myCities.length ? (() => {
+                        const cell = (label: string, value: React.ReactNode) => (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">{label}</p>
+                            <div className="text-sm font-medium text-gray-800">{value || '—'}</div>
+                          </div>
+                        );
+                        return myCities.map(mc => {
+                          const st = mc.status || 'Ждёт активации';
+                          const stCls = st === 'Активный' ? 'bg-green-100 text-green-700' : st === 'Заморожен' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700';
+                          return (
+                            <div key={mc.rowId} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[180px_minmax(220px,1fr)_150px_130px] items-center gap-x-4 gap-y-2 bg-gray-50 rounded-xl px-4 py-3 text-sm mb-2">
+                              {cell('Город', mc.city)}
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">График развоза (с - до)</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="flex gap-1">
+                                    {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
+                                      <span key={d} className={`w-6 h-6 text-[10px] flex items-center justify-center rounded-md border ${(mc.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
+                                    ))}
+                                  </span>
+                                  <span className="text-xs text-gray-600">с {mc.from || '—'} до {mc.to || '—'}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">Статус</p>
+                                <span className={`inline-block text-[11px] font-semibold px-2 py-1 rounded-md ${stCls}`}>{st}</span>
+                              </div>
+                              {cell('Дата активации', mc.activatedAt || '—')}
+                            </div>
+                          );
+                        });
+                      })() : null}
                     </div>
 
                     </>
