@@ -301,6 +301,7 @@ async function handlePost(req: Request) {
       routeStopTime: rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : '',
       supplierId: String(supplier.id),
       citySchedules: (dset.deliveryCitySchedules as Record<string, unknown>) || {},
+      tariff: (((dset.deliveryServiceTariffs as Array<Record<string, unknown>>) || []).find(tf => String(tf.id) === String(dc.serviceTariff || ''))) || null,
       myCities: (((dset.deliveryCityRows as Array<Record<string, unknown>>) || []).filter(r => String(r.supplierId) === String(supplier.id)))
         .map(r => {
           const cityName = String(r.city || '');
