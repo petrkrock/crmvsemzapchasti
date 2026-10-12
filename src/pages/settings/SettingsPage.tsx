@@ -449,7 +449,7 @@ const [tab, setTab] = useState('Статусы');
   // v1.29.0: города доставки (DBO) — вкладка Доставка
   const [newDeliveryCity, setNewDeliveryCity] = useState('');
   // v1.29.0: под-вкладки Доставки + форма оператора
-  const [deliveryTab, setDeliveryTab] = useState<'cities' | 'statuses' | 'serviceTariffs'>('cities');
+  const [deliveryTab, setDeliveryTab] = useState<'cities' | 'statuses' | 'serviceTariffs' | 'deliveries'>('cities');
   // v1.30.0: подвкладки «ЛК Поставщик»
   const [lkTab, setLkTab] = useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('manager');
   const [lkBannerImg, setLkBannerImg] = useState('');
@@ -511,6 +511,31 @@ const [tab, setTab] = useState('Статусы');
     updateStore(s => ({ ...s, settings: { ...s.settings, [field]: [...(s.settings[field] || []), tariff] } }));
     setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint('');
     forceUpdate(n => n + 1); toast.success('Тариф создан');
+  }
+  // v1.30.31: создание заданий на доставку
+  const [dtOpen, setDtOpen] = useState(false);
+  const [dtSupplier, setDtSupplier] = useState('');
+  const [dtDate, setDtDate] = useState('');
+  const [dtPoints, setDtPoints] = useState<Record<string, string>>({});
+  function createDeliveryTask() {
+    if (!dtSupplier) { toast.error('Выберите поставщика'); return; }
+    if (!dtDate) { toast.error('Укажите дату'); return; }
+    const sup = (store.suppliers || []).find(s => s.id === dtSupplier);
+    const tariff = (store.settings.deliveryServiceTariffs || []).find(tf => tf.id === sup?.deliveryContract?.serviceTariff);
+    const rate = Number(tariff?.cityRate) || 0;
+    const included = Number(tariff?.pointsIncluded) || 0;
+    const extraPrice = Number(tariff?.extraPointPrice) || 0;
+    const cities = (store.settings.deliveryCityRows || []).filter(r => r.supplierId === dtSupplier && (r.status || '') === 'Активный');
+    if (!cities.length) { toast.error('У поставщика нет активных городов доставки'); return; }
+    const tasks = cities.map(r => {
+      const pts = Math.max(0, parseInt(dtPoints[r.city] || '0', 10) || 0);
+      const over = Math.max(0, pts - included);
+      const extra = over * extraPrice;
+      return { id: `dtask-${Date.now()}-${r.id}`, supplierId: dtSupplier, date: dtDate, city: r.city, points: pts, rate, extra, total: rate + extra, status: 'Новый', createdAt: new Date().toISOString() };
+    });
+    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: [...(s.settings.deliveryTasks || []), ...tasks] } }));
+    toast.success(`Создано заданий: ${tasks.length}`);
+    setDtOpen(false); setDtSupplier(''); setDtDate(''); setDtPoints({});
   }
   function removeTariff(field: 'deliveryServiceTariffs' | 'deliveryCityTariffs', id: string) {
     updateStore(s => ({ ...s, settings: { ...s.settings, [field]: (s.settings[field] || []).filter(x => x.id !== id) } }));
@@ -1425,6 +1450,7 @@ const [tab, setTab] = useState('Статусы');
               <button onClick={() => setDeliveryTab('cities')} className={`btn-secondary text-xs ${deliveryTab === 'cities' ? '!border-red-600 !text-red-600' : ''}`}>Города</button>
               <button onClick={() => setDeliveryTab('statuses')} className={`btn-secondary text-xs ${deliveryTab === 'statuses' ? '!border-red-600 !text-red-600' : ''}`}>Статусы</button>
               <button onClick={() => setDeliveryTab('serviceTariffs')} className={`btn-secondary text-xs ${deliveryTab === 'serviceTariffs' ? '!border-red-600 !text-red-600' : ''}`}>Тарифы DBO</button>
+              <button onClick={() => setDeliveryTab('deliveries')} className={`btn-secondary text-xs ${deliveryTab === 'deliveries' ? '!border-red-600 !text-red-600' : ''}`}>Доставки</button>
             </div>
             {deliveryTab === 'serviceTariffs' && (
               <div className="card-base p-5 space-y-4">
