@@ -248,7 +248,7 @@ export default function DeliveryPage() {
           {/* СПИСОК */}
           <div className="card-base overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm border border-gray-200">
                 <thead>
                   <tr>
                     <th className="table-header text-left">Поставщик</th>
@@ -369,7 +369,7 @@ export default function DeliveryPage() {
 
           <div className="card-base overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm border border-gray-200">
                 <thead>
                   <tr>
                     <th className="table-header text-left">Номер маршрута</th>
@@ -513,7 +513,7 @@ export default function DeliveryPage() {
               </span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm border border-gray-200">
                 <thead>
                   <tr>
                     <th className="table-header text-left">Город</th>
@@ -598,7 +598,7 @@ export default function DeliveryPage() {
         const rate = Number(tariff?.cityRate) || 0;
         const included = Number(tariff?.pointsIncluded) || 0;
         const extraPrice = Number(tariff?.extraPointPrice) || 0;
-        const cities = (store.settings.deliveryCityRows || []).filter(r => r.supplierId === dtSupplier && (r.status || '') === 'Активный');
+        const cities = (store.settings.deliveryCityRows || []).filter(r => r.supplierId === dtSupplier && (r.status || '') === 'Активный' && !(store.settings.deliveryTasks || []).some(t => t.supplierId === dtSupplier && t.date === dtDate && t.city === r.city));
         const today = new Date().toISOString().slice(0, 10);
         const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
         const userName = getCurrentUser()?.name || '';
@@ -620,32 +620,37 @@ export default function DeliveryPage() {
         }
         function addOne(city: string) {
           if (!dtDate) { toast.error('Укажите дату'); return; }
+          if (!(parseInt(dtPoints[city] || '0', 10) || 0)) { toast.error('Укажите точки доставки'); return; }
           pushTask(buildTask(city));
           toast.success(`Задание по городу ${city} добавлено`);
         }
         function addAll() {
           if (!dtDate) { toast.error('Укажите дату'); return; }
           if (!cities.length) { toast.error('Нет активных городов'); return; }
+          const emptyCity = cities.find(r => !(parseInt(dtPoints[r.city] || '0', 10) || 0));
+          if (emptyCity) { toast.error(`Укажите точки доставки для города ${emptyCity.city}`); return; }
           cities.forEach(r => pushTask(buildTask(r.city)));
           toast.success(`Добавлено заданий: ${cities.length}`);
           setDtOpen(false); setDtSupplier(''); setDtDate(''); setDtPoints({}); setDtComments({}); setDtStatuses({});
         }
 
         return (
-          <div className="card-base p-5 space-y-4">
+          <div className="space-y-4">
+          <div className="card-base p-5">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h3 className="section-title">Сводка по сервису доставки</h3>
               {!dtOpen && (
                 <button type="button" onClick={() => { setDtSupplier(''); setDtDate(today); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtOpen(true); }} className="btn-primary text-xs">Создать задание</button>
               )}
             </div>
+          </div>
 
-            {dtOpen && (
+          {dtOpen && (
+          <div className="card-base p-5 space-y-4">
               <div className="border border-gray-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-end gap-2 flex-wrap">
                   <div>
-                    <label className="text-xs font-semibold text-gray-600">Выберите поставщика</label>
-                    <select className="form-input text-xs mt-1 w-56" value={dtSupplier} onChange={e => { setDtSupplier(e.target.value); setDtPoints({}); setDtComments({}); setDtStatuses({}); }}>
+                    <select className="form-input text-xs w-56" value={dtSupplier} onChange={e => { setDtSupplier(e.target.value); setDtPoints({}); setDtComments({}); setDtStatuses({}); }}>
                       <option value="">— выберите поставщика —</option>
                       {activeSuppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
                     </select>
@@ -669,7 +674,7 @@ export default function DeliveryPage() {
 
                 {dtSupplier && (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm border border-gray-200">
                       <thead>
                         <tr className="bg-gray-50">
                           <th className="table-header text-left">Город</th>
@@ -711,12 +716,15 @@ export default function DeliveryPage() {
                     </table>
                   </div>
                 )}
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => { setDtOpen(false); }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Назад</button>
                   <button type="button" onClick={addAll} className="text-xs font-semibold px-5 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">Добавить весь список заданий</button>
                 </div>
               </div>
-            )}
+          </div>
+          )}
 
+          <div className="card-base p-5 space-y-4">
             {!dtOpen && (
               <>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -734,7 +742,7 @@ export default function DeliveryPage() {
                   </span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm border border-gray-200">
                     <thead>
                       <tr className="bg-gray-50">
                         <th className="table-header text-left">Поставщик</th>
@@ -760,7 +768,7 @@ export default function DeliveryPage() {
                             <td className="table-cell text-gray-600 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
                             <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
                             <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
-                            <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${tk.extra} ₽` : '—'}</td>
+                            <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${Math.max(0, tk.points - ((store.settings.deliveryServiceTariffs || []).find(tf => tf.id === suppliers.find(s => s.id === tk.supplierId)?.deliveryContract?.serviceTariff)?.pointsIncluded || 0))} + ${tk.extra} ₽` : '—'}</td>
                             <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
                             <td className="table-cell">
                               <select className="form-input text-xs w-28" value={tk.status || 'Новый'} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => x.id === tk.id ? { ...x, status: e.target.value, history: [...(x.history || []), { at: new Date().toISOString(), by: userName, action: `Статус: ${e.target.value}` }] } : x) } })); toast.success('Статус обновлён'); }}>
@@ -829,6 +837,7 @@ export default function DeliveryPage() {
                 </div>
               );
             })()}
+          </div>
           </div>
         );
       })()}
