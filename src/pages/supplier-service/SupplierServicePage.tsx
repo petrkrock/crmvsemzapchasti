@@ -951,7 +951,7 @@ export default function SupplierServicePage() {
                     Активных городов: <b className="text-gray-900 tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : '—'}</b>
                   </div>
                   <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
-                    <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span>{deliveryInfo?.contractNumber ? <span className="text-gray-900 font-semibold">№ {String(deliveryInfo.contractNumber)}{deliveryInfo?.contractDate ? ` от ${String(deliveryInfo.contractDate)}` : ''}</span> : <b className="text-gray-900">—</b>}</span>
+                    <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span>{deliveryInfo?.contractNumber ? <span className="text-gray-900 font-semibold">№ {String(deliveryInfo.contractNumber)}{deliveryInfo?.contractDate ? ` от ${String(deliveryInfo.contractDate).split('-').reverse().join('.')}` : ''}</span> : <b className="text-gray-900">—</b>}</span>
                     {deliveryInfo?.status ? (
                       <span className={`ml-1 inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md ${deliveryInfo.status === 'Активный' ? 'bg-green-50 text-green-700' : deliveryInfo.status === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'}`}>
                         {String(deliveryInfo.status)}
@@ -978,7 +978,8 @@ export default function SupplierServicePage() {
 
                 {dlTab === 'mycities' && (
                   <>
-                    <div className={`relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
+                    {dlTab === 'mycities' && (<>
+<div className={`relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div>
                           <h3 className="section-title">Доступные города доставки</h3>
@@ -1020,7 +1021,7 @@ export default function SupplierServicePage() {
                             <p className="text-sm text-gray-400 mt-1">Шаг 1. Выберите интересующий Вас город или города, из доступных городов доставки.</p>
                           )}
                         </div>
-                        <span className="flex items-center gap-2 flex-wrap">
+                        <span className="flex items-center gap-1">
                           {['', 'Ждёт активации', 'Активный', 'Заморожен'].map(st => (
                             <button key={st || 'all'} type="button" onClick={() => setMcFilter(st)}
                               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${mcFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
@@ -1076,6 +1077,7 @@ export default function SupplierServicePage() {
                         });
                       })() : null}
                     </div>
+                    </>)}
 
                     </>
             )}

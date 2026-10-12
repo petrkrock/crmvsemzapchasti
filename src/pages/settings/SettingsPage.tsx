@@ -1469,6 +1469,15 @@ const [tab, setTab] = useState('Статусы');
             {deliveryTab === 'statuses' && (
             <div className="card-base p-5 space-y-4">
               <div>
+                <h3 className="text-sm font-semibold text-gray-800 mb-1">Статусы доставки</h3>
+                <p className="text-xs text-gray-400">Системные статусы заданий на доставку. Удаление недоступно.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(c => (
+                  <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span></span>
+                ))}
+              </div>
+              <div>
                 <h3 className="text-sm font-semibold text-gray-800 mb-1">Статусы городов</h3>
                 <p className="text-xs text-gray-400">Системные статусы городов доставки. Удаление недоступно.</p>
               </div>

@@ -682,6 +682,20 @@ export interface DeliveryTariff {
   createdAt: string;
 }
 
+/** v1.30.31: Задание на доставку */
+export interface DeliveryTask {
+  id: string;
+  supplierId: string;
+  date: string;
+  city: string;
+  points: number;
+  rate: number;
+  extra: number;
+  total: number;
+  status?: string;
+  createdAt: string;
+}
+
 /** v1.30.23: Строка таблицы городов доставки */
 export interface DeliveryCityRow {
   id: string;
@@ -753,6 +767,8 @@ export interface AppSettings {
   deliveryCityMinSuppliers?: Record<string, number>;
   /** v1.30.23: Таблица «Города доставки» (город × поставщик) */
   deliveryCityRows?: DeliveryCityRow[];
+  /** v1.30.31: Задания на доставку */
+  deliveryTasks?: DeliveryTask[];
   /** v1.30.26: График и время развоза по городам доставки */
   deliveryCitySchedules?: Record<string, { days: string[]; from: string; to: string }>;
   /** v1.30.23: Таблица «Города доставки» (город × поставщик) */

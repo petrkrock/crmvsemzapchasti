@@ -53,6 +53,7 @@ export default function DeliveryPage() {
   const [citiesReadyFilter, setCitiesReadyFilter] = useState<'' | 'ready' | 'progress'>('');
   const [dcRowSupplierFilter, setDcRowSupplierFilter] = useState('');
   const [dcRowStatusFilter, setDcRowStatusFilter] = useState('');
+  const [dcRowCityFilter, setDcRowCityFilter] = useState('');
 
   function saveCityRow() {
     if (!dcRowCity) { toast.error('Выберите город'); return; }
@@ -447,13 +448,14 @@ export default function DeliveryPage() {
                   const pct = mkp > 0 ? Math.min(100, Math.round((cnt / mkp) * 100)) : 0;
                   return { c, mkp, cnt, ready, pct };
                 }).filter(x => !citiesReadyFilter || (citiesReadyFilter === 'ready' ? x.ready : !x.ready && x.mkp > 0)).map(({ c, mkp, cnt, ready, pct }) => (
-                  <div key={c} className={`border rounded-2xl p-4 space-y-2 transition-colors ${ready ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'}`}>
+                  <button key={c} type="button" onClick={() => setDcRowCityFilter(v => v === c ? '' : c)} title="Фильтровать таблицу по городу"
+                    className={`border rounded-2xl p-4 space-y-2 text-left transition-colors ${dcRowCityFilter === c ? '!border-red-400 ring-2 ring-red-200' : ''} ${ready ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'}`}>
                     <p className={`text-sm font-bold truncate ${ready ? 'text-green-800' : 'text-gray-900'}`}>{c}</p>
                     <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
                       <div className={`h-full rounded-full transition-all ${ready ? 'bg-green-600' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
                     </div>
                     <p className="text-[10px] text-gray-500">План МКП: <b className="tabular-nums">{mkp || '—'}</b> · {cnt}/{mkp || '—'}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -492,7 +494,7 @@ export default function DeliveryPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(store.settings.deliveryCityRows || []).filter(r => (!dcRowSupplierFilter || r.supplierId === dcRowSupplierFilter) && (!dcRowStatusFilter || (r.status || '') === dcRowStatusFilter)).map(r => (
+                  {(store.settings.deliveryCityRows || []).filter(r => (!dcRowSupplierFilter || r.supplierId === dcRowSupplierFilter) && (!dcRowStatusFilter || (r.status || '') === dcRowStatusFilter) && (!dcRowCityFilter || r.city === dcRowCityFilter)).map(r => (
                     <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="table-cell font-medium text-gray-800">{r.city}</td>
                       <td className="table-cell text-gray-600">{suppliers.find(s => s.id === r.supplierId)?.tradeName || '—'}</td>
