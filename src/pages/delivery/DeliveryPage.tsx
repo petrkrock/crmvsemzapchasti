@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Landmark, MapPin, Route, Truck, Undo2, Users, Warehouse, Pencil, Trash2, Printer, History, Save, ArrowUp, ArrowDown } from 'lucide-react';
 import { getStore, useStoreVersion, updateStore } from '@/lib/store';
@@ -60,6 +60,11 @@ export default function DeliveryPage() {
   const [commentDraft, setCommentDraft] = useState('');
   const [taskHistoryId, setTaskHistoryId] = useState<string | null>(null);
   const [dtComments, setDtComments] = useState<Record<string, string>>({});
+  const [dtSearch, setDtSearch] = useState('');
+  const [dtDateFilter, setDtDateFilter] = useState('');
+  const [dtCityFilter, setDtCityFilter] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<Record<string, string>>({});
   const [dtStatuses, setDtStatuses] = useState<Record<string, string>>({});
   // v1.30.31: создание заданий на доставку (перенесено из Настроек)
   const [dtOpen, setDtOpen] = useState(false);
@@ -634,20 +639,32 @@ export default function DeliveryPage() {
           setDtOpen(false); setDtSupplier(''); setDtDate(''); setDtPoints({}); setDtComments({}); setDtStatuses({});
         }
 
+        const filteredTasks = [...tasks]
+          .filter(tk => (!dtSupplierFilter || tk.supplierId === dtSupplierFilter)
+            && (!dtStatusFilter || (tk.status || 'Новый') === dtStatusFilter)
+            && (!dtDateFilter || tk.date === dtDateFilter)
+            && (!dtCityFilter || tk.city === dtCityFilter)
+            && (!dtSearch || suppliers.find(s => s.id === tk.supplierId)?.tradeName?.toLowerCase().includes(dtSearch.toLowerCase()) || tk.city.toLowerCase().includes(dtSearch.toLowerCase())))
+          .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+
         return (
           <div className="space-y-4">
-          <div className="card-base p-5">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h3 className="section-title">Сводка по сервису доставки</h3>
-              {!dtOpen && (
-                <button type="button" onClick={() => { setDtSupplier(''); setDtDate(today); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtOpen(true); }} className="btn-primary text-xs">Создать задание</button>
-              )}
-            </div>
-          </div>
 
-          {dtOpen && (
-          <div className="card-base p-5 space-y-4">
-              <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+            {!dtOpen && (
+              <div className="card-base p-5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="section-title">Сводка по сервису доставки</h3>
+                  <button type="button" onClick={() => { setDtSupplier(''); setDtDate(today); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtOpen(true); }} className="btn-primary text-xs">Создать задание</button>
+                </div>
+              </div>
+            )}
+
+            {dtOpen && (
+              <div className="card-base p-5 space-y-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="section-title">Создать задание на доставку</h3>
+                  <button type="button" onClick={() => setDtOpen(false)} className="btn-secondary text-xs">Назад</button>
+                </div>
                 <div className="flex items-end gap-2 flex-wrap">
                   <div>
                     <select className="form-input text-xs w-56" value={dtSupplier} onChange={e => { setDtSupplier(e.target.value); setDtPoints({}); setDtComments({}); setDtStatuses({}); }}>
@@ -671,7 +688,6 @@ export default function DeliveryPage() {
                     ))}
                   </div>
                 )}
-
                 {dtSupplier && (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border border-gray-200">
@@ -711,85 +727,146 @@ export default function DeliveryPage() {
                             </tr>
                           );
                         })}
-                        {!cities.length && <tr><td className="table-cell text-gray-400 text-center py-4" colSpan={8}>Нет активных городов у поставщика.</td></tr>}
+                        {!cities.length && <tr><td className="table-cell text-gray-400 text-center py-4" colSpan={8}>Нет активных городов у поставщика на эту дату.</td></tr>}
                       </tbody>
                     </table>
                   </div>
                 )}
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => { setDtOpen(false); }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Назад</button>
+                <div className="flex justify-end">
                   <button type="button" onClick={addAll} className="text-xs font-semibold px-5 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">Добавить весь список заданий</button>
                 </div>
               </div>
-          </div>
-          )}
+            )}
 
-          <div className="card-base p-5 space-y-4">
             {!dtOpen && (
               <>
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="flex items-center gap-2 flex-wrap">
-                    <select className="form-input text-xs w-44" value={dtSupplierFilter} onChange={e => setDtSupplierFilter(e.target.value)}>
+                {/* ФИЛЬТРЫ — как в проценке */}
+                <div className="card-base p-3 space-y-2">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <input className="form-input py-1.5 text-xs flex-1 min-w-[180px]" placeholder="Поиск (поставщик, город)…" value={dtSearch} onChange={e => setDtSearch(e.target.value)} />
+                    <span className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => setDtDateFilter(v => v === today ? '' : today)} className={`text-[11px] px-2.5 py-1.5 rounded-md border transition-colors ${dtDateFilter === today ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>СЕГОДНЯ</button>
+                      <button type="button" onClick={() => setDtDateFilter(v => v === tomorrow ? '' : tomorrow)} className={`text-[11px] px-2.5 py-1.5 rounded-md border transition-colors ${dtDateFilter === tomorrow ? 'bg-blue-700 border-blue-700 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>ЗАВТРА</button>
+                      <input type="date" className="form-input text-xs w-auto" value={dtDateFilter} onChange={e => setDtDateFilter(e.target.value)} />
+                    </span>
+                    <select className="form-input py-1.5 text-xs w-auto" value={dtSupplierFilter} onChange={e => setDtSupplierFilter(e.target.value)}>
                       <option value="">Поставщик: все</option>
                       {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
                     </select>
+                    <select className="form-input py-1.5 text-xs w-auto" value={dtCityFilter} onChange={e => setDtCityFilter(e.target.value)}>
+                      <option value="">Город: все</option>
+                      {Array.from(new Set(tasks.map(t => t.city))).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     {['', 'Новый', 'В пути', 'Доставлен', 'Отменён'].map(st => (
                       <button key={st || 'all'} type="button" onClick={() => setDtStatusFilter(st)}
                         className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${dtStatusFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
                         {st || 'Все'}
                       </button>
                     ))}
-                  </span>
+                  </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border border-gray-200">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="table-header text-left">Поставщик</th>
-                        <th className="table-header text-left">Город доставки</th>
-                        <th className="table-header text-left">Дата доставки</th>
-                        <th className="table-header text-left">Точек</th>
-                        <th className="table-header text-left">Ставка</th>
-                        <th className="table-header text-left">Сверх лимит</th>
-                        <th className="table-header text-left">Итого</th>
-                        <th className="table-header text-left">Статус</th>
-                        <th className="table-header text-left">Комментарий менеджера</th>
-                        <th className="table-header text-right">Действия</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...tasks]
-                        .filter(tk => (!dtSupplierFilter || tk.supplierId === dtSupplierFilter) && (!dtStatusFilter || (tk.status || 'Новый') === dtStatusFilter))
-                        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
-                        .map(tk => (
-                          <tr key={tk.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                            <td className="table-cell font-medium text-gray-800">{suppliers.find(s => s.id === tk.supplierId)?.tradeName || '—'}</td>
-                            <td className="table-cell text-gray-600">{tk.city}</td>
-                            <td className="table-cell text-gray-600 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
-                            <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
-                            <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
-                            <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${Math.max(0, tk.points - ((store.settings.deliveryServiceTariffs || []).find(tf => tf.id === suppliers.find(s => s.id === tk.supplierId)?.deliveryContract?.serviceTariff)?.pointsIncluded || 0))} + ${tk.extra} ₽` : '—'}</td>
-                            <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
-                            <td className="table-cell">
-                              <select className="form-input text-xs w-28" value={tk.status || 'Новый'} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => x.id === tk.id ? { ...x, status: e.target.value, history: [...(x.history || []), { at: new Date().toISOString(), by: userName, action: `Статус: ${e.target.value}` }] } : x) } })); toast.success('Статус обновлён'); }}>
-                                {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(o => <option key={o}>{o}</option>)}
-                              </select>
-                            </td>
-                            <td className="table-cell">
-                              <button type="button" onClick={() => { setCommentTaskId(tk.id); setCommentDraft(tk.comment || ''); }} className="text-xs text-blue-600 hover:underline max-w-[180px] truncate block text-left">
-                                {tk.comment || 'Добавить комментарий'}
-                              </button>
-                            </td>
-                            <td className="table-cell text-right whitespace-nowrap">
-                              <button type="button" title="История изменений" onClick={() => setTaskHistoryId(tk.id)} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
-                              <button type="button" title="Редактировать" onClick={() => { setDtOpen(true); setDtSupplier(tk.supplierId); setDtDate(tk.date); setDtPoints({ [tk.city]: String(tk.points) }); setDtComments({ [tk.city]: tk.comment || '' }); setDtStatuses({ [tk.city]: tk.status || 'Новый' }); }} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Pencil size={14} /></button>
-                              <button type="button" title="Удалить" onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== tk.id) } })); toast.success('Задание удалено'); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
-                            </td>
-                          </tr>
+
+                {/* ТАБЛИЦА — отдельный блок с закруглёнными краями */}
+                <div className="card-base overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="table-header text-left">Поставщик</th>
+                          <th className="table-header text-left">Город доставки</th>
+                          <th className="table-header text-left">Дата доставки</th>
+                          <th className="table-header text-left">Точек</th>
+                          <th className="table-header text-left">Ставка</th>
+                          <th className="table-header text-left">Сверх лимит</th>
+                          <th className="table-header text-left">Итого</th>
+                          <th className="table-header text-left">Статус</th>
+                          <th className="table-header text-left">Комментарий менеджера</th>
+                          <th className="table-header text-right">Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTasks.map(tk => (
+                          <Fragment key={tk.id}>
+                            <tr onClick={() => setEditingTaskId(v => v === tk.id ? null : tk.id)} className={`border-t border-gray-100 transition-colors cursor-pointer ${editingTaskId === tk.id ? 'bg-red-50/50' : 'hover:bg-gray-50'}`}>
+                              <td className="table-cell font-medium text-gray-800">{suppliers.find(s => s.id === tk.supplierId)?.tradeName || '—'}</td>
+                              <td className="table-cell text-gray-600">{tk.city}</td>
+                              <td className="table-cell text-gray-600 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
+                              <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
+                              <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
+                              <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${Math.max(0, tk.points - ((store.settings.deliveryServiceTariffs || []).find(tf => tf.id === suppliers.find(s => s.id === tk.supplierId)?.deliveryContract?.serviceTariff)?.pointsIncluded || 0))} + ${tk.extra} ₽` : '—'}</td>
+                              <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
+                              <td className="table-cell">
+                                <span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${(tk.status || 'Новый') === 'Доставлен' ? 'bg-green-100 text-green-700' : (tk.status || '') === 'Отменён' ? 'bg-gray-100 text-gray-500' : (tk.status || '') === 'В пути' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{tk.status || 'Новый'}</span>
+                              </td>
+                              <td className="table-cell">
+                                <button type="button" onClick={e => { e.stopPropagation(); setCommentTaskId(tk.id); setCommentDraft(tk.comment || ''); }} className="text-xs text-blue-600 hover:underline max-w-[180px] truncate block text-left">
+                                  {tk.comment || 'Добавить комментарий'}
+                                </button>
+                              </td>
+                              <td className="table-cell text-right whitespace-nowrap">
+                                <button type="button" title="История изменений" onClick={e => { e.stopPropagation(); setTaskHistoryId(tk.id); }} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
+                                <button type="button" title="Редактировать" onClick={e => { e.stopPropagation(); setEditingTaskId(v => v === tk.id ? null : tk.id); }} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Pencil size={14} /></button>
+                                <button type="button" title="Удалить" onClick={e => { e.stopPropagation(); updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== tk.id) } })); toast.success('Задание удалено'); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                              </td>
+                            </tr>
+                            {editingTaskId === tk.id && (() => {
+                              const editSup = suppliers.find(s => s.id === tk.supplierId);
+                              const editTariff = (store.settings.deliveryServiceTariffs || []).find(tf => tf.id === editSup?.deliveryContract?.serviceTariff);
+                              const eRate = Number(editTariff?.cityRate) || 0;
+                              const eIncluded = Number(editTariff?.pointsIncluded) || 0;
+                              const eExtraPrice = Number(editTariff?.extraPointPrice) || 0;
+                              const ePts = Math.max(0, parseInt(editDraft.points ?? String(tk.points), 10) || 0);
+                              const eOver = Math.max(0, ePts - eIncluded);
+                              const eExtra = eOver * eExtraPrice;
+                              return (
+                                <tr className="border-t border-gray-100 bg-gray-50/60">
+                                  <td className="table-cell text-gray-400 text-xs" colSpan={10}>
+                                    <div className="flex items-end gap-2 flex-wrap py-1">
+                                      <div>
+                                        <label className="text-[10px] font-semibold text-gray-500">Дата</label>
+                                        <input type="date" className="form-input text-xs w-auto block" value={editDraft.date ?? tk.date} onChange={e => setEditDraft(d => ({ ...d, date: e.target.value }))} />
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] font-semibold text-gray-500">Точек в доставке *</label>
+                                        <input className="form-input text-xs w-20 block" inputMode="numeric" value={editDraft.points ?? String(tk.points)} onChange={e => setEditDraft(d => ({ ...d, points: e.target.value.replace(/\D/g, '') }))} />
+                                      </div>
+                                      <div className="text-xs text-gray-600 pb-2">Ставка: <b>{eRate} ₽</b> · Сверх: <b>{eOver > 0 ? `${eOver} + ${eExtra} ₽` : '—'}</b> · Итого: <b className="text-gray-900">{eRate + eExtra} ₽</b></div>
+                                      <div>
+                                        <label className="text-[10px] font-semibold text-gray-500">Статус</label>
+                                        <select className="form-input text-xs w-28 block" value={editDraft.status ?? (tk.status || 'Новый')} onChange={e => setEditDraft(d => ({ ...d, status: e.target.value }))}>
+                                          {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(o => <option key={o}>{o}</option>)}
+                                        </select>
+                                      </div>
+                                      <div className="flex-1 min-w-[180px]">
+                                        <label className="text-[10px] font-semibold text-gray-500">Комментарий</label>
+                                        <input className="form-input text-xs w-full" value={editDraft.comment ?? (tk.comment || '')} onChange={e => setEditDraft(d => ({ ...d, comment: e.target.value }))} />
+                                      </div>
+                                      <button type="button" onClick={() => {
+                                        if (!(parseInt(editDraft.points ?? String(tk.points), 10) || 0)) { toast.error('Укажите точки доставки'); return; }
+                                        updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => x.id === tk.id ? {
+                                          ...x,
+                                          date: editDraft.date ?? tk.date,
+                                          points: ePts, rate: eRate, extra: eExtra, total: eRate + eExtra,
+                                          status: editDraft.status ?? (tk.status || 'Новый'),
+                                          comment: editDraft.comment ?? (tk.comment || ''),
+                                          history: [...(x.history || []), { at: new Date().toISOString(), by: userName, action: 'Задание отредактировано' }],
+                                        } : x) } }));
+                                        toast.success('Задание сохранено'); setEditingTaskId(null); setEditDraft({});
+                                      }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Сохранить</button>
+                                      <button type="button" onClick={() => { setEditingTaskId(null); setEditDraft({}); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })()}
+                          </Fragment>
                         ))}
-                      {!tasks.length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={10}>Заданий нет — нажмите «Создать задание».</td></tr>}
-                    </tbody>
-                  </table>
+                        {!filteredTasks.length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={10}>Заданий не найдено.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </>
             )}
@@ -837,7 +914,6 @@ export default function DeliveryPage() {
                 </div>
               );
             })()}
-          </div>
           </div>
         );
       })()}
