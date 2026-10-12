@@ -442,7 +442,7 @@ export default function DeliveryPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
                 {deliveryCities.map(c => {
                   const mkp = (store.settings.deliveryCityMinSuppliers || {})[c] || 0;
-                  const cnt = store.suppliers.filter(s => !s.deletedAt && (s.deliveryContract?.cities || []).includes(c)).length;
+                  const cnt = (store.settings.deliveryCityRows || []).filter(r => r.city === c).length;
                   const ready = mkp > 0 && cnt >= mkp;
                   const pct = mkp > 0 ? Math.min(100, Math.round((cnt / mkp) * 100)) : 0;
                   return { c, mkp, cnt, ready, pct };
@@ -463,7 +463,21 @@ export default function DeliveryPage() {
 
           {/* ТАБЛИЦА ГОРОДОВ ДОСТАВКИ (v1.30.23) */}
           <div className="card-base p-5 space-y-4">
-            <h3 className="section-title">Города доставки</h3>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="section-title">Города доставки</h3>
+              <span className="flex items-center gap-2 flex-wrap">
+                <select className="form-input text-xs w-44" value={dcRowSupplierFilter} onChange={e => setDcRowSupplierFilter(e.target.value)}>
+                  <option value="">Поставщик: все</option>
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
+                </select>
+                {['', 'Ждёт активации', 'Активный', 'Заморожен'].map(st => (
+                  <button key={st || 'all'} type="button" onClick={() => setDcRowStatusFilter(st)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${dcRowStatusFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                    {st || 'Все'}
+                  </button>
+                ))}
+              </span>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -472,12 +486,13 @@ export default function DeliveryPage() {
                     <th className="table-header text-left">Поставщики в доставке</th>
                     <th className="table-header text-left">Статус</th>
                     <th className="table-header text-left">Дата активации</th>
-                    <th className="table-header text-left">Тариф</th>
+                    <th className="table-header text-left">График развоза (с - до)</th>
+                    <th className="table-header text-left">МКП</th>
                     <th className="table-header text-right">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(store.settings.deliveryCityRows || []).map(r => (
+                  {(store.settings.deliveryCityRows || []).filter(r => (!dcRowSupplierFilter || r.supplierId === dcRowSupplierFilter) && (!dcRowStatusFilter || (r.status || '') === dcRowStatusFilter)).map(r => (
                     <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="table-cell font-medium text-gray-800">{r.city}</td>
                       <td className="table-cell text-gray-600">{suppliers.find(s => s.id === r.supplierId)?.tradeName || '—'}</td>
@@ -492,7 +507,13 @@ export default function DeliveryPage() {
                       <td className="table-cell">
                         <input type="date" className="form-input text-xs w-auto" value={r.activatedAt || ''} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCityRows: (s.settings.deliveryCityRows || []).map(x => x.id === r.id ? { ...x, activatedAt: e.target.value } : x) } })); }} />
                       </td>
-                      <td className="table-cell text-gray-400">—</td>
+                      <td className="table-cell text-gray-600 whitespace-nowrap">
+                        {(() => {
+                          const sch = (store.settings.deliveryCitySchedules || {})[r.city];
+                          return sch ? `${(sch.days || []).join(' ')} · с ${sch.from || '—'} до ${sch.to || '—'}` : '—';
+                        })()}
+                      </td>
+                      <td className="table-cell text-gray-900 tabular-nums">{(store.settings.deliveryCityMinSuppliers || {})[r.city] || '—'}</td>
                       <td className="table-cell text-right whitespace-nowrap">
                         <button type="button" title="История" onClick={() => setDcRowHistoryId(r.id)}
                           className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
