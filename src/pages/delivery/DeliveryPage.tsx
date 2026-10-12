@@ -50,6 +50,9 @@ export default function DeliveryPage() {
   const [dcRowSupplier, setDcRowSupplier] = useState('');
   const [dcRowEditingId, setDcRowEditingId] = useState<string | null>(null);
   const [dcRowHistoryId, setDcRowHistoryId] = useState<string | null>(null);
+  const [citiesReadyFilter, setCitiesReadyFilter] = useState<'' | 'ready' | 'progress'>('');
+  const [dcRowSupplierFilter, setDcRowSupplierFilter] = useState('');
+  const [dcRowStatusFilter, setDcRowStatusFilter] = useState('');
 
   function saveCityRow() {
     if (!dcRowCity) { toast.error('Выберите город'); return; }
@@ -424,24 +427,34 @@ export default function DeliveryPage() {
       {view === 'cities' && (
         <div className="space-y-4">
           <div className="card-base p-5 space-y-4">
-            <h3 className="section-title">Доступные города доставки</h3>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="section-title">Доступные города доставки</h3>
+              <span className="flex items-center gap-2">
+                {([['', 'Все'], ['ready', 'Рабочий'], ['progress', 'В процессе']] as const).map(([k, l]) => (
+                  <button key={k || 'all'} type="button" onClick={() => setCitiesReadyFilter(k)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${citiesReadyFilter === k ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                    {l}
+                  </button>
+                ))}
+              </span>
+            </div>
             {deliveryCities.length ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
                 {deliveryCities.map(c => {
                   const mkp = (store.settings.deliveryCityMinSuppliers || {})[c] || 0;
                   const cnt = store.suppliers.filter(s => !s.deletedAt && (s.deliveryContract?.cities || []).includes(c)).length;
-                  const left = Math.max(0, mkp - cnt);
-                  return (
-                    <div key={c} className="border border-gray-200 rounded-2xl p-4 space-y-2">
-                      <p className="text-sm font-bold text-gray-900">{c}</p>
-                      <p className="text-xs text-gray-500">МКП: <b className="text-gray-900 tabular-nums">{mkp || '—'}</b></p>
-                      <p className="text-xs text-gray-500">Поставщиков: <b className="text-gray-900 tabular-nums">{cnt}</b></p>
-                      <p className={`text-[11px] font-semibold ${left === 0 && mkp > 0 ? 'text-green-600' : 'text-amber-600'}`}>
-                        {mkp > 0 ? (left === 0 ? 'Готов к доставке' : `До готовности: ${left}`) : 'МКП не задан'}
-                      </p>
+                  const ready = mkp > 0 && cnt >= mkp;
+                  const pct = mkp > 0 ? Math.min(100, Math.round((cnt / mkp) * 100)) : 0;
+                  return { c, mkp, cnt, ready, pct };
+                }).filter(x => !citiesReadyFilter || (citiesReadyFilter === 'ready' ? x.ready : !x.ready && x.mkp > 0)).map(({ c, mkp, cnt, ready, pct }) => (
+                  <div key={c} className={`border rounded-2xl p-4 space-y-2 transition-colors ${ready ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'}`}>
+                    <p className={`text-sm font-bold truncate ${ready ? 'text-green-800' : 'text-gray-900'}`}>{c}</p>
+                    <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${ready ? 'bg-green-600' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
                     </div>
-                  );
-                })}
+                    <p className="text-[10px] text-gray-500">План МКП: <b className="tabular-nums">{mkp || '—'}</b> · {cnt}/{mkp || '—'}</p>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-xs text-gray-400">Города не добавлены (Настройки → Доставка → Города).</p>

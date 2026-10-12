@@ -71,6 +71,7 @@ export default function SupplierServicePage() {
   const [citiesHint, setCitiesHint] = useState(false); // подсказка «Мои города доставки»
   const [tariffModal, setTariffModal] = useState(false); // таблица тарифа
   const [myTariff, setMyTariff] = useState<Record<string, unknown> | null>(null); // v1.30.29
+  const [mcFilter, setMcFilter] = useState(''); // фильтр статусов «Мои города»
   const [myCities, setMyCities] = useState<Array<{ rowId: string; city: string; status: string; activatedAt?: string; days?: string[]; from?: string; to?: string }>>([]); // v1.30.24+
   const [citySchedules, setCitySchedules] = useState<Record<string, { days: string[]; from: string; to: string }>>({}); // v1.30.26
   const [addCityModal, setAddCityModal] = useState<string | null>(null); // город на добавление
@@ -933,7 +934,7 @@ export default function SupplierServicePage() {
                   <div className="self-center">
                     <h2 className="text-sm font-semibold text-gray-900">
                       {deliveryInfo?.routeNumber ? `№${String(deliveryInfo.routeNumber)}` : '—'}
-                      {deliveryInfo?.routeStopTime ? <span className="text-xs font-normal text-gray-500"> · На поставщике: {String(deliveryInfo.routeStopTime)}</span> : null}
+                      {deliveryInfo?.routeStopTime ? <span className="text-xs font-normal text-gray-500"> · {String(deliveryInfo.routeStopTime)}</span> : null}
                     </h2>
                   </div>
                   <div>
@@ -984,17 +985,16 @@ export default function SupplierServicePage() {
                         </div>
                         <div className="flex items-center gap-4 text-xs pt-1">
                           <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span> <b className="text-gray-900">{dlCities.length}</b></span>
-                          <span className="flex items-center gap-2"><span className="text-gray-500">В доставке:</span> <b className="text-gray-900">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : 0}</b></span>
                         </div>
                       </div>
                       {dlCities.length ? (
-                        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                           {dlCities.map(c => {
                             const taken = myCities.some(mc => mc.city === c);
                             return (
                               <button key={c} type="button" disabled={taken} onClick={() => setAddCityModal(c)}
                                 className={`px-3 py-2.5 rounded-xl border text-left transition-colors ${taken ? 'bg-green-50 border-green-300 text-green-700 cursor-default' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-blue-400'}`}>
-                                <span className="text-sm truncate block">{c}</span>
+                                <span className="text-sm truncate block text-center">{c}</span>
                               </button>
                             );
                           })}
@@ -1020,6 +1020,14 @@ export default function SupplierServicePage() {
                             <p className="text-sm text-gray-400 mt-1">Шаг 1. Выберите интересующий Вас город или города, из доступных городов доставки.</p>
                           )}
                         </div>
+                        <span className="flex items-center gap-2 flex-wrap">
+                          {['', 'Ждёт активации', 'Активный', 'Заморожен'].map(st => (
+                            <button key={st || 'all'} type="button" onClick={() => setMcFilter(st)}
+                              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${mcFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                              {st || 'Все'}
+                            </button>
+                          ))}
+                        </span>
                         <span className="relative inline-block shrink-0">
                           <button type="button" onClick={() => setCitiesHint(v => !v)} title="Подсказка"
                             className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${citiesHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
@@ -1041,7 +1049,7 @@ export default function SupplierServicePage() {
                             <div className="text-sm font-medium text-gray-800">{value || '—'}</div>
                           </div>
                         );
-                        return myCities.map(mc => {
+                        return myCities.filter(mc => !mcFilter || (mc.status || 'Ждёт активации') === mcFilter).map(mc => {
                           const st = mc.status || 'Ждёт активации';
                           const stCls = st === 'Активный' ? 'bg-green-100 text-green-700' : st === 'Заморожен' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700';
                           return (
