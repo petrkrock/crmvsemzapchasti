@@ -54,6 +54,8 @@ export default function DeliveryPage() {
   const [dcRowSupplierFilter, setDcRowSupplierFilter] = useState('');
   const [dcRowStatusFilter, setDcRowStatusFilter] = useState('');
   const [dcRowCityFilter, setDcRowCityFilter] = useState('');
+  const [dtSupplierFilter, setDtSupplierFilter] = useState('');
+  const [dtStatusFilter, setDtStatusFilter] = useState('');
 
   function saveCityRow() {
     if (!dcRowCity) { toast.error('Выберите город'); return; }
@@ -558,7 +560,69 @@ export default function DeliveryPage() {
         </div>
       )}
 
-      {view !== 'suppliers' && view !== 'pickup' && view !== 'cities' && (
+      {view === 'deliveries' && (
+        <div className="card-base p-5 space-y-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="section-title">Доставки</h3>
+            <span className="flex items-center gap-2 flex-wrap">
+              <select className="form-input text-xs w-44" value={dtSupplierFilter} onChange={e => setDtSupplierFilter(e.target.value)}>
+                <option value="">Поставщик: все</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
+              </select>
+              {['', 'Новый', 'В пути', 'Доставлен', 'Отменён'].map(st => (
+                <button key={st || 'all'} type="button" onClick={() => setDtStatusFilter(st)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${dtStatusFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                  {st || 'Все'}
+                </button>
+              ))}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="table-header text-left">Дата</th>
+                  <th className="table-header text-left">Поставщик</th>
+                  <th className="table-header text-left">Город</th>
+                  <th className="table-header text-left">Точек</th>
+                  <th className="table-header text-left">Ставка</th>
+                  <th className="table-header text-left">Сверх лимит</th>
+                  <th className="table-header text-left">Итого</th>
+                  <th className="table-header text-left">Статус</th>
+                  <th className="table-header text-right">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...(store.settings.deliveryTasks || [])]
+                  .filter(tk => (!dtSupplierFilter || tk.supplierId === dtSupplierFilter) && (!dtStatusFilter || (tk.status || 'Новый') === dtStatusFilter))
+                  .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+                  .map(tk => (
+                    <tr key={tk.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="table-cell text-gray-600 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
+                      <td className="table-cell font-medium text-gray-800">{suppliers.find(s => s.id === tk.supplierId)?.tradeName || '—'}</td>
+                      <td className="table-cell text-gray-600">{tk.city}</td>
+                      <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
+                      <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
+                      <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${tk.extra} ₽` : '—'}</td>
+                      <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
+                      <td className="table-cell">
+                        <select className="form-input text-xs w-32" value={tk.status || 'Новый'} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => x.id === tk.id ? { ...x, status: e.target.value } : x) } })); toast.success('Статус обновлён'); }}>
+                          {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(stOpt => <option key={stOpt}>{stOpt}</option>)}
+                        </select>
+                      </td>
+                      <td className="table-cell text-right">
+                        <button type="button" onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== tk.id) } })); toast.success('Задание удалено'); }} className="text-xs text-red-600 hover:underline">Удалить</button>
+                      </td>
+                    </tr>
+                  ))}
+                {!(store.settings.deliveryTasks || []).length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={9}>Заданий нет — создайте в Настройки → Доставка → Доставки.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {view !== 'suppliers' && view !== 'pickup' && view !== 'cities' && view !== 'deliveries' && (
         <div className="card-base p-8 text-center space-y-3">
           <p className="text-sm font-semibold text-gray-700">{VIEWS.find(v => v.key === view)?.label}</p>
           <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
