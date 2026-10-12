@@ -56,6 +56,11 @@ export default function DeliveryPage() {
   const [dcRowCityFilter, setDcRowCityFilter] = useState('');
   const [dtSupplierFilter, setDtSupplierFilter] = useState('');
   const [dtStatusFilter, setDtStatusFilter] = useState('');
+  const [commentTaskId, setCommentTaskId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
+  const [taskHistoryId, setTaskHistoryId] = useState<string | null>(null);
+  const [dtComments, setDtComments] = useState<Record<string, string>>({});
+  const [dtStatuses, setDtStatuses] = useState<Record<string, string>>({});
   // v1.30.31: создание заданий на доставку (перенесено из Настроек)
   const [dtOpen, setDtOpen] = useState(false);
   const [dtSupplier, setDtSupplier] = useState('');
@@ -585,47 +590,96 @@ export default function DeliveryPage() {
         </div>
       )}
 
-      {view === 'deliveries' && (
-        <div className="card-base p-5 space-y-4">
-          {dtOpen && (() => {
-            const activeSuppliers = store.suppliers.filter(s => !s.deletedAt && (store.settings.deliveryCityRows || []).some(r => r.supplierId === s.id && (r.status || '') === 'Активный'));
-            const sup = store.suppliers.find(s => s.id === dtSupplier);
-            const tariff = (store.settings.deliveryServiceTariffs || []).find(tf => tf.id === sup?.deliveryContract?.serviceTariff);
-            const rate = Number(tariff?.cityRate) || 0;
-            const included = Number(tariff?.pointsIncluded) || 0;
-            const extraPrice = Number(tariff?.extraPointPrice) || 0;
-            const cities = (store.settings.deliveryCityRows || []).filter(r => r.supplierId === dtSupplier && (r.status || '') === 'Активный');
-            const today = new Date().toISOString().slice(0, 10);
-            const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-            return (
+      {view === 'deliveries' && (() => {
+        const tasks = store.settings.deliveryTasks || [];
+        const activeSuppliers = suppliers.filter(s => (store.settings.deliveryCityRows || []).some(r => r.supplierId === s.id && (r.status || '') === 'Активный'));
+        const selSup = suppliers.find(s => s.id === dtSupplier);
+        const tariff = (store.settings.deliveryServiceTariffs || []).find(tf => tf.id === selSup?.deliveryContract?.serviceTariff);
+        const rate = Number(tariff?.cityRate) || 0;
+        const included = Number(tariff?.pointsIncluded) || 0;
+        const extraPrice = Number(tariff?.extraPointPrice) || 0;
+        const cities = (store.settings.deliveryCityRows || []).filter(r => r.supplierId === dtSupplier && (r.status || '') === 'Активный');
+        const today = new Date().toISOString().slice(0, 10);
+        const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        const userName = getCurrentUser()?.name || '';
+
+        function buildTask(city: string) {
+          const pts = Math.max(0, parseInt(dtPoints[city] || '0', 10) || 0);
+          const over = Math.max(0, pts - included);
+          const extra = over * extraPrice;
+          return {
+            id: `dtask-${Date.now()}-${city}`, supplierId: dtSupplier, date: dtDate, city,
+            points: pts, rate, extra, total: rate + extra,
+            status: dtStatuses[city] || 'Новый', comment: dtComments[city] || '',
+            createdAt: new Date().toISOString(),
+            history: [{ at: new Date().toISOString(), by: userName, action: `Задание создано (${city})` }],
+          };
+        }
+        function pushTask(tk: typeof tasks[number]) {
+          updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: [...(s.settings.deliveryTasks || []), tk] } }));
+        }
+        function addOne(city: string) {
+          if (!dtDate) { toast.error('Укажите дату'); return; }
+          pushTask(buildTask(city));
+          toast.success(`Задание по городу ${city} добавлено`);
+        }
+        function addAll() {
+          if (!dtDate) { toast.error('Укажите дату'); return; }
+          if (!cities.length) { toast.error('Нет активных городов'); return; }
+          cities.forEach(r => pushTask(buildTask(r.city)));
+          toast.success(`Добавлено заданий: ${cities.length}`);
+          setDtOpen(false); setDtSupplier(''); setDtDate(''); setDtPoints({}); setDtComments({}); setDtStatuses({});
+        }
+
+        return (
+          <div className="card-base p-5 space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="section-title">Сводка по сервису доставки</h3>
+              {!dtOpen && (
+                <button type="button" onClick={() => { setDtSupplier(''); setDtDate(today); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtOpen(true); }} className="btn-primary text-xs">Создать задание</button>
+              )}
+            </div>
+
+            {dtOpen && (
               <div className="border border-gray-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-end gap-2 flex-wrap">
                   <div>
-                    <label className="text-xs font-semibold text-gray-600">Поставщик</label>
-                    <select className="form-input text-xs mt-1 w-56" value={dtSupplier} onChange={e => { setDtSupplier(e.target.value); setDtPoints({}); }}>
+                    <label className="text-xs font-semibold text-gray-600">Выберите поставщика</label>
+                    <select className="form-input text-xs mt-1 w-56" value={dtSupplier} onChange={e => { setDtSupplier(e.target.value); setDtPoints({}); setDtComments({}); setDtStatuses({}); }}>
                       <option value="">— выберите поставщика —</option>
                       {activeSuppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-600">Дата</label>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <button onClick={() => setDtDate(today)} className={`text-[11px] px-2.5 py-1.5 rounded-md border transition-colors ${dtDate === today ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>СЕГОДНЯ</button>
-                      <button onClick={() => setDtDate(tomorrow)} className={`text-[11px] px-2.5 py-1.5 rounded-md border transition-colors ${dtDate === tomorrow ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>ЗАВТРА</button>
-                      <input type="date" className="form-input text-xs w-auto" value={dtDate} onChange={e => setDtDate(e.target.value)} />
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => setDtDate(today)} className={`text-[11px] px-4 py-2 rounded-md font-semibold transition-colors ${dtDate === today ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>СЕГОДНЯ</button>
+                    <button onClick={() => setDtDate(tomorrow)} className={`text-[11px] px-4 py-2 rounded-md font-semibold transition-colors ${dtDate === tomorrow ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>ЗАВТРА</button>
+                    <input type="date" className="form-input text-xs w-auto" value={dtDate} onChange={e => setDtDate(e.target.value)} />
                   </div>
                 </div>
+                {activeSuppliers.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {activeSuppliers.map(s => (
+                      <button key={s.id} type="button" onClick={() => { setDtSupplier(s.id); setDtPoints({}); setDtComments({}); setDtStatuses({}); }}
+                        className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${dtSupplier === s.id ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                        {s.tradeName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {dtSupplier && (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50">
-                          <th className="table-header text-left">Город доставки</th>
+                          <th className="table-header text-left">Город</th>
                           <th className="table-header text-left">Точек в доставке</th>
                           <th className="table-header text-left">Ставка</th>
                           <th className="table-header text-left">Сверх лимит</th>
                           <th className="table-header text-left">Итого к начислению</th>
+                          <th className="table-header text-left">Комментарий менеджера</th>
+                          <th className="table-header text-left">Статус</th>
+                          <th className="table-header text-right">Действия</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -636,86 +690,148 @@ export default function DeliveryPage() {
                           return (
                             <tr key={r.id} className="border-t border-gray-100">
                               <td className="table-cell font-medium text-gray-800">{r.city}</td>
-                              <td className="table-cell"><input className="form-input text-xs w-20" inputMode="numeric" placeholder="Например 10" value={dtPoints[r.city] || ''} onChange={e => setDtPoints(p => ({ ...p, [r.city]: e.target.value.replace(/\D/g, '') }))} /></td>
-                              <td className="table-cell text-gray-600">{rate} ₽</td>
-                              <td className="table-cell text-gray-600">{over > 0 ? `${over} + ${extra} ₽` : '—'}</td>
-                              <td className="table-cell font-semibold text-gray-900">{rate + extra} ₽</td>
+                              <td className="table-cell"><input className="form-input text-xs w-16" inputMode="numeric" value={dtPoints[r.city] || ''} onChange={e => setDtPoints(p => ({ ...p, [r.city]: e.target.value.replace(/\D/g, '') }))} /></td>
+                              <td className="table-cell text-gray-600 tabular-nums">{rate} ₽</td>
+                              <td className="table-cell text-gray-600 tabular-nums">{over > 0 ? `${over} + ${extra} ₽` : '—'}</td>
+                              <td className="table-cell font-semibold text-gray-900 tabular-nums">{rate + extra} ₽</td>
+                              <td className="table-cell"><input className="form-input text-xs min-w-[160px]" placeholder="Комментарий…" value={dtComments[r.city] || ''} onChange={e => setDtComments(c => ({ ...c, [r.city]: e.target.value }))} /></td>
+                              <td className="table-cell">
+                                <select className="form-input text-xs w-28" value={dtStatuses[r.city] || 'Новый'} onChange={e => setDtStatuses(st => ({ ...st, [r.city]: e.target.value }))}>
+                                  {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(o => <option key={o}>{o}</option>)}
+                                </select>
+                              </td>
+                              <td className="table-cell text-right">
+                                <button type="button" onClick={() => addOne(r.city)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Добавить</button>
+                              </td>
                             </tr>
                           );
                         })}
-                        {!cities.length && <tr><td className="table-cell text-gray-400 text-center py-4" colSpan={5}>Нет активных городов у поставщика.</td></tr>}
+                        {!cities.length && <tr><td className="table-cell text-gray-400 text-center py-4" colSpan={8}>Нет активных городов у поставщика.</td></tr>}
                       </tbody>
                     </table>
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <button onClick={createDeliveryTask} className="btn-primary text-xs">Создать</button>
-                  <button onClick={() => setDtOpen(false)} className="btn-secondary text-xs">Отмена</button>
+                <div className="flex justify-end">
+                  <button type="button" onClick={addAll} className="text-xs font-semibold px-5 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">Добавить весь список заданий</button>
                 </div>
               </div>
-            );
-          })()}
+            )}
 
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <h3 className="section-title">Доставки</h3>
-            <span className="flex items-center gap-2 flex-wrap">
-              <button type="button" onClick={() => { setDtSupplier(''); setDtDate(new Date().toISOString().slice(0, 10)); setDtPoints({}); setDtOpen(v => !v); }} className="btn-primary text-xs">Создать задание</button>
-              <select className="form-input text-xs w-44" value={dtSupplierFilter} onChange={e => setDtSupplierFilter(e.target.value)}>
-                <option value="">Поставщик: все</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
-              </select>
-              {['', 'Новый', 'В пути', 'Доставлен', 'Отменён'].map(st => (
-                <button key={st || 'all'} type="button" onClick={() => setDtStatusFilter(st)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${dtStatusFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
-                  {st || 'Все'}
-                </button>
-              ))}
-            </span>
+            {!dtOpen && (
+              <>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="flex items-center gap-2 flex-wrap">
+                    <select className="form-input text-xs w-44" value={dtSupplierFilter} onChange={e => setDtSupplierFilter(e.target.value)}>
+                      <option value="">Поставщик: все</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
+                    </select>
+                    {['', 'Новый', 'В пути', 'Доставлен', 'Отменён'].map(st => (
+                      <button key={st || 'all'} type="button" onClick={() => setDtStatusFilter(st)}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${dtStatusFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
+                        {st || 'Все'}
+                      </button>
+                    ))}
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="table-header text-left">Поставщик</th>
+                        <th className="table-header text-left">Город доставки</th>
+                        <th className="table-header text-left">Дата доставки</th>
+                        <th className="table-header text-left">Точек</th>
+                        <th className="table-header text-left">Ставка</th>
+                        <th className="table-header text-left">Сверх лимит</th>
+                        <th className="table-header text-left">Итого</th>
+                        <th className="table-header text-left">Статус</th>
+                        <th className="table-header text-left">Комментарий менеджера</th>
+                        <th className="table-header text-right">Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...tasks]
+                        .filter(tk => (!dtSupplierFilter || tk.supplierId === dtSupplierFilter) && (!dtStatusFilter || (tk.status || 'Новый') === dtStatusFilter))
+                        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+                        .map(tk => (
+                          <tr key={tk.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                            <td className="table-cell font-medium text-gray-800">{suppliers.find(s => s.id === tk.supplierId)?.tradeName || '—'}</td>
+                            <td className="table-cell text-gray-600">{tk.city}</td>
+                            <td className="table-cell text-gray-600 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
+                            <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
+                            <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
+                            <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${tk.extra} ₽` : '—'}</td>
+                            <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
+                            <td className="table-cell">
+                              <select className="form-input text-xs w-28" value={tk.status || 'Новый'} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => x.id === tk.id ? { ...x, status: e.target.value, history: [...(x.history || []), { at: new Date().toISOString(), by: userName, action: `Статус: ${e.target.value}` }] } : x) } })); toast.success('Статус обновлён'); }}>
+                                {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(o => <option key={o}>{o}</option>)}
+                              </select>
+                            </td>
+                            <td className="table-cell">
+                              <button type="button" onClick={() => { setCommentTaskId(tk.id); setCommentDraft(tk.comment || ''); }} className="text-xs text-blue-600 hover:underline max-w-[180px] truncate block text-left">
+                                {tk.comment || 'Добавить комментарий'}
+                              </button>
+                            </td>
+                            <td className="table-cell text-right whitespace-nowrap">
+                              <button type="button" title="История изменений" onClick={() => setTaskHistoryId(tk.id)} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
+                              <button type="button" title="Редактировать" onClick={() => { setDtOpen(true); setDtSupplier(tk.supplierId); setDtDate(tk.date); setDtPoints({ [tk.city]: String(tk.points) }); setDtComments({ [tk.city]: tk.comment || '' }); setDtStatuses({ [tk.city]: tk.status || 'Новый' }); }} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Pencil size={14} /></button>
+                              <button type="button" title="Удалить" onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== tk.id) } })); toast.success('Задание удалено'); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                            </td>
+                          </tr>
+                        ))}
+                      {!tasks.length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={10}>Заданий нет — нажмите «Создать задание».</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* МОДАЛКА КОММЕНТАРИЯ */}
+            {commentTaskId && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setCommentTaskId(null)}>
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-3" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-base font-bold text-gray-900">Комментарий менеджера</h3>
+                  <textarea className="form-input text-xs min-h-[100px]" placeholder="Комментарий…" value={commentDraft} onChange={e => setCommentDraft(e.target.value)} />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => {
+                      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => x.id === commentTaskId ? { ...x, comment: commentDraft, history: [...(x.history || []), { at: new Date().toISOString(), by: userName, action: 'Комментарий обновлён' }] } : x) } }));
+                      toast.success('Комментарий сохранён'); setCommentTaskId(null);
+                    }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Сохранить</button>
+                    <button type="button" onClick={() => setCommentTaskId(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* МОДАЛКА ИСТОРИИ ЗАДАНИЯ */}
+            {taskHistoryId && (() => {
+              const ht = (store.settings.deliveryTasks || []).find(t => t.id === taskHistoryId);
+              if (!ht) return null;
+              return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setTaskHistoryId(null)}>
+                  <div className="absolute inset-0 bg-black/50" />
+                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-bold text-gray-900">История: {ht.city}</h3>
+                      <button type="button" onClick={() => setTaskHistoryId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                    </div>
+                    <div className="space-y-2">
+                      {[...(ht.history || [])].reverse().map((hEntry, i) => (
+                        <div key={i} className="border border-gray-100 rounded-xl px-3 py-2 text-xs">
+                          <p className="text-gray-800">{hEntry.action}</p>
+                          <p className="text-gray-400 mt-0.5">{new Date(hEntry.at).toLocaleString('ru-RU')} · {hEntry.by || '—'}</p>
+                        </div>
+                      ))}
+                      {!(ht.history || []).length && <p className="text-xs text-gray-400">История пуста.</p>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="table-header text-left">Дата</th>
-                  <th className="table-header text-left">Поставщик</th>
-                  <th className="table-header text-left">Город</th>
-                  <th className="table-header text-left">Точек</th>
-                  <th className="table-header text-left">Ставка</th>
-                  <th className="table-header text-left">Сверх лимит</th>
-                  <th className="table-header text-left">Итого</th>
-                  <th className="table-header text-left">Статус</th>
-                  <th className="table-header text-right">Действия</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...(store.settings.deliveryTasks || [])]
-                  .filter(tk => (!dtSupplierFilter || tk.supplierId === dtSupplierFilter) && (!dtStatusFilter || (tk.status || 'Новый') === dtStatusFilter))
-                  .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
-                  .map(tk => (
-                    <tr key={tk.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="table-cell text-gray-600 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
-                      <td className="table-cell font-medium text-gray-800">{suppliers.find(s => s.id === tk.supplierId)?.tradeName || '—'}</td>
-                      <td className="table-cell text-gray-600">{tk.city}</td>
-                      <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
-                      <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
-                      <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${tk.extra} ₽` : '—'}</td>
-                      <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
-                      <td className="table-cell">
-                        <select className="form-input text-xs w-32" value={tk.status || 'Новый'} onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => x.id === tk.id ? { ...x, status: e.target.value } : x) } })); toast.success('Статус обновлён'); }}>
-                          {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(stOpt => <option key={stOpt}>{stOpt}</option>)}
-                        </select>
-                      </td>
-                      <td className="table-cell text-right">
-                        <button type="button" onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== tk.id) } })); toast.success('Задание удалено'); }} className="text-xs text-red-600 hover:underline">Удалить</button>
-                      </td>
-                    </tr>
-                  ))}
-                {!(store.settings.deliveryTasks || []).length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={9}>Заданий нет — создайте в Настройки → Доставка → Доставки.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {view !== 'suppliers' && view !== 'pickup' && view !== 'cities' && view !== 'deliveries' && (
         <div className="card-base p-8 text-center space-y-3">
