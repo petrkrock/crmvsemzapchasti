@@ -180,7 +180,6 @@ export default function SupplierServicePage() {
       if (r.ok && d?.delivery?.myCities) setMyCities(d.delivery.myCities);
       if (r.ok && d?.delivery?.citySchedules) setCitySchedules(d.delivery.citySchedules);
       if (r.ok && d?.delivery?.tariff !== undefined) setMyTariff(d.delivery.tariff);
-      if (r.ok && d?.delivery?.tariff !== undefined) setMyTariff(d.delivery.tariff);
     } catch { /* останется null — покажем «—» */ }
   }
 
@@ -962,17 +961,6 @@ export default function SupplierServicePage() {
                         Активировать
                       </button>
                     )}
-                    <span className="inline-flex items-center gap-1.5 ml-1">
-                      <button type="button" onClick={() => setTariffModal(true)} title="Тариф"
-                        className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
-                        <FileText size={15} />
-                      </button>
-                      <button type="button" title="Инфо"
-                        onClick={() => { const u = (dash?.lkLinks as Record<string, string>)?.delivery; if (u) window.open(u, '_blank', 'noreferrer'); else setNotice('Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'); }}
-                        className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
-                        <Info size={15} />
-                      </button>
-                    </span>
                     <span className="inline-flex items-center gap-1.5 ml-1">
                       <button type="button" onClick={() => setTariffModal(true)} title="Тариф"
                         className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
