@@ -32,7 +32,7 @@ const LK_MENU = [
   { key: 'dashboard', label: '', icon: LayoutDashboard },
   { key: 'pricing', label: 'Проценка', icon: Search },
   { key: 'delivery', label: 'Доставка', icon: Truck },
-  { key: 'crossdock', label: 'Кросс-докинг', icon: Boxes },
+  { key: 'crossdock', label: 'Маркет', icon: Boxes },
   { key: 'promo', label: 'Продвижение', icon: Megaphone },
 ] as const;
 
@@ -636,7 +636,7 @@ export default function SupplierServicePage() {
                             </p>
                           </div>
                           <div className="py-2 flex gap-3">
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Кросс-докинг</span>
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Маркет</span>
                             <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['crossdock'] && window.open(lkLinks['crossdock'], '_blank', 'noreferrer')} title={lkLinks['crossdock'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
                                 className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
                                 className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
@@ -800,7 +800,7 @@ export default function SupplierServicePage() {
 
             {lkTab === 'crossdock' && (
               <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Кросс-докинг</p>
+                <p className="text-sm font-semibold text-gray-700">Маркет</p>
                 <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
               </div>
             )}
@@ -1084,7 +1084,7 @@ export default function SupplierServicePage() {
 
             {lkTab === 'cabinet' && (() => {
               const cb = cabinet || {};
-              const svc = ['DBS', 'DBO', 'FBS', 'MEDIA'];
+              const svc = ['DBS', 'DBO', 'FBS', 'MEDIA']; // значение FBS хранится как есть
               const activeServices = svc.filter(s => (cb.services as string[] || []).includes(s));
               const row = (label: string, value: unknown) => (
                 <div className="flex items-baseline gap-3 text-sm py-1.5">

@@ -41,7 +41,7 @@ export default function PricingPage() {
   const [whDraft, setWhDraft] = useState<{ city?: string; address?: string; skuCount?: number } | null>(null);
   const [whSelected, setWhSelected] = useState<Set<string>>(new Set());
   const [fTk, setFTk] = useState<'off' | 'with' | 'without'>('off');
-  const [fService, setFService] = useState<'Все' | 'DBS' | 'FBS' | 'MEDIA'>('Все'); // ТЗ v1.24.6
+  const [fService, setFService] = useState<'Все' | 'DBS' | 'MARKET' | 'MEDIA'>('Все'); // ТЗ v1.24.6
   const [expanded, setExpanded] = useState<string | null>(null);
   const [draft, setDraft] = useState<Cond | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -301,7 +301,7 @@ export default function PricingPage() {
             title="Фильтр ТК: нажали — только с ТК, ещё раз — только без ТК, ещё раз — выкл">ТК{fTk === 'with' ? ': с' : fTk === 'without' ? ': без' : ''}</button>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {(['Все', 'DBS', 'FBS', 'MEDIA'] as const).map(sv => (
+          {(['Все', 'DBS', 'MARKET', 'MEDIA'] as const).map(sv => (
             <button key={sv} onClick={() => setFService(sv)}
               className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${fService === sv ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>{sv}</button>
           ))}

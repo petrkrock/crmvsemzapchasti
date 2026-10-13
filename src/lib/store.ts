@@ -253,7 +253,7 @@ export function getStore(): CRMStore {
     // v1.29.0: системные сервисы продаж — ВНЕ гейта (иначе существующие базы не получают DBO).
     // Выставляем флаг system и гарантируем наличие DBO в настройках и План/Факт.
     {
-      const SYS_SVC = ['DBS', 'FBS', 'DBO', 'MEDIA'];
+      const SYS_SVC = ['DBS', 'MARKET', 'DBO', 'MEDIA'];
       if (!Array.isArray(settings.supplierServices)) settings.supplierServices = [];
       SYS_SVC.forEach(name => {
         const existing = settings.supplierServices.find(s => s.name === name);
