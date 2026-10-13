@@ -702,7 +702,7 @@ export default function DeliveryPage() {
                           <th className="table-header text-left">Точек в доставке</th>
                           <th className="table-header text-left">Ставка</th>
                           <th className="table-header text-left">Сверх лимит</th>
-                          <th className="table-header text-left">Сверх габарит (м³)</th>
+                          <th className="table-header text-left">Сверх объём (л)</th>
                           <th className="table-header text-left">Итого к начислению</th>
                           <th className="table-header text-left">Комментарий менеджера</th>
                           <th className="table-header text-left">Статус</th>
@@ -791,7 +791,7 @@ export default function DeliveryPage() {
                           <th className="table-header text-left">Точек</th>
                           <th className="table-header text-left">Ставка</th>
                           <th className="table-header text-left">Сверх лимит</th>
-                          <th className="table-header text-left">Сверх габарит</th>
+                          <th className="table-header text-left">Сверх объём (л)</th>
                           <th className="table-header text-left">Итого</th>
                           <th className="table-header text-left">Статус</th>
                           <th className="table-header text-left">Комментарий менеджера</th>
@@ -808,7 +808,7 @@ export default function DeliveryPage() {
                               <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
                               <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
                               <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${Math.max(0, tk.points - ((store.settings.deliveryServiceTariffs || []).find(tf => tf.id === suppliers.find(s => s.id === tk.supplierId)?.deliveryContract?.serviceTariff)?.pointsIncluded || 0))} + ${tk.extra} ₽` : '—'}</td>
-                              <td className="table-cell text-gray-600 tabular-nums">{(tk.volumeExtra || 0) > 0 ? `${tk.volumeExtra} м³ + ${tk.volumeExtraSum || 0} ₽` : '—'}</td>
+                              <td className="table-cell text-gray-600 tabular-nums">{(tk.volumeExtra || 0) > 0 ? `${tk.volumeExtra} (л) + ${tk.volumeExtraSum || 0} ₽` : '—'}</td>
                               <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
                               <td className="table-cell">
                                 <span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${(tk.status || 'Новый') === 'Доставлен' ? 'bg-green-100 text-green-700' : (tk.status || '') === 'Отменён' ? 'bg-gray-100 text-gray-500' : (tk.status || '') === 'В пути' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{tk.status || 'Новый'}</span>
@@ -850,7 +850,7 @@ export default function DeliveryPage() {
                                         <input className="form-input text-xs w-20 block" inputMode="numeric" value={editDraft.points ?? String(tk.points)} onChange={e => setEditDraft(d => ({ ...d, points: e.target.value.replace(/\D/g, '') }))} />
                                       </div>
                                       <div>
-                                        <label className="text-[10px] font-semibold text-gray-500">Сверх габарит (м³)</label>
+                                        <label className="text-[10px] font-semibold text-gray-500">Сверх объём (л)</label>
                                         <input className="form-input text-xs w-20 block" inputMode="decimal" value={editDraft.volume ?? (tk.volumeExtra ? String(tk.volumeExtra) : '')} onChange={e => setEditDraft(d => ({ ...d, volume: e.target.value.replace(/[^\d.,]/g, '') }))} />
                                       </div>
                                       <div>

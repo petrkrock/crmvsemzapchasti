@@ -1464,14 +1464,14 @@ const [tab, setTab] = useState('Статусы');
                     <p className="text-[10px] text-gray-400">Начисляется только за точки сверх включённого лимита. Считается по каждому городу отдельно</p>
                   </div>
                   <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 4. Габарит</p>
-                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Включено — 0.6 м³" value={tariffVolInc} onChange={e => setTariffVolInc(e.target.value.replace(/[^\d.,]/g, ''))} />
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 4. Объём (л)</p>
+                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Например 600 (л)" value={tariffVolInc} onChange={e => setTariffVolInc(e.target.value.replace(/[^\d.,]/g, ''))} />
                     <p className="text-[10px] text-gray-400">Входит в общий объем отгрузки на город. Область действия: на каждый город.</p>
                     <div className="flex items-center gap-1.5">
-                      <input className="form-input text-xs w-36" inputMode="decimal" placeholder="Сверх — 0.1 м³" value={tariffVolStep} onChange={e => setTariffVolStep(e.target.value.replace(/[^\d.,]/g, ''))} />
-                      <input className="form-input text-xs w-36" inputMode="decimal" placeholder="500 ₽" value={tariffVolPrice} onChange={e => setTariffVolPrice(e.target.value.replace(/[^\d.,]/g, ''))} />
+                      <input className="form-input text-xs w-36" inputMode="decimal" placeholder="Шаг 1 (л)" value={tariffVolStep} onChange={e => setTariffVolStep(e.target.value.replace(/[^\d.,]/g, ''))} />
+                      <input className="form-input text-xs w-36" inputMode="decimal" placeholder="6 ₽" value={tariffVolPrice} onChange={e => setTariffVolPrice(e.target.value.replace(/[^\d.,]/g, ''))} />
                     </div>
-                    <p className="text-[10px] text-gray-400">Начисляется только сверх включённого габарита. Считается по каждому городу отдельно, за всю доставку.</p>
+                    <p className="text-[10px] text-gray-400">Начисляется только сверх включённого Объёма. Считается по каждому городу отдельно, на всю доставку.</p>
                   </div>
                   <button onClick={() => addTariff('deliveryServiceTariffs')} className="btn-primary text-xs">{editingTariffId ? 'Сохранить тариф' : 'Создать тариф'}</button>
                   {editingTariffId && <button onClick={() => { setEditingTariffId(null); setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint(''); setTariffVolInc(''); setTariffVolStep(''); setTariffVolPrice(''); }} className="btn-secondary text-xs">Отмена</button>}
@@ -1482,7 +1482,7 @@ const [tab, setTab] = useState('Статусы');
                       <span className="text-sm font-medium text-gray-800 flex-1">{tf.name}</span>
                       <span className="text-xs text-gray-500">Базовый: <b>{tf.basePackage ?? tf.pricePerMonth} ₽/мес</b></span>
                       <span className="text-xs text-gray-500">Город: <b>{tf.cityRate ?? '—'} ₽/день</b></span>
-                      <span className="text-xs text-gray-500">Точек: <b>{tf.pointsIncluded ?? '—'}</b> · сверх: <b>{tf.extraPointPrice ?? '—'} ₽</b> · Габарит: <b>{tf.volumeIncluded ?? '—'} м³</b> · сверх: <b>{tf.volumeExtraStep ?? '—'} м³ / {tf.volumeExtraPrice ?? '—'} ₽</b></span>
+                      <span className="text-xs text-gray-500">Точек: <b>{tf.pointsIncluded ?? '—'}</b> · сверх: <b>{tf.extraPointPrice ?? '—'} ₽</b> · Объём: <b>{tf.volumeIncluded ?? '—'} (л)</b> · сверх: <b>{tf.volumeExtraStep ?? '—'} (л) / {tf.volumeExtraPrice ?? '—'} ₽</b></span>
                       <button onClick={() => { setEditingTariffId(tf.id); setTariffName(tf.name); setTariffPrice(String(tf.basePackage ?? tf.pricePerMonth ?? '')); setTariffCityRate(String(tf.cityRate ?? '')); setTariffPoints(String(tf.pointsIncluded ?? '')); setTariffExtraPoint(String(tf.extraPointPrice ?? '')); setTariffVolInc(String(tf.volumeIncluded ?? '')); setTariffVolStep(String(tf.volumeExtraStep ?? '')); setTariffVolPrice(String(tf.volumeExtraPrice ?? '')); }} className="text-xs text-gray-500 hover:underline">Редактировать</button>
                       <button onClick={() => removeTariff('deliveryServiceTariffs', tf.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
                     </div>
