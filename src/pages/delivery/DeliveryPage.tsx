@@ -66,6 +66,7 @@ export default function DeliveryPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Record<string, string>>({});
   const [dtStatuses, setDtStatuses] = useState<Record<string, string>>({});
+  const [dtVol, setDtVol] = useState<Record<string, string>>({});
   // v1.30.31: создание заданий на доставку (перенесено из Настроек)
   const [dtOpen, setDtOpen] = useState(false);
   const [dtSupplier, setDtSupplier] = useState('');
@@ -612,9 +613,13 @@ export default function DeliveryPage() {
           const pts = Math.max(0, parseInt(dtPoints[city] || '0', 10) || 0);
           const over = Math.max(0, pts - included);
           const extra = over * extraPrice;
+          const vol = parseFloat((dtVol[city] || '').replace(',', '.')) || 0;
+          const volStep = Number(tariff?.volumeExtraStep) || 0;
+          const volPrice = Number(tariff?.volumeExtraPrice) || 0;
+          const volSum = vol > 0 && volStep > 0 ? Math.ceil(vol / volStep) * volPrice : 0;
           return {
             id: `dtask-${Date.now()}-${city}`, supplierId: dtSupplier, date: dtDate, city,
-            points: pts, rate, extra, total: rate + extra,
+            points: pts, rate, extra, volumeExtra: vol > 0 ? vol : undefined, volumeExtraSum: volSum > 0 ? volSum : undefined, total: rate + extra + volSum,
             status: dtStatuses[city] || 'Новый', comment: dtComments[city] || '',
             createdAt: new Date().toISOString(),
             history: [{ at: new Date().toISOString(), by: userName, action: `Задание создано (${city})` }],
@@ -636,7 +641,7 @@ export default function DeliveryPage() {
           if (emptyCity) { toast.error(`Укажите точки доставки для города ${emptyCity.city}`); return; }
           cities.forEach(r => pushTask(buildTask(r.city)));
           toast.success(`Добавлено заданий: ${cities.length}`);
-          setDtOpen(false); setDtSupplier(''); setDtDate(''); setDtPoints({}); setDtComments({}); setDtStatuses({});
+          setDtOpen(false); setDtSupplier(''); setDtDate(''); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtVol({});
         }
 
         const filteredTasks = [...tasks]
@@ -654,7 +659,7 @@ export default function DeliveryPage() {
               <div className="card-base p-5">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <h3 className="section-title">Сводка по сервису доставки</h3>
-                  <button type="button" onClick={() => { setDtSupplier(''); setDtDate(today); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtOpen(true); }} className="btn-primary text-xs">Создать задание</button>
+                  <button type="button" onClick={() => { setDtSupplier(''); setDtDate(today); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtVol({}); setDtOpen(true); }} className="btn-primary text-xs">Создать задание</button>
                 </div>
               </div>
             )}
@@ -697,6 +702,7 @@ export default function DeliveryPage() {
                           <th className="table-header text-left">Точек в доставке</th>
                           <th className="table-header text-left">Ставка</th>
                           <th className="table-header text-left">Сверх лимит</th>
+                          <th className="table-header text-left">Сверх габарит (м³)</th>
                           <th className="table-header text-left">Итого к начислению</th>
                           <th className="table-header text-left">Комментарий менеджера</th>
                           <th className="table-header text-left">Статус</th>
@@ -708,13 +714,18 @@ export default function DeliveryPage() {
                           const pts = Math.max(0, parseInt(dtPoints[r.city] || '0', 10) || 0);
                           const over = Math.max(0, pts - included);
                           const extra = over * extraPrice;
+                          const volVal = parseFloat((dtVol[r.city] || '').replace(',', '.')) || 0;
+                          const volStep = Number(tariff?.volumeExtraStep) || 0;
+                          const volPrice = Number(tariff?.volumeExtraPrice) || 0;
+                          const volSum = volVal > 0 && volStep > 0 ? Math.ceil(volVal / volStep) * volPrice : 0;
                           return (
                             <tr key={r.id} className="border-t border-gray-100">
                               <td className="table-cell font-medium text-gray-800">{r.city}</td>
                               <td className="table-cell"><input className="form-input text-xs w-16" inputMode="numeric" value={dtPoints[r.city] || ''} onChange={e => setDtPoints(p => ({ ...p, [r.city]: e.target.value.replace(/\D/g, '') }))} /></td>
                               <td className="table-cell text-gray-600 tabular-nums">{rate} ₽</td>
                               <td className="table-cell text-gray-600 tabular-nums">{over > 0 ? `${over} + ${extra} ₽` : '—'}</td>
-                              <td className="table-cell font-semibold text-gray-900 tabular-nums">{rate + extra} ₽</td>
+                              <td className="table-cell"><input className="form-input text-xs w-20" inputMode="decimal" placeholder="—" value={dtVol[r.city] || ''} onChange={e => setDtVol(v => ({ ...v, [r.city]: e.target.value.replace(/[^\d.,]/g, '') }))} /></td>
+                              <td className="table-cell font-semibold text-gray-900 tabular-nums">{rate + extra + volSum} ₽</td>
                               <td className="table-cell"><input className="form-input text-xs min-w-[160px]" placeholder="Комментарий…" value={dtComments[r.city] || ''} onChange={e => setDtComments(c => ({ ...c, [r.city]: e.target.value }))} /></td>
                               <td className="table-cell">
                                 <select className="form-input text-xs w-28" value={dtStatuses[r.city] || 'Новый'} onChange={e => setDtStatuses(st => ({ ...st, [r.city]: e.target.value }))}>
@@ -727,7 +738,7 @@ export default function DeliveryPage() {
                             </tr>
                           );
                         })}
-                        {!cities.length && <tr><td className="table-cell text-gray-400 text-center py-4" colSpan={8}>Нет активных городов у поставщика на эту дату.</td></tr>}
+                        {!cities.length && <tr><td className="table-cell text-gray-400 text-center py-4" colSpan={9}>Нет активных городов у поставщика на эту дату.</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -780,6 +791,7 @@ export default function DeliveryPage() {
                           <th className="table-header text-left">Точек</th>
                           <th className="table-header text-left">Ставка</th>
                           <th className="table-header text-left">Сверх лимит</th>
+                          <th className="table-header text-left">Сверх габарит</th>
                           <th className="table-header text-left">Итого</th>
                           <th className="table-header text-left">Статус</th>
                           <th className="table-header text-left">Комментарий менеджера</th>
@@ -796,6 +808,7 @@ export default function DeliveryPage() {
                               <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
                               <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
                               <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${Math.max(0, tk.points - ((store.settings.deliveryServiceTariffs || []).find(tf => tf.id === suppliers.find(s => s.id === tk.supplierId)?.deliveryContract?.serviceTariff)?.pointsIncluded || 0))} + ${tk.extra} ₽` : '—'}</td>
+                              <td className="table-cell text-gray-600 tabular-nums">{(tk.volumeExtra || 0) > 0 ? `${tk.volumeExtra} м³ + ${tk.volumeExtraSum || 0} ₽` : '—'}</td>
                               <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
                               <td className="table-cell">
                                 <span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${(tk.status || 'Новый') === 'Доставлен' ? 'bg-green-100 text-green-700' : (tk.status || '') === 'Отменён' ? 'bg-gray-100 text-gray-500' : (tk.status || '') === 'В пути' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{tk.status || 'Новый'}</span>
@@ -820,9 +833,13 @@ export default function DeliveryPage() {
                               const ePts = Math.max(0, parseInt(editDraft.points ?? String(tk.points), 10) || 0);
                               const eOver = Math.max(0, ePts - eIncluded);
                               const eExtra = eOver * eExtraPrice;
+                              const eVol = parseFloat((editDraft.volume ?? (tk.volumeExtra ? String(tk.volumeExtra) : '')).replace(',', '.')) || 0;
+                              const eVolStep = Number(editTariff?.volumeExtraStep) || 0;
+                              const eVolPrice = Number(editTariff?.volumeExtraPrice) || 0;
+                              const eVolSum = eVol > 0 && eVolStep > 0 ? Math.ceil(eVol / eVolStep) * eVolPrice : 0;
                               return (
                                 <tr className="border-t border-gray-100 bg-gray-50/60">
-                                  <td className="table-cell text-gray-400 text-xs" colSpan={10}>
+                                  <td className="table-cell text-gray-400 text-xs" colSpan={11}>
                                     <div className="flex items-end gap-2 flex-wrap py-1">
                                       <div>
                                         <label className="text-[10px] font-semibold text-gray-500">Дата</label>
@@ -832,7 +849,10 @@ export default function DeliveryPage() {
                                         <label className="text-[10px] font-semibold text-gray-500">Точек в доставке *</label>
                                         <input className="form-input text-xs w-20 block" inputMode="numeric" value={editDraft.points ?? String(tk.points)} onChange={e => setEditDraft(d => ({ ...d, points: e.target.value.replace(/\D/g, '') }))} />
                                       </div>
-                                      <div className="text-xs text-gray-600 pb-2">Ставка: <b>{eRate} ₽</b> · Сверх: <b>{eOver > 0 ? `${eOver} + ${eExtra} ₽` : '—'}</b> · Итого: <b className="text-gray-900">{eRate + eExtra} ₽</b></div>
+                                      <div>
+                                        <label className="text-[10px] font-semibold text-gray-500">Сверх габарит (м³)</label>
+                                        <input className="form-input text-xs w-20 block" inputMode="decimal" value={editDraft.volume ?? (tk.volumeExtra ? String(tk.volumeExtra) : '')} onChange={e => setEditDraft(d => ({ ...d, volume: e.target.value.replace(/[^\d.,]/g, '') }))} />
+                                      </div>
                                       <div>
                                         <label className="text-[10px] font-semibold text-gray-500">Статус</label>
                                         <select className="form-input text-xs w-28 block" value={editDraft.status ?? (tk.status || 'Новый')} onChange={e => setEditDraft(d => ({ ...d, status: e.target.value }))}>
@@ -848,7 +868,7 @@ export default function DeliveryPage() {
                                         updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => x.id === tk.id ? {
                                           ...x,
                                           date: editDraft.date ?? tk.date,
-                                          points: ePts, rate: eRate, extra: eExtra, total: eRate + eExtra,
+                                          points: ePts, rate: eRate, extra: eExtra, volumeExtra: eVol > 0 ? eVol : undefined, volumeExtraSum: eVolSum > 0 ? eVolSum : undefined, total: eRate + eExtra + eVolSum,
                                           status: editDraft.status ?? (tk.status || 'Новый'),
                                           comment: editDraft.comment ?? (tk.comment || ''),
                                           history: [...(x.history || []), { at: new Date().toISOString(), by: userName, action: 'Задание отредактировано' }],
@@ -863,7 +883,7 @@ export default function DeliveryPage() {
                             })()}
                           </Fragment>
                         ))}
-                        {!filteredTasks.length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={10}>Заданий не найдено.</td></tr>}
+                        {!filteredTasks.length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={11}>Заданий не найдено.</td></tr>}
                       </tbody>
                     </table>
                   </div>

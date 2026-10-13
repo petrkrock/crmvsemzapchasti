@@ -697,6 +697,9 @@ export interface DeliveryTask {
   points: number;
   rate: number;
   extra: number;
+  /** v1.30.33: сверх габарит (м³) и сумма */
+  volumeExtra?: number;
+  volumeExtraSum?: number;
   total: number;
   status?: string;
   createdAt: string;

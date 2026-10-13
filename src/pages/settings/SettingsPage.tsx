@@ -507,6 +507,7 @@ const [tab, setTab] = useState('Статусы');
   const [tariffVolInc, setTariffVolInc] = useState('');
   const [tariffVolStep, setTariffVolStep] = useState('');
   const [tariffVolPrice, setTariffVolPrice] = useState('');
+  const [editingTariffId, setEditingTariffId] = useState<string | null>(null);
   const [tariffPrice, setTariffPrice] = useState('');
   function addTariff(field: 'deliveryServiceTariffs' | 'deliveryCityTariffs') {
     if (!tariffName.trim()) { toast.error('Укажите название тарифа'); return; }
@@ -515,8 +516,15 @@ const [tab, setTab] = useState('Статусы');
       volumeExtraStep: Math.max(0, parseFloat(tariffVolStep.replace(',', '.')) || 0),
       volumeExtraPrice: Math.max(0, parseFloat(tariffVolPrice.replace(',', '.')) || 0), createdAt: new Date().toISOString() };
     updateStore(s => ({ ...s, settings: { ...s.settings, [field]: [...(s.settings[field] || []), tariff] } }));
-    setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint('');
-    forceUpdate(n => n + 1); toast.success('Тариф создан');
+    if (editingTariffId) {
+      updateStore(s => ({ ...s, settings: { ...s.settings, [field]: (s.settings[field] || []).map(x => x.id === editingTariffId ? { ...x, ...tariff, id: x.id, createdAt: x.createdAt } : x) } }));
+      setEditingTariffId(null); toast.success('Тариф сохранён');
+    } else {
+      updateStore(s => ({ ...s, settings: { ...s.settings, [field]: [...(s.settings[field] || []), tariff] } }));
+      toast.success('Тариф создан');
+    }
+    setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint(''); setTariffVolInc(''); setTariffVolStep(''); setTariffVolPrice('');
+    forceUpdate(n => n + 1);
   }
   function removeTariff(field: 'deliveryServiceTariffs' | 'deliveryCityTariffs', id: string) {
     updateStore(s => ({ ...s, settings: { ...s.settings, [field]: (s.settings[field] || []).filter(x => x.id !== id) } }));
@@ -1465,7 +1473,8 @@ const [tab, setTab] = useState('Статусы');
                     </div>
                     <p className="text-[10px] text-gray-400">Начисляется только сверх включённого габарита. Считается по каждому городу отдельно, за всю доставку.</p>
                   </div>
-                  <button onClick={() => addTariff('deliveryServiceTariffs')} className="btn-primary text-xs">Создать тариф</button>
+                  <button onClick={() => addTariff('deliveryServiceTariffs')} className="btn-primary text-xs">{editingTariffId ? 'Сохранить тариф' : 'Создать тариф'}</button>
+                  {editingTariffId && <button onClick={() => { setEditingTariffId(null); setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint(''); setTariffVolInc(''); setTariffVolStep(''); setTariffVolPrice(''); }} className="btn-secondary text-xs">Отмена</button>}
                 </div>
                 <div className="space-y-2">
                   {(store.settings.deliveryServiceTariffs || []).map(tf => (
@@ -1474,6 +1483,7 @@ const [tab, setTab] = useState('Статусы');
                       <span className="text-xs text-gray-500">Базовый: <b>{tf.basePackage ?? tf.pricePerMonth} ₽/мес</b></span>
                       <span className="text-xs text-gray-500">Город: <b>{tf.cityRate ?? '—'} ₽/день</b></span>
                       <span className="text-xs text-gray-500">Точек: <b>{tf.pointsIncluded ?? '—'}</b> · сверх: <b>{tf.extraPointPrice ?? '—'} ₽</b> · Габарит: <b>{tf.volumeIncluded ?? '—'} м³</b> · сверх: <b>{tf.volumeExtraStep ?? '—'} м³ / {tf.volumeExtraPrice ?? '—'} ₽</b></span>
+                      <button onClick={() => { setEditingTariffId(tf.id); setTariffName(tf.name); setTariffPrice(String(tf.basePackage ?? tf.pricePerMonth ?? '')); setTariffCityRate(String(tf.cityRate ?? '')); setTariffPoints(String(tf.pointsIncluded ?? '')); setTariffExtraPoint(String(tf.extraPointPrice ?? '')); setTariffVolInc(String(tf.volumeIncluded ?? '')); setTariffVolStep(String(tf.volumeExtraStep ?? '')); setTariffVolPrice(String(tf.volumeExtraPrice ?? '')); }} className="text-xs text-gray-500 hover:underline">Редактировать</button>
                       <button onClick={() => removeTariff('deliveryServiceTariffs', tf.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
                     </div>
                   ))}
