@@ -438,6 +438,8 @@ export default function SupplierServicePage() {
                         <span className="text-gray-500">Ставка за город</span><b className="text-gray-900 text-right">{Number(myTariff.cityRate) || 0} ₽/день</b>
                         <span className="text-gray-500">Точек включено</span><b className="text-gray-900 text-right">{Number(myTariff.pointsIncluded) || 0} шт</b>
                         <span className="text-gray-500">Точка сверх лимита</span><b className="text-gray-900 text-right">{Number(myTariff.extraPointPrice) || 0} ₽/шт</b>
+                        <span className="text-gray-500">Габарит включено</span><b className="text-gray-900 text-right">{Number(myTariff.volumeIncluded) || 0} м³</b>
+                        <span className="text-gray-500">Сверх габарита</span><b className="text-gray-900 text-right">{Number(myTariff.volumeExtraStep) || 0} м³ · {Number(myTariff.volumeExtraPrice) || 0} ₽</b>
                       </div>
                     ) : (
                       <p className="text-xs text-gray-400">Тариф не подключён.</p>

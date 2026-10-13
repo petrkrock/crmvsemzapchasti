@@ -679,6 +679,12 @@ export interface DeliveryTariff {
   pointsIncluded?: number;
   /** Стоимость последующей точки (₽/шт) */
   extraPointPrice?: number;
+  /** v1.30.33: Габарит — включено (м³) */
+  volumeIncluded?: number;
+  /** Габарит — шаг сверх (м³) */
+  volumeExtraStep?: number;
+  /** Габарит — цена за шаг сверх (₽) */
+  volumeExtraPrice?: number;
   createdAt: string;
 }
 

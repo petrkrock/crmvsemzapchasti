@@ -504,10 +504,16 @@ const [tab, setTab] = useState('Статусы');
   const [tariffCityRate, setTariffCityRate] = useState('');
   const [tariffPoints, setTariffPoints] = useState('');
   const [tariffExtraPoint, setTariffExtraPoint] = useState('');
+  const [tariffVolInc, setTariffVolInc] = useState('');
+  const [tariffVolStep, setTariffVolStep] = useState('');
+  const [tariffVolPrice, setTariffVolPrice] = useState('');
   const [tariffPrice, setTariffPrice] = useState('');
   function addTariff(field: 'deliveryServiceTariffs' | 'deliveryCityTariffs') {
     if (!tariffName.trim()) { toast.error('Укажите название тарифа'); return; }
-    const tariff = { id: `dt-${Date.now()}`, name: tariffName.trim(), pricePerMonth: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), basePackage: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), cityRate: Math.max(0, parseFloat(tariffCityRate.replace(',', '.')) || 0), pointsIncluded: Math.max(0, parseInt(tariffPoints, 10) || 0), extraPointPrice: Math.max(0, parseFloat(tariffExtraPoint.replace(',', '.')) || 0), createdAt: new Date().toISOString() };
+    const tariff = { id: `dt-${Date.now()}`, name: tariffName.trim(), pricePerMonth: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), basePackage: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), cityRate: Math.max(0, parseFloat(tariffCityRate.replace(',', '.')) || 0), pointsIncluded: Math.max(0, parseInt(tariffPoints, 10) || 0), extraPointPrice: Math.max(0, parseFloat(tariffExtraPoint.replace(',', '.')) || 0),
+      volumeIncluded: Math.max(0, parseFloat(tariffVolInc.replace(',', '.')) || 0),
+      volumeExtraStep: Math.max(0, parseFloat(tariffVolStep.replace(',', '.')) || 0),
+      volumeExtraPrice: Math.max(0, parseFloat(tariffVolPrice.replace(',', '.')) || 0), createdAt: new Date().toISOString() };
     updateStore(s => ({ ...s, settings: { ...s.settings, [field]: [...(s.settings[field] || []), tariff] } }));
     setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint('');
     forceUpdate(n => n + 1); toast.success('Тариф создан');
@@ -1449,6 +1455,16 @@ const [tab, setTab] = useState('Статусы');
                     <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Стоимость последующей точки (₽/шт)" value={tariffExtraPoint} onChange={e => setTariffExtraPoint(e.target.value.replace(/[^\d.,]/g, ''))} />
                     <p className="text-[10px] text-gray-400">Начисляется только за точки сверх включённого лимита. Считается по каждому городу отдельно</p>
                   </div>
+                  <div className="border border-gray-100 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 4. Габарит</p>
+                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Включено — 0.6 м³" value={tariffVolInc} onChange={e => setTariffVolInc(e.target.value.replace(/[^\d.,]/g, ''))} />
+                    <p className="text-[10px] text-gray-400">Входит в общий объем отгрузки на город. Область действия: на каждый город.</p>
+                    <div className="flex items-center gap-1.5">
+                      <input className="form-input text-xs w-36" inputMode="decimal" placeholder="Сверх — 0.1 м³" value={tariffVolStep} onChange={e => setTariffVolStep(e.target.value.replace(/[^\d.,]/g, ''))} />
+                      <input className="form-input text-xs w-36" inputMode="decimal" placeholder="500 ₽" value={tariffVolPrice} onChange={e => setTariffVolPrice(e.target.value.replace(/[^\d.,]/g, ''))} />
+                    </div>
+                    <p className="text-[10px] text-gray-400">Начисляется только сверх включённого габарита. Считается по каждому городу отдельно, за всю доставку.</p>
+                  </div>
                   <button onClick={() => addTariff('deliveryServiceTariffs')} className="btn-primary text-xs">Создать тариф</button>
                 </div>
                 <div className="space-y-2">
@@ -1457,7 +1473,7 @@ const [tab, setTab] = useState('Статусы');
                       <span className="text-sm font-medium text-gray-800 flex-1">{tf.name}</span>
                       <span className="text-xs text-gray-500">Базовый: <b>{tf.basePackage ?? tf.pricePerMonth} ₽/мес</b></span>
                       <span className="text-xs text-gray-500">Город: <b>{tf.cityRate ?? '—'} ₽/день</b></span>
-                      <span className="text-xs text-gray-500">Точек: <b>{tf.pointsIncluded ?? '—'}</b> · сверх: <b>{tf.extraPointPrice ?? '—'} ₽</b></span>
+                      <span className="text-xs text-gray-500">Точек: <b>{tf.pointsIncluded ?? '—'}</b> · сверх: <b>{tf.extraPointPrice ?? '—'} ₽</b> · Габарит: <b>{tf.volumeIncluded ?? '—'} м³</b> · сверх: <b>{tf.volumeExtraStep ?? '—'} м³ / {tf.volumeExtraPrice ?? '—'} ₽</b></span>
                       <button onClick={() => removeTariff('deliveryServiceTariffs', tf.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
                     </div>
                   ))}
