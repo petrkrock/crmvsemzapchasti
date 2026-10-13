@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Landmark, MapPin, Route, Truck, Undo2, Users, Warehouse, Pencil, Trash2, Printer, History, Save, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileText, Landmark, MapPin, Route, Truck, Undo2, Users, Warehouse, Pencil, Trash2, Printer, History, Save, ArrowUp, ArrowDown, MessageSquare } from 'lucide-react';
 import { getStore, useStoreVersion, updateStore } from '@/lib/store';
 import { getCurrentUser } from '@/lib/auth';
 import { toast } from 'sonner';
