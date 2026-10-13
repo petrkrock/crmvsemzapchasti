@@ -65,6 +65,8 @@ export default function DeliveryPage() {
   const [dtCityFilter, setDtCityFilter] = useState('');
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Record<string, string>>({});
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [massStatus, setMassStatus] = useState('');
   const [dtStatuses, setDtStatuses] = useState<Record<string, string>>({});
   const [dtVol, setDtVol] = useState<Record<string, string>>({});
   // v1.30.31: создание заданий на доставку (перенесено из Настроек)
@@ -524,7 +526,7 @@ export default function DeliveryPage() {
                   <tr>
                     <th className="table-header text-left">Город</th>
                     <th className="table-header text-left">Поставщики в доставке</th>
-                    <th className="table-header text-left">Статус</th>
+                    <th className="table-header text-left">Статус задания</th>
                     <th className="table-header text-left">Дата активации</th>
                     <th className="table-header text-left">График развоза (с - до)</th>
                     <th className="table-header text-left">МКП</th>
@@ -620,7 +622,7 @@ export default function DeliveryPage() {
           return {
             id: `dtask-${Date.now()}-${city}`, supplierId: dtSupplier, date: dtDate, city,
             points: pts, rate, extra, volumeExtra: vol > 0 ? vol : undefined, volumeExtraSum: volSum > 0 ? volSum : undefined, total: rate + extra + volSum,
-            status: dtStatuses[city] || 'Новый', comment: dtComments[city] || '',
+            status: dtStatuses[city] || 'Новое', comment: dtComments[city] || '',
             createdAt: new Date().toISOString(),
             history: [{ at: new Date().toISOString(), by: userName, action: `Задание создано (${city})` }],
           };
@@ -646,7 +648,7 @@ export default function DeliveryPage() {
 
         const filteredTasks = [...tasks]
           .filter(tk => (!dtSupplierFilter || tk.supplierId === dtSupplierFilter)
-            && (!dtStatusFilter || (tk.status || 'Новый') === dtStatusFilter)
+            && (!dtStatusFilter || (tk.status || 'Новое') === dtStatusFilter)
             && (!dtDateFilter || tk.date === dtDateFilter)
             && (!dtCityFilter || tk.city === dtCityFilter)
             && (!dtSearch || suppliers.find(s => s.id === tk.supplierId)?.tradeName?.toLowerCase().includes(dtSearch.toLowerCase()) || tk.city.toLowerCase().includes(dtSearch.toLowerCase())))
@@ -704,7 +706,7 @@ export default function DeliveryPage() {
                           <th className="table-header text-left">Сверх лимит</th>
                           <th className="table-header text-left">Сверх объём (л)</th>
                           <th className="table-header text-left">Итого к начислению</th>
-                          <th className="table-header text-left">Комментарий менеджера</th>
+                          <th className="table-header text-left">Комментарий</th>
                           <th className="table-header text-left">Статус</th>
                           <th className="table-header text-right">Действия</th>
                         </tr>
@@ -729,7 +731,7 @@ export default function DeliveryPage() {
                               <td className="table-cell"><input className="form-input text-xs min-w-[160px]" placeholder="Комментарий…" value={dtComments[r.city] || ''} onChange={e => setDtComments(c => ({ ...c, [r.city]: e.target.value }))} /></td>
                               <td className="table-cell">
                                 <select className="form-input text-xs w-28" value={dtStatuses[r.city] || 'Новый'} onChange={e => setDtStatuses(st => ({ ...st, [r.city]: e.target.value }))}>
-                                  {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(o => <option key={o}>{o}</option>)}
+                                  {['Новое', 'В доставке', 'Выполнено', 'Отменено'].map(o => <option key={o}>{o}</option>)}
                                 </select>
                               </td>
                               <td className="table-cell text-right">
@@ -780,11 +782,27 @@ export default function DeliveryPage() {
                 </div>
 
                 {/* ТАБЛИЦА — отдельный блок с закруглёнными краями */}
+                {selectedTasks.length > 0 && (
+                  <div className="card-base p-3 flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-gray-600">Выбрано: <b>{selectedTasks.length}</b></span>
+                    <select className="form-input text-xs w-36" value={massStatus} onChange={e => setMassStatus(e.target.value)}>
+                      <option value="">Статус…</option>
+                      {['Новое', 'В доставке', 'Выполнено', 'Отменено'].map(o => <option key={o}>{o}</option>)}
+                    </select>
+                    <button type="button" onClick={() => {
+                      if (!massStatus) { toast.error('Выберите статус'); return; }
+                      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => selectedTasks.includes(x.id) ? { ...x, status: massStatus, history: [...(x.history || []), { at: new Date().toISOString(), by: getCurrentUser()?.name || '', action: `Массово: ${massStatus}` }] } : x) } }));
+                      toast.success('Статус обновлён'); setSelectedTasks([]); setMassStatus('');
+                    }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Применить</button>
+                    <button type="button" onClick={() => setSelectedTasks([])} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Снять выбор</button>
+                  </div>
+                )}
                 <div className="card-base overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50">
+                          <th className="table-header w-8"><input type="checkbox" className="accent-red-600" checked={filteredTasks.length > 0 && selectedTasks.length === filteredTasks.length} onChange={e => setSelectedTasks(e.target.checked ? filteredTasks.map(t => t.id) : [])} /></th>
                           <th className="table-header text-left">Поставщик</th>
                           <th className="table-header text-left">Город доставки</th>
                           <th className="table-header text-left">Дата доставки</th>
@@ -802,7 +820,8 @@ export default function DeliveryPage() {
                         {filteredTasks.map(tk => (
                           <Fragment key={tk.id}>
                             <tr onClick={() => setEditingTaskId(v => v === tk.id ? null : tk.id)} className={`border-t border-gray-100 transition-colors cursor-pointer ${editingTaskId === tk.id ? 'bg-red-50/50' : 'hover:bg-gray-50'}`}>
-                              <td className="table-cell font-medium text-gray-800">{suppliers.find(s => s.id === tk.supplierId)?.tradeName || '—'}</td>
+                              <td className="table-cell" onClick={e => e.stopPropagation()}><input type="checkbox" className="accent-red-600" checked={selectedTasks.includes(tk.id)} onChange={e => setSelectedTasks(v => e.target.checked ? [...v, tk.id] : v.filter(x => x !== tk.id))} /></td>
+                              <td className="table-cell font-medium text-gray-800 text-black">{suppliers.find(s => s.id === tk.supplierId)?.tradeName || '—'}</td>
                               <td className="table-cell text-gray-600">{tk.city}</td>
                               <td className="table-cell text-gray-600 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
                               <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
@@ -811,11 +830,12 @@ export default function DeliveryPage() {
                               <td className="table-cell text-gray-600 tabular-nums">{(tk.volumeExtra || 0) > 0 ? `${tk.volumeExtra} (л) + ${tk.volumeExtraSum || 0} ₽` : '—'}</td>
                               <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
                               <td className="table-cell">
-                                <span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${(tk.status || 'Новый') === 'Доставлен' ? 'bg-green-100 text-green-700' : (tk.status || '') === 'Отменён' ? 'bg-gray-100 text-gray-500' : (tk.status || '') === 'В пути' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{tk.status || 'Новый'}</span>
+                                <span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${(tk.status || 'Новое') === 'Доставлен' ? 'bg-green-100 text-green-700' : (tk.status || '') === 'Отменён' ? 'bg-gray-100 text-gray-500' : (tk.status || '') === 'В пути' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{tk.status || 'Новый'}</span>
                               </td>
                               <td className="table-cell">
-                                <button type="button" onClick={e => { e.stopPropagation(); setCommentTaskId(tk.id); setCommentDraft(tk.comment || ''); }} className="text-xs text-blue-600 hover:underline max-w-[180px] truncate block text-left">
-                                  {tk.comment || 'Добавить комментарий'}
+                                <button type="button" title={tk.comment ? tk.comment : 'Комментарий'} onClick={e => { e.stopPropagation(); setCommentTaskId(tk.id); setCommentDraft(tk.comment || ''); }}
+                                  className={`p-1.5 rounded ${tk.comment ? 'text-blue-600' : 'text-gray-300'} hover:text-blue-700`}>
+                                  <MessageSquare size={14} />
                                 </button>
                               </td>
                               <td className="table-cell text-right whitespace-nowrap">
@@ -839,7 +859,7 @@ export default function DeliveryPage() {
                               const eVolSum = eVol > 0 && eVolStep > 0 ? Math.ceil(eVol / eVolStep) * eVolPrice : 0;
                               return (
                                 <tr className="border-t border-gray-100 bg-gray-50/60">
-                                  <td className="table-cell text-gray-400 text-xs" colSpan={11}>
+                                  <td className="table-cell text-gray-400 text-xs" colSpan={12}>
                                     <div className="flex items-end gap-2 flex-wrap py-1">
                                       <div>
                                         <label className="text-[10px] font-semibold text-gray-500">Дата</label>
@@ -855,8 +875,8 @@ export default function DeliveryPage() {
                                       </div>
                                       <div>
                                         <label className="text-[10px] font-semibold text-gray-500">Статус</label>
-                                        <select className="form-input text-xs w-28 block" value={editDraft.status ?? (tk.status || 'Новый')} onChange={e => setEditDraft(d => ({ ...d, status: e.target.value }))}>
-                                          {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(o => <option key={o}>{o}</option>)}
+                                        <select className="form-input text-xs w-28 block" value={editDraft.status ?? (tk.status || 'Новое')} onChange={e => setEditDraft(d => ({ ...d, status: e.target.value }))}>
+                                          {['Новое', 'В доставке', 'Выполнено', 'Отменено'].map(o => <option key={o}>{o}</option>)}
                                         </select>
                                       </div>
                                       <div className="flex-1 min-w-[180px]">
@@ -869,7 +889,7 @@ export default function DeliveryPage() {
                                           ...x,
                                           date: editDraft.date ?? tk.date,
                                           points: ePts, rate: eRate, extra: eExtra, volumeExtra: eVol > 0 ? eVol : undefined, volumeExtraSum: eVolSum > 0 ? eVolSum : undefined, total: eRate + eExtra + eVolSum,
-                                          status: editDraft.status ?? (tk.status || 'Новый'),
+                                          status: editDraft.status ?? (tk.status || 'Новое'),
                                           comment: editDraft.comment ?? (tk.comment || ''),
                                           history: [...(x.history || []), { at: new Date().toISOString(), by: userName, action: 'Задание отредактировано' }],
                                         } : x) } }));
@@ -883,7 +903,7 @@ export default function DeliveryPage() {
                             })()}
                           </Fragment>
                         ))}
-                        {!filteredTasks.length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={11}>Заданий не найдено.</td></tr>}
+                        {!filteredTasks.length && <tr><td className="table-cell text-gray-400 text-center py-6" colSpan={12}>Заданий не найдено.</td></tr>}
                       </tbody>
                     </table>
                   </div>

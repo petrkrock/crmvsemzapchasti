@@ -513,9 +513,8 @@ const [tab, setTab] = useState('Статусы');
     if (!tariffName.trim()) { toast.error('Укажите название тарифа'); return; }
     const tariff = { id: `dt-${Date.now()}`, name: tariffName.trim(), pricePerMonth: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), basePackage: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), cityRate: Math.max(0, parseFloat(tariffCityRate.replace(',', '.')) || 0), pointsIncluded: Math.max(0, parseInt(tariffPoints, 10) || 0), extraPointPrice: Math.max(0, parseFloat(tariffExtraPoint.replace(',', '.')) || 0),
       volumeIncluded: Math.max(0, parseFloat(tariffVolInc.replace(',', '.')) || 0),
-      volumeExtraStep: Math.max(0, parseFloat(tariffVolStep.replace(',', '.')) || 0),
+      volumeExtraStep: 1, // шаг фиксирован: 1 (л)
       volumeExtraPrice: Math.max(0, parseFloat(tariffVolPrice.replace(',', '.')) || 0), createdAt: new Date().toISOString() };
-    updateStore(s => ({ ...s, settings: { ...s.settings, [field]: [...(s.settings[field] || []), tariff] } }));
     if (editingTariffId) {
       updateStore(s => ({ ...s, settings: { ...s.settings, [field]: (s.settings[field] || []).map(x => x.id === editingTariffId ? { ...x, ...tariff, id: x.id, createdAt: x.createdAt } : x) } }));
       setEditingTariffId(null); toast.success('Тариф сохранён');
@@ -1468,7 +1467,7 @@ const [tab, setTab] = useState('Статусы');
                     <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Например 600 (л)" value={tariffVolInc} onChange={e => setTariffVolInc(e.target.value.replace(/[^\d.,]/g, ''))} />
                     <p className="text-[10px] text-gray-400">Входит в общий объем отгрузки на город. Область действия: на каждый город.</p>
                     <div className="flex items-center gap-1.5">
-                      <input className="form-input text-xs w-36" inputMode="decimal" placeholder="Шаг 1 (л)" value={tariffVolStep} onChange={e => setTariffVolStep(e.target.value.replace(/[^\d.,]/g, ''))} />
+                      <span className="text-xs font-semibold text-gray-700 bg-gray-100 rounded-md px-3 py-2">Шаг 1 (л)</span>
                       <input className="form-input text-xs w-36" inputMode="decimal" placeholder="6 ₽" value={tariffVolPrice} onChange={e => setTariffVolPrice(e.target.value.replace(/[^\d.,]/g, ''))} />
                     </div>
                     <p className="text-[10px] text-gray-400">Начисляется только сверх включённого Объёма. Считается по каждому городу отдельно, на всю доставку.</p>
@@ -1499,7 +1498,7 @@ const [tab, setTab] = useState('Статусы');
                 <p className="text-xs text-gray-400">Системные статусы заданий на доставку. Удаление недоступно.</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {['Новый', 'В пути', 'Доставлен', 'Отменён'].map(c => (
+                {['Новое', 'В доставке', 'Выполнено', 'Отменено'].map(c => (
                   <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span></span>
                 ))}
               </div>
