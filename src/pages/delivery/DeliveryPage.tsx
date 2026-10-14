@@ -71,8 +71,9 @@ export default function DeliveryPage() {
   const [massStatus, setMassStatus] = useState('');
   // v1.30.37: подтверждения смены статуса и удаления задания
   const [statusConfirm, setStatusConfirm] = useState<null | { ids: string[]; status: string }>(null);
-  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  // v1.30.38: переименованы в dt*-префикс — deleteConfirmText уже занят другой вкладкой
+  const [dtDeleteTaskId, setDtDeleteTaskId] = useState<string | null>(null);
+  const [dtDeleteConfirmText, setDtDeleteConfirmText] = useState('');
   const [dtStatuses, setDtStatuses] = useState<Record<string, string>>({});
   const [dtVol, setDtVol] = useState<Record<string, string>>({});
   // v1.30.31: создание заданий на доставку (перенесено из Настроек)
@@ -930,7 +931,7 @@ export default function DeliveryPage() {
                                 <button type="button" title="Отметить выполненным" onClick={e => { e.stopPropagation(); const doneName = dtStatusesCfg.find(c => sumStatus(c.name) === 'Выполнено')?.name || 'Выполнено'; setStatusConfirm({ ids: [tk.id], status: doneName }); }} className="p-1.5 text-gray-400 hover:text-green-600 rounded"><span className="inline-flex w-4 h-4 items-center justify-center rounded-full border border-current text-[10px] font-bold leading-none">+</span></button>
                                 <button type="button" title="История изменений" onClick={e => { e.stopPropagation(); setTaskHistoryId(tk.id); }} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
                                 <button type="button" title="Редактировать" onClick={e => { e.stopPropagation(); setEditingTaskId(v => v === tk.id ? null : tk.id); }} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Pencil size={14} /></button>
-                                <button type="button" title="Удалить" onClick={e => { e.stopPropagation(); setDeleteTaskId(tk.id); setDeleteConfirmText(''); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                                <button type="button" title="Удалить" onClick={e => { e.stopPropagation(); setDtDeleteTaskId(tk.id); setDtDeleteConfirmText(''); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
                               </td>
                             </tr>
                             {editingTaskId === tk.id && (() => {
@@ -1037,19 +1038,19 @@ export default function DeliveryPage() {
             )}
 
             {/* v1.30.37: удаление задания — только с вводом слова «удалить» */}
-            {deleteTaskId && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDeleteTaskId(null)}>
+            {dtDeleteTaskId && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDtDeleteTaskId(null)}>
                 <div className="absolute inset-0 bg-black/50" />
                 <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-3" onClick={e => e.stopPropagation()}>
                   <h3 className="text-base font-bold text-gray-900">Удалить задание?</h3>
                   <p className="text-sm text-gray-600">Действие необратимо. Введите слово <b>«удалить»</b> для подтверждения.</p>
-                  <input className="form-input text-xs" placeholder="удалить" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} />
+                  <input className="form-input text-xs" placeholder="удалить" value={dtDeleteConfirmText} onChange={e => setDtDeleteConfirmText(e.target.value)} />
                   <div className="flex gap-2">
-                    <button type="button" disabled={deleteConfirmText.trim().toLowerCase() !== 'удалить'} onClick={() => {
-                      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== deleteTaskId) } }));
-                      toast.success('Задание удалено'); setDeleteTaskId(null); setDeleteConfirmText('');
+                    <button type="button" disabled={dtDeleteConfirmText.trim().toLowerCase() !== 'удалить'} onClick={() => {
+                      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== dtDeleteTaskId) } }));
+                      toast.success('Задание удалено'); setDtDeleteTaskId(null); setDtDeleteConfirmText('');
                     }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Удалить задание</button>
-                    <button type="button" onClick={() => setDeleteTaskId(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
+                    <button type="button" onClick={() => setDtDeleteTaskId(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
                   </div>
                 </div>
               </div>
