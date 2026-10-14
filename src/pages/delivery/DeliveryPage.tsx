@@ -69,6 +69,10 @@ export default function DeliveryPage() {
   const [editDraft, setEditDraft] = useState<Record<string, string>>({});
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [massStatus, setMassStatus] = useState('');
+  // v1.30.37: подтверждения смены статуса и удаления задания
+  const [statusConfirm, setStatusConfirm] = useState<null | { ids: string[]; status: string }>(null);
+  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [dtStatuses, setDtStatuses] = useState<Record<string, string>>({});
   const [dtVol, setDtVol] = useState<Record<string, string>>({});
   // v1.30.31: создание заданий на доставку (перенесено из Настроек)
@@ -590,11 +594,17 @@ export default function DeliveryPage() {
         const cities = (store.settings.deliveryCityRows || []).filter(r => r.supplierId === dtSupplier && (r.status || '') === 'Активный' && !(store.settings.deliveryTasks || []).some(t => t.supplierId === dtSupplier && t.date === dtDate && t.city === r.city));
         const today = new Date().toISOString().slice(0, 10);
         const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+        // v1.30.37: границы текущего месяца для фильтра сводки
+        const nowD = new Date();
+        const monthStart = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-01`;
+        const monthEnd = `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
         const userName = getCurrentUser()?.name || '';
 
         // ── v1.30.34: сводка по сервису доставки ──
         const sumFrom = dtSumFrom || today;
         const sumTo = dtSumTo || sumFrom;
+        // v1.30.37: «выбор вручную» активен, когда диапазон не совпадает с пресетами
+        const isManualRange = !(sumFrom === today && sumTo === today) && !(sumFrom === tomorrow && sumTo === tomorrow) && !(sumFrom === monthStart && sumTo === monthEnd);
         const sumTasks = tasks.filter(t => t.date >= sumFrom && t.date <= sumTo);
         // статусы в базе встречаются в двух написаниях («Новое»/«Новый», «В доставке»/«В пути»…)
         const sumStatus = (st: string) => {
@@ -686,6 +696,10 @@ export default function DeliveryPage() {
                     className={`text-xs px-6 py-2 rounded-lg font-bold transition-colors ${sumFrom === today && sumTo === today ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>СЕГОДНЯ</button>
                   <button type="button" onClick={() => { setDtSumFrom(tomorrow); setDtSumTo(tomorrow); }}
                     className={`text-xs px-6 py-2 rounded-lg font-bold transition-colors ${sumFrom === tomorrow && sumTo === tomorrow ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>ЗАВТРА</button>
+                  <button type="button" onClick={() => { setDtSumFrom(monthStart); setDtSumTo(monthEnd); }}
+                    className={`text-xs px-4 py-2 rounded-lg font-bold transition-colors ${sumFrom === monthStart && sumTo === monthEnd ? 'bg-purple-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>ТЕКУЩИЙ МЕСЯЦ</button>
+                  <button type="button" title="Диапазон задаётся полями дат ниже"
+                    className={`text-xs px-4 py-2 rounded-lg font-bold transition-colors ${isManualRange ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>ВЫБОР ВРУЧНУЮ</button>
                   <input type="date" className="form-input text-xs w-auto" value={dtSumFrom} onChange={e => setDtSumFrom(e.target.value)} />
                   <span className="text-gray-400 text-xs">—</span>
                   <input type="date" className="form-input text-xs w-auto" value={dtSumTo} onChange={e => setDtSumTo(e.target.value)} />
@@ -702,7 +716,7 @@ export default function DeliveryPage() {
                         ['В доставке', String(stCount('В доставке'))],
                         ['Выполнено', String(stCount('Выполнено'))],
                         ['Отменено', String(stCount('Отменено'))],
-                        ['Не создано', missingCount > 0 ? `${missingCount} заданий` : '—'],
+                        ['Не создано', missingCount > 0 ? String(missingCount) : '—'],
                       ] as const).map(([l, v]) => (
                         <div key={l}>
                           <div className="text-[11px] text-gray-500">{l}</div>
@@ -717,7 +731,7 @@ export default function DeliveryPage() {
                       {([['Гор.', cityGroups.length], ['Пост.', sumSuppliers], ['Точек', sumPoints]] as const).map(([l, v]) => (
                         <div key={l} className="flex items-center justify-between gap-4">
                           <span>{l}:</span>
-                          <span className="bg-yellow-100 text-gray-800 rounded px-1.5 tabular-nums">{v}</span>
+                          <span className="text-xs font-semibold text-gray-500 tabular-nums">{v}</span>
                         </div>
                       ))}
                     </div>
@@ -726,9 +740,11 @@ export default function DeliveryPage() {
                     {cityGroups.length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-1 text-[11px] text-gray-700">
                         {cityGroups.slice(0, 30).map(g => (
-                          <div key={g.city} className="flex items-center justify-between gap-1 bg-yellow-50 rounded px-1.5 py-0.5" title={`${g.city}: поставщиков ${g.suppliers}, точек ${g.points}`}>
+                          <div key={g.city} onClick={() => setDtCityFilter(dtCityFilter === g.city ? '' : g.city)}
+                            title={`${g.city}: поставщиков ${g.suppliers}, точек ${g.points}. Клик — фильтр таблицы по городу`}
+                            className={`flex items-center justify-between gap-1 rounded px-1.5 py-0.5 cursor-pointer transition-colors ${dtCityFilter === g.city ? 'bg-red-600 text-white' : 'bg-yellow-50 hover:bg-yellow-100'}`}>
                             <span className="font-medium truncate">{g.city}</span>
-                            <span className="tabular-nums whitespace-nowrap text-gray-600">· {g.suppliers} · {g.points}</span>
+                            <span className={`tabular-nums whitespace-nowrap ${dtCityFilter === g.city ? 'text-white' : 'text-gray-600'}`}>· {g.suppliers} · {g.points}</span>
                           </div>
                         ))}
                       </div>
@@ -864,8 +880,7 @@ export default function DeliveryPage() {
                     </select>
                     <button type="button" onClick={() => {
                       if (!massStatus) { toast.error('Выберите статус'); return; }
-                      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => selectedTasks.includes(x.id) ? { ...x, status: massStatus, history: [...(x.history || []), { at: new Date().toISOString(), by: getCurrentUser()?.name || '', action: `Массово: ${massStatus}` }] } : x) } }));
-                      toast.success('Статус обновлён'); setSelectedTasks([]); setMassStatus('');
+                      setStatusConfirm({ ids: selectedTasks, status: massStatus });
                     }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Применить</button>
                     <button type="button" onClick={() => setSelectedTasks([])} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Снять выбор</button>
                   </div>
@@ -885,7 +900,7 @@ export default function DeliveryPage() {
                           <th className="table-header text-left">Сверх объём (л)</th>
                           <th className="table-header text-left">Итого</th>
                           <th className="table-header text-left">Статус</th>
-                          <th className="table-header text-left">Комментарий менеджера</th>
+                          <th className="table-header text-left">Комментарий</th>
                           <th className="table-header text-right">Действия</th>
                         </tr>
                       </thead>
@@ -895,12 +910,12 @@ export default function DeliveryPage() {
                             <tr onClick={() => setEditingTaskId(v => v === tk.id ? null : tk.id)} className={`border-t border-gray-100 transition-colors cursor-pointer ${editingTaskId === tk.id ? 'bg-red-50/50' : 'hover:bg-gray-50'}`}>
                               <td className="table-cell" onClick={e => e.stopPropagation()}><input type="checkbox" className="accent-red-600" checked={selectedTasks.includes(tk.id)} onChange={e => setSelectedTasks(v => e.target.checked ? [...v, tk.id] : v.filter(x => x !== tk.id))} /></td>
                               <td className="table-cell font-medium text-gray-800 text-black">{suppliers.find(s => s.id === tk.supplierId)?.tradeName || '—'}</td>
-                              <td className="table-cell text-gray-600">{tk.city}</td>
-                              <td className="table-cell text-gray-600 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
-                              <td className="table-cell text-gray-600 tabular-nums">{tk.points}</td>
-                              <td className="table-cell text-gray-600 tabular-nums">{tk.rate} ₽</td>
-                              <td className="table-cell text-gray-600 tabular-nums">{tk.extra > 0 ? `${Math.max(0, tk.points - ((store.settings.deliveryServiceTariffs || []).find(tf => tf.id === suppliers.find(s => s.id === tk.supplierId)?.deliveryContract?.serviceTariff)?.pointsIncluded || 0))} + ${tk.extra} ₽` : '—'}</td>
-                              <td className="table-cell text-gray-600 tabular-nums">{(tk.volumeExtra || 0) > 0 ? `${tk.volumeExtra} (л) + ${tk.volumeExtraSum || 0} ₽` : '—'}</td>
+                              <td className="table-cell text-gray-900">{tk.city}</td>
+                              <td className="table-cell text-gray-900 whitespace-nowrap">{String(tk.date || '').split('-').reverse().join('.')}</td>
+                              <td className="table-cell text-gray-900 tabular-nums">{tk.points}</td>
+                              <td className="table-cell text-gray-900 tabular-nums">{tk.rate} ₽</td>
+                              <td className="table-cell text-gray-900 tabular-nums">{tk.extra > 0 ? `${Math.max(0, tk.points - ((store.settings.deliveryServiceTariffs || []).find(tf => tf.id === suppliers.find(s => s.id === tk.supplierId)?.deliveryContract?.serviceTariff)?.pointsIncluded || 0))} + ${tk.extra} ₽` : '—'}</td>
+                              <td className="table-cell text-gray-900 tabular-nums">{(tk.volumeExtra || 0) > 0 ? `${tk.volumeExtra} (л) + ${tk.volumeExtraSum || 0} ₽` : '—'}</td>
                               <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
                               <td className="table-cell">
                                 <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ backgroundColor: dtStatusColor(tk.status).bg, color: dtStatusColor(tk.status).text }}>{tk.status || 'Новое'}</span>
@@ -912,9 +927,10 @@ export default function DeliveryPage() {
                                 </button>
                               </td>
                               <td className="table-cell text-right whitespace-nowrap">
+                                <button type="button" title="Отметить выполненным" onClick={e => { e.stopPropagation(); const doneName = dtStatusesCfg.find(c => sumStatus(c.name) === 'Выполнено')?.name || 'Выполнено'; setStatusConfirm({ ids: [tk.id], status: doneName }); }} className="p-1.5 text-gray-400 hover:text-green-600 rounded"><span className="inline-flex w-4 h-4 items-center justify-center rounded-full border border-current text-[10px] font-bold leading-none">+</span></button>
                                 <button type="button" title="История изменений" onClick={e => { e.stopPropagation(); setTaskHistoryId(tk.id); }} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><History size={14} /></button>
                                 <button type="button" title="Редактировать" onClick={e => { e.stopPropagation(); setEditingTaskId(v => v === tk.id ? null : tk.id); }} className="p-1.5 text-gray-400 hover:text-gray-700 rounded"><Pencil size={14} /></button>
-                                <button type="button" title="Удалить" onClick={e => { e.stopPropagation(); updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== tk.id) } })); toast.success('Задание удалено'); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                                <button type="button" title="Удалить" onClick={e => { e.stopPropagation(); setDeleteTaskId(tk.id); setDeleteConfirmText(''); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
                               </td>
                             </tr>
                             {editingTaskId === tk.id && (() => {
@@ -948,7 +964,7 @@ export default function DeliveryPage() {
                                       </div>
                                       <div>
                                         <label className="text-[10px] font-semibold text-gray-500">Статус</label>
-                                        <select className="form-input text-xs w-28 block" value={editDraft.status ?? (tk.status || 'Новое')} onChange={e => setEditDraft(d => ({ ...d, status: e.target.value }))}>
+                                        <select className="form-input text-xs w-28 block" value={editDraft.status ?? (tk.status || 'Новое')} onChange={e => setStatusConfirm({ ids: [tk.id], status: e.target.value })}>
                                           {dtStatusesCfg.map(o => <option key={o.name}>{o.name}</option>)}
                                         </select>
                                       </div>
@@ -997,6 +1013,43 @@ export default function DeliveryPage() {
                       toast.success('Комментарий сохранён'); setCommentTaskId(null);
                     }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Сохранить</button>
                     <button type="button" onClick={() => setCommentTaskId(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* v1.30.37: подтверждение смены статуса */}
+            {statusConfirm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setStatusConfirm(null)}>
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-3" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-base font-bold text-gray-900">Сменить статус?</h3>
+                  <p className="text-sm text-gray-600">{statusConfirm.ids.length > 1 ? `Выбрано заданий: ${statusConfirm.ids.length}. ` : ''}Новый статус: <b>«{statusConfirm.status}»</b>.</p>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => {
+                      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).map(x => statusConfirm.ids.includes(x.id) ? { ...x, status: statusConfirm.status, history: [...(x.history || []), { at: new Date().toISOString(), by: getCurrentUser()?.name || '', action: statusConfirm.ids.length > 1 ? `Массово: ${statusConfirm.status}` : `Смена статуса: ${statusConfirm.status}` }] } : x) } }));
+                      toast.success('Статус обновлён'); setStatusConfirm(null); setSelectedTasks([]); setMassStatus('');
+                    }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Подтвердить</button>
+                    <button type="button" onClick={() => setStatusConfirm(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* v1.30.37: удаление задания — только с вводом слова «удалить» */}
+            {deleteTaskId && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDeleteTaskId(null)}>
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-3" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-base font-bold text-gray-900">Удалить задание?</h3>
+                  <p className="text-sm text-gray-600">Действие необратимо. Введите слово <b>«удалить»</b> для подтверждения.</p>
+                  <input className="form-input text-xs" placeholder="удалить" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} />
+                  <div className="flex gap-2">
+                    <button type="button" disabled={deleteConfirmText.trim().toLowerCase() !== 'удалить'} onClick={() => {
+                      updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: (s.settings.deliveryTasks || []).filter(x => x.id !== deleteTaskId) } }));
+                      toast.success('Задание удалено'); setDeleteTaskId(null); setDeleteConfirmText('');
+                    }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Удалить задание</button>
+                    <button type="button" onClick={() => setDeleteTaskId(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
                   </div>
                 </div>
               </div>
