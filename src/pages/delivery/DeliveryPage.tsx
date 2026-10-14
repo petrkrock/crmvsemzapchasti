@@ -61,7 +61,9 @@ export default function DeliveryPage() {
   const [taskHistoryId, setTaskHistoryId] = useState<string | null>(null);
   const [dtComments, setDtComments] = useState<Record<string, string>>({});
   const [dtSearch, setDtSearch] = useState('');
-  const [dtDateFilter, setDtDateFilter] = useState('');
+  // v1.30.34: диапазон дат сводки по сервису доставки (перенесён из фильтров таблицы)
+  const [dtSumFrom, setDtSumFrom] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dtSumTo, setDtSumTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [dtCityFilter, setDtCityFilter] = useState('');
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Record<string, string>>({});
@@ -74,27 +76,6 @@ export default function DeliveryPage() {
   const [dtSupplier, setDtSupplier] = useState('');
   const [dtDate, setDtDate] = useState('');
   const [dtPoints, setDtPoints] = useState<Record<string, string>>({});
-  function createDeliveryTask() {
-    if (!dtSupplier) { toast.error('Выберите поставщика'); return; }
-    if (!dtDate) { toast.error('Укажите дату'); return; }
-    const sup = store.suppliers.find(s => s.id === dtSupplier);
-    const tariff = (store.settings.deliveryServiceTariffs || []).find(tf => tf.id === sup?.deliveryContract?.serviceTariff);
-    const rate = Number(tariff?.cityRate) || 0;
-    const included = Number(tariff?.pointsIncluded) || 0;
-    const extraPrice = Number(tariff?.extraPointPrice) || 0;
-    const cities = (store.settings.deliveryCityRows || []).filter(r => r.supplierId === dtSupplier && (r.status || '') === 'Активный');
-    if (!cities.length) { toast.error('У поставщика нет активных городов доставки'); return; }
-    const tasks = cities.map(r => {
-      const pts = Math.max(0, parseInt(dtPoints[r.city] || '0', 10) || 0);
-      const over = Math.max(0, pts - included);
-      const extra = over * extraPrice;
-      return { id: `dtask-${Date.now()}-${r.id}`, supplierId: dtSupplier, date: dtDate, city: r.city, points: pts, rate, extra, total: rate + extra, status: 'Новый', createdAt: new Date().toISOString() };
-    });
-    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTasks: [...(s.settings.deliveryTasks || []), ...tasks] } }));
-    toast.success(`Создано заданий: ${tasks.length}`);
-    setDtOpen(false); setDtSupplier(''); setDtDate(''); setDtPoints({});
-  }
-
   function saveCityRow() {
     if (!dcRowCity) { toast.error('Выберите город'); return; }
     if (!dcRowSupplier) { toast.error('Выберите поставщика'); return; }
@@ -611,6 +592,39 @@ export default function DeliveryPage() {
         const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
         const userName = getCurrentUser()?.name || '';
 
+        // ── v1.30.34: сводка по сервису доставки ──
+        const sumFrom = dtSumFrom || today;
+        const sumTo = dtSumTo || sumFrom;
+        const sumTasks = tasks.filter(t => t.date >= sumFrom && t.date <= sumTo);
+        // статусы в базе встречаются в двух написаниях («Новое»/«Новый», «В доставке»/«В пути»…)
+        const sumStatus = (st: string) => {
+          const s = (st || '').toLowerCase();
+          if (s.startsWith('нов')) return 'Новые';
+          if (s.includes('пути') || s.includes('доставк')) return 'В доставке';
+          if (s.startsWith('выполн') || s.includes('доставлен')) return 'Выполнено';
+          if (s.startsWith('отмен')) return 'Отменено';
+          return '';
+        };
+        const stCount = (label: string) => sumTasks.filter(t => sumStatus(t.status) === label).length;
+        const allCityRows = store.settings.deliveryCityRows || [];
+        // активные города поставщиков, по которым на выбранный период ещё нет ни одного задания
+        const missingCount = allCityRows.filter(r => (r.status || '') === 'Активный'
+          && !tasks.some(t => t.supplierId === r.supplierId && t.city === r.city && t.date >= sumFrom && t.date <= sumTo)).length;
+        const cityMap = new Map<string, { suppliers: Set<string>; points: number }>();
+        sumTasks.forEach(t => {
+          const g = cityMap.get(t.city) || { suppliers: new Set<string>(), points: 0 };
+          g.suppliers.add(t.supplierId);
+          g.points += t.points || 0;
+          cityMap.set(t.city, g);
+        });
+        const cityGroups = Array.from(cityMap, ([city, g]) => ({ city, suppliers: g.suppliers.size, points: g.points }))
+          .sort((a, b) => b.points - a.points || a.city.localeCompare(b.city, 'ru'));
+        const sumSuppliers = cityGroups.reduce((n, g) => n + g.suppliers, 0);
+        const sumPoints = cityGroups.reduce((n, g) => n + g.points, 0);
+        // число активных городов поставщика без задания на выбранную дату (подсветка в форме создания)
+        const supMissing = (sid: string) => !dtDate ? 0 : allCityRows.filter(r => r.supplierId === sid && (r.status || '') === 'Активный'
+          && !tasks.some(t => t.supplierId === sid && t.city === r.city && t.date === dtDate)).length;
+
         function buildTask(city: string) {
           const pts = Math.max(0, parseInt(dtPoints[city] || '0', 10) || 0);
           const over = Math.max(0, pts - included);
@@ -649,7 +663,8 @@ export default function DeliveryPage() {
         const filteredTasks = [...tasks]
           .filter(tk => (!dtSupplierFilter || tk.supplierId === dtSupplierFilter)
             && (!dtStatusFilter || (tk.status || 'Новое') === dtStatusFilter)
-            && (!dtDateFilter || tk.date === dtDateFilter)
+            && (!sumFrom || tk.date >= sumFrom)
+            && (!sumTo || tk.date <= sumTo)
             && (!dtCityFilter || tk.city === dtCityFilter)
             && (!dtSearch || suppliers.find(s => s.id === tk.supplierId)?.tradeName?.toLowerCase().includes(dtSearch.toLowerCase()) || tk.city.toLowerCase().includes(dtSearch.toLowerCase())))
           .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
@@ -658,10 +673,59 @@ export default function DeliveryPage() {
           <div className="space-y-4">
 
             {!dtOpen && (
-              <div className="card-base p-5">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <h3 className="section-title">Сводка по сервису доставки</h3>
+              <div className="card-base p-4 space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button type="button" onClick={() => { setDtSumFrom(today); setDtSumTo(today); }}
+                    className={`text-xs px-6 py-2 rounded-lg font-bold transition-colors ${sumFrom === today && sumTo === today ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>СЕГОДНЯ</button>
+                  <button type="button" onClick={() => { setDtSumFrom(tomorrow); setDtSumTo(tomorrow); }}
+                    className={`text-xs px-6 py-2 rounded-lg font-bold transition-colors ${sumFrom === tomorrow && sumTo === tomorrow ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>ЗАВТРА</button>
+                  <input type="date" className="form-input text-xs w-auto" value={dtSumFrom} onChange={e => setDtSumFrom(e.target.value)} />
+                  <span className="text-gray-400 text-xs">—</span>
+                  <input type="date" className="form-input text-xs w-auto" value={dtSumTo} onChange={e => setDtSumTo(e.target.value)} />
+                  <div className="flex-1" />
                   <button type="button" onClick={() => { setDtSupplier(''); setDtDate(today); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtVol({}); setDtOpen(true); }} className="btn-primary text-xs">Создать задание</button>
+                </div>
+                <div className="flex flex-wrap items-stretch gap-3">
+                  <div className="min-w-[180px] px-1">
+                    <div className="text-xs text-gray-500 mb-1.5">Всего заданий: <b className="text-gray-800">{sumTasks.length}</b></div>
+                    <div className="space-y-0.5 text-sm text-gray-700">
+                      {(['Новые', 'В доставке', 'Выполнено', 'Отменено'] as const).map(l => (
+                        <div key={l} className="flex items-center justify-between gap-6">
+                          <span className="font-semibold text-gray-800">{l}:</span>
+                          <span className="tabular-nums">{stCount(l) || ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="min-w-[130px] px-1">
+                    <div className="text-xs text-gray-500 mb-1.5">Не создано</div>
+                    <div className="text-xl font-bold text-gray-900 leading-6">{missingCount > 0 ? `${missingCount} заданий` : '—'}</div>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 px-4 py-2.5">
+                    <div className="text-sm font-semibold text-gray-800 mb-1">Итого:</div>
+                    <div className="space-y-0.5 text-sm text-gray-700">
+                      {([['Гор.', cityGroups.length], ['Пост.', sumSuppliers], ['Точек', sumPoints]] as const).map(([l, v]) => (
+                        <div key={l} className="flex items-center justify-between gap-4">
+                          <span>{l}:</span>
+                          <span className="bg-yellow-100 text-gray-800 rounded px-1.5 tabular-nums">{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-[260px] rounded-xl border border-gray-200 p-2.5">
+                    {cityGroups.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-[11px] text-gray-700">
+                        {cityGroups.slice(0, 30).map(g => (
+                          <div key={g.city} className="flex items-center justify-between gap-1 bg-yellow-50 rounded px-1.5 py-0.5" title={`${g.city}: поставщиков ${g.suppliers}, точек ${g.points}`}>
+                            <span className="font-medium truncate">{g.city}</span>
+                            <span className="tabular-nums whitespace-nowrap text-gray-600">· {g.suppliers} · {g.points}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-400 py-3 text-center">Нет заданий на выбранную дату.</div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -687,12 +751,16 @@ export default function DeliveryPage() {
                 </div>
                 {activeSuppliers.length > 0 && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    {activeSuppliers.map(s => (
-                      <button key={s.id} type="button" onClick={() => { setDtSupplier(s.id); setDtPoints({}); setDtComments({}); setDtStatuses({}); }}
-                        className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${dtSupplier === s.id ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
-                        {s.tradeName}
-                      </button>
-                    ))}
+                    {activeSuppliers.map(s => {
+                      const miss = supMissing(s.id);
+                      return (
+                        <button key={s.id} type="button" onClick={() => { setDtSupplier(s.id); setDtPoints({}); setDtComments({}); setDtStatuses({}); }}
+                          title={miss > 0 ? `Не создано заданий: ${miss}` : 'Все задания на дату созданы'}
+                          className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${dtSupplier === s.id ? 'bg-red-600 border-red-600 text-white' : miss > 0 ? 'bg-red-50 border-red-400 text-red-600 hover:border-red-500' : 'bg-green-50 border-green-500 text-green-700 hover:border-green-600'}`}>
+                          {s.tradeName}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
                 {dtSupplier && (
@@ -757,11 +825,6 @@ export default function DeliveryPage() {
                 <div className="card-base p-3 space-y-2">
                   <div className="flex flex-wrap gap-2 items-center">
                     <input className="form-input py-1.5 text-xs flex-1 min-w-[180px]" placeholder="Поиск (поставщик, город)…" value={dtSearch} onChange={e => setDtSearch(e.target.value)} />
-                    <span className="flex items-center gap-1.5">
-                      <button type="button" onClick={() => setDtDateFilter(v => v === today ? '' : today)} className={`text-[11px] px-2.5 py-1.5 rounded-md border transition-colors ${dtDateFilter === today ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>СЕГОДНЯ</button>
-                      <button type="button" onClick={() => setDtDateFilter(v => v === tomorrow ? '' : tomorrow)} className={`text-[11px] px-2.5 py-1.5 rounded-md border transition-colors ${dtDateFilter === tomorrow ? 'bg-blue-700 border-blue-700 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>ЗАВТРА</button>
-                      <input type="date" className="form-input text-xs w-auto" value={dtDateFilter} onChange={e => setDtDateFilter(e.target.value)} />
-                    </span>
                     <select className="form-input py-1.5 text-xs w-auto" value={dtSupplierFilter} onChange={e => setDtSupplierFilter(e.target.value)}>
                       <option value="">Поставщик: все</option>
                       {suppliers.map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
