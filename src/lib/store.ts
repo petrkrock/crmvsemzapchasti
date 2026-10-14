@@ -6,7 +6,7 @@ import type {
 } from '@/types';
 import { EMPTY_ACCESS } from '@/types';
 import { useEffect, useState } from 'react';
-import { DEFAULT_STATUSES, DEFAULT_LEAD_STATUSES, DEFAULT_TASK_ENTITY_TYPES, DEFAULT_TASK_TYPES, SYSTEM_TASK_TYPE, CONTACT_PREFS, DEFAULT_SUPPLIER_GREETING, DEFAULT_FORM_CONFIGS, DEFAULT_FORM_CONSENT } from '@/constants';
+import { DEFAULT_DELIVERY_TASK_STATUSES, DEFAULT_STATUSES, DEFAULT_LEAD_STATUSES, DEFAULT_TASK_ENTITY_TYPES, DEFAULT_TASK_TYPES, SYSTEM_TASK_TYPE, CONTACT_PREFS, DEFAULT_SUPPLIER_GREETING, DEFAULT_FORM_CONFIGS, DEFAULT_FORM_CONSENT } from '@/constants';
 import { generateId } from './utils';
 import {
   isSupabaseConfigured, pullRemoteSnapshot, saveSettings,
@@ -342,6 +342,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.deliveryContractStatuses)) settings.deliveryContractStatuses = ['ЛИД', 'Ждёт активации', 'Активный', 'Аннулирован'];
     else if (!settings.deliveryContractStatuses.includes('ЛИД')) settings.deliveryContractStatuses.unshift('ЛИД'); // v1.29.0: системный статус ЛИД — первым
     if (!Array.isArray(settings.deliveryServiceTariffs)) settings.deliveryServiceTariffs = [];
+    // v1.30.36: системные статусы заданий на доставку (с цветами)
+    if (!Array.isArray(settings.deliveryTaskStatuses) || !settings.deliveryTaskStatuses.length) settings.deliveryTaskStatuses = DEFAULT_DELIVERY_TASK_STATUSES.map(st => ({ ...st }));
     if (!Array.isArray(settings.deliveryCityTariffs)) settings.deliveryCityTariffs = [];
     if (!Array.isArray(settings.deliveryRoutes)) settings.deliveryRoutes = [];
     // v1.30.0: дашборд ЛК поставщика

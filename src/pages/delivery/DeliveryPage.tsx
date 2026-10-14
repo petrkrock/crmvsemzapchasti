@@ -607,6 +607,13 @@ export default function DeliveryPage() {
         };
         const stCount = (label: string) => sumTasks.filter(t => sumStatus(t.status) === label).length;
         const allCityRows = store.settings.deliveryCityRows || [];
+        // v1.30.36: статусы доставки из настроек (список + цвета)
+        const dtStatusesCfg = store.settings.deliveryTaskStatuses || [];
+        const dtStatusColor = (st: string) => {
+          const n = sumStatus(st);
+          const cfg = dtStatusesCfg.find(c => c.name === n);
+          return cfg ? { bg: cfg.bgColor, text: cfg.textColor } : { bg: '#F3F4F6', text: '#6B7280' };
+        };
         // активные города поставщиков, по которым на выбранный период ещё нет ни одного задания
         const missingCount = allCityRows.filter(r => (r.status || '') === 'Активный'
           && !tasks.some(t => t.supplierId === r.supplierId && t.city === r.city && t.date >= sumFrom && t.date <= sumTo)).length;
@@ -662,7 +669,7 @@ export default function DeliveryPage() {
 
         const filteredTasks = [...tasks]
           .filter(tk => (!dtSupplierFilter || tk.supplierId === dtSupplierFilter)
-            && (!dtStatusFilter || (tk.status || 'Новое') === dtStatusFilter)
+            && (!dtStatusFilter || sumStatus(tk.status) === sumStatus(dtStatusFilter))
             && (!sumFrom || tk.date >= sumFrom)
             && (!sumTo || tk.date <= sumTo)
             && (!dtCityFilter || tk.city === dtCityFilter)
@@ -686,20 +693,23 @@ export default function DeliveryPage() {
                   <button type="button" onClick={() => { setDtSupplier(''); setDtDate(today); setDtPoints({}); setDtComments({}); setDtStatuses({}); setDtVol({}); setDtOpen(true); }} className="btn-primary text-xs">Создать задание</button>
                 </div>
                 <div className="flex flex-wrap items-stretch gap-3">
-                  <div className="min-w-[180px] px-1">
-                    <div className="text-xs text-gray-500 mb-1.5">Всего заданий: <b className="text-gray-800">{sumTasks.length}</b></div>
-                    <div className="space-y-0.5 text-sm text-gray-700">
-                      {(['Новые', 'В доставке', 'Выполнено', 'Отменено'] as const).map(l => (
-                        <div key={l} className="flex items-center justify-between gap-6">
-                          <span className="font-semibold text-gray-800">{l}:</span>
-                          <span className="tabular-nums">{stCount(l) || ''}</span>
+                  {/* v1.30.36: вся статистика одним блоком */}
+                  <div className="rounded-xl border border-gray-200 px-4 py-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2.5">
+                      {([
+                        ['Всего заданий', String(sumTasks.length)],
+                        ['Новые', String(stCount('Новые'))],
+                        ['В доставке', String(stCount('В доставке'))],
+                        ['Выполнено', String(stCount('Выполнено'))],
+                        ['Отменено', String(stCount('Отменено'))],
+                        ['Не создано', missingCount > 0 ? `${missingCount} заданий` : '—'],
+                      ] as const).map(([l, v]) => (
+                        <div key={l}>
+                          <div className="text-[11px] text-gray-500">{l}</div>
+                          <div className={`text-lg font-bold tabular-nums leading-6 ${l === 'Не создано' && missingCount > 0 ? 'text-red-600' : 'text-gray-900'}`}>{v}</div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                  <div className="min-w-[130px] px-1">
-                    <div className="text-xs text-gray-500 mb-1.5">Не создано</div>
-                    <div className="text-xl font-bold text-gray-900 leading-6">{missingCount > 0 ? `${missingCount} заданий` : '—'}</div>
                   </div>
                   <div className="rounded-xl border border-gray-200 px-4 py-2.5">
                     <div className="text-sm font-semibold text-gray-800 mb-1">Итого:</div>
@@ -714,7 +724,7 @@ export default function DeliveryPage() {
                   </div>
                   <div className="flex-1 min-w-[260px] rounded-xl border border-gray-200 p-2.5">
                     {cityGroups.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-[11px] text-gray-700">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-1 text-[11px] text-gray-700">
                         {cityGroups.slice(0, 30).map(g => (
                           <div key={g.city} className="flex items-center justify-between gap-1 bg-yellow-50 rounded px-1.5 py-0.5" title={`${g.city}: поставщиков ${g.suppliers}, точек ${g.points}`}>
                             <span className="font-medium truncate">{g.city}</span>
@@ -798,8 +808,8 @@ export default function DeliveryPage() {
                               <td className="table-cell font-semibold text-gray-900 tabular-nums">{rate + extra + volSum} ₽</td>
                               <td className="table-cell"><input className="form-input text-xs min-w-[160px]" placeholder="Комментарий…" value={dtComments[r.city] || ''} onChange={e => setDtComments(c => ({ ...c, [r.city]: e.target.value }))} /></td>
                               <td className="table-cell">
-                                <select className="form-input text-xs w-28" value={dtStatuses[r.city] || 'Новый'} onChange={e => setDtStatuses(st => ({ ...st, [r.city]: e.target.value }))}>
-                                  {['Новое', 'В доставке', 'Выполнено', 'Отменено'].map(o => <option key={o}>{o}</option>)}
+                                <select className="form-input text-xs w-28" value={dtStatuses[r.city] || 'Новое'} onChange={e => setDtStatuses(st => ({ ...st, [r.city]: e.target.value }))}>
+                                  {dtStatusesCfg.map(o => <option key={o.name}>{o.name}</option>)}
                                 </select>
                               </td>
                               <td className="table-cell text-right">
@@ -835,7 +845,7 @@ export default function DeliveryPage() {
                     </select>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {['', 'Новый', 'В пути', 'Доставлен', 'Отменён'].map(st => (
+                    {['', ...dtStatusesCfg.map(c => c.name)].map(st => (
                       <button key={st || 'all'} type="button" onClick={() => setDtStatusFilter(st)}
                         className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${dtStatusFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
                         {st || 'Все'}
@@ -850,7 +860,7 @@ export default function DeliveryPage() {
                     <span className="text-xs text-gray-600">Выбрано: <b>{selectedTasks.length}</b></span>
                     <select className="form-input text-xs w-36" value={massStatus} onChange={e => setMassStatus(e.target.value)}>
                       <option value="">Статус…</option>
-                      {['Новое', 'В доставке', 'Выполнено', 'Отменено'].map(o => <option key={o}>{o}</option>)}
+                      {dtStatusesCfg.map(o => <option key={o.name}>{o.name}</option>)}
                     </select>
                     <button type="button" onClick={() => {
                       if (!massStatus) { toast.error('Выберите статус'); return; }
@@ -893,7 +903,7 @@ export default function DeliveryPage() {
                               <td className="table-cell text-gray-600 tabular-nums">{(tk.volumeExtra || 0) > 0 ? `${tk.volumeExtra} (л) + ${tk.volumeExtraSum || 0} ₽` : '—'}</td>
                               <td className="table-cell font-semibold text-gray-900 tabular-nums">{tk.total} ₽</td>
                               <td className="table-cell">
-                                <span className={`text-[11px] font-semibold px-2 py-1 rounded-md ${(tk.status || 'Новое') === 'Доставлен' ? 'bg-green-100 text-green-700' : (tk.status || '') === 'Отменён' ? 'bg-gray-100 text-gray-500' : (tk.status || '') === 'В пути' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{tk.status || 'Новый'}</span>
+                                <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ backgroundColor: dtStatusColor(tk.status).bg, color: dtStatusColor(tk.status).text }}>{tk.status || 'Новое'}</span>
                               </td>
                               <td className="table-cell">
                                 <button type="button" title={tk.comment ? tk.comment : 'Комментарий'} onClick={e => { e.stopPropagation(); setCommentTaskId(tk.id); setCommentDraft(tk.comment || ''); }}
@@ -939,7 +949,7 @@ export default function DeliveryPage() {
                                       <div>
                                         <label className="text-[10px] font-semibold text-gray-500">Статус</label>
                                         <select className="form-input text-xs w-28 block" value={editDraft.status ?? (tk.status || 'Новое')} onChange={e => setEditDraft(d => ({ ...d, status: e.target.value }))}>
-                                          {['Новое', 'В доставке', 'Выполнено', 'Отменено'].map(o => <option key={o}>{o}</option>)}
+                                          {dtStatusesCfg.map(o => <option key={o.name}>{o.name}</option>)}
                                         </select>
                                       </div>
                                       <div className="flex-1 min-w-[180px]">

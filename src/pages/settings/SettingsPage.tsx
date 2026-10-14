@@ -1498,8 +1498,13 @@ const [tab, setTab] = useState('Статусы');
                 <p className="text-xs text-gray-400">Системные статусы заданий на доставку. Удаление недоступно.</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {['Новое', 'В доставке', 'Выполнено', 'Отменено'].map(c => (
-                  <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span></span>
+                {(store.settings.deliveryTaskStatuses || []).map(st => (
+                  <span key={st.name} className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border border-gray-200" style={{ backgroundColor: st.bgColor, color: st.textColor }}>
+                    <span className="font-medium">{st.name}</span>
+                    <label className="inline-flex items-center gap-1 text-[10px] cursor-pointer" title="Цвет фона статуса">фон<input type="color" value={st.bgColor} onChange={e => updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTaskStatuses: (s.settings.deliveryTaskStatuses || []).map(x => x.name === st.name ? { ...x, bgColor: e.target.value } : x) } }))} className="w-4 h-4 p-0 border-0 bg-transparent cursor-pointer" /></label>
+                    <label className="inline-flex items-center gap-1 text-[10px] cursor-pointer" title="Цвет текста статуса">текст<input type="color" value={st.textColor} onChange={e => updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTaskStatuses: (s.settings.deliveryTaskStatuses || []).map(x => x.name === st.name ? { ...x, textColor: e.target.value } : x) } }))} className="w-4 h-4 p-0 border-0 bg-transparent cursor-pointer" /></label>
+                    <span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span>
+                  </span>
                 ))}
               </div>
               <div>

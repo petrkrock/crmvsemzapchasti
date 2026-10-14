@@ -730,6 +730,9 @@ export interface DeliveryOperator {
   createdAt: string;
 }
 
+/** v1.30.36: Статус задания на доставку с настраиваемыми цветами (Настройки → Доставка → Статусы) */
+export interface DeliveryTaskStatus { name: string; bgColor: string; textColor: string; }
+
 export interface AppSettings {
   statuses: StatusConfig[];
   buyerCategoryComment?: { A: string; B: string; C: string }; // этап 1.8 — комментарии оборота категорий покупателей
@@ -749,6 +752,8 @@ export interface AppSettings {
   deliveryOperators?: DeliveryOperator[];
   /** Статусы договоров доставки (DBO) — системные, ТЗ v1.29.0 */
   deliveryContractStatuses?: string[];
+  /** v1.30.36: Статусы заданий на доставку (DBO) — системные, с редактируемыми цветами */
+  deliveryTaskStatuses?: DeliveryTaskStatus[];
   /** Тарифы сервиса доставки (DBO) */
   deliveryServiceTariffs?: DeliveryTariff[];
   /** Тарифы за Город (DBO) */
