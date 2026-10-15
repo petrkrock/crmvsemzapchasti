@@ -1720,6 +1720,20 @@ const [tab, setTab] = useState('Статусы');
                 <button onClick={() => { updateStore(s => ({ ...s, settings: { ...s.settings, greetings: { ...s.settings.greetings, supplier: DEFAULT_SUPPLIER_GREETING } } })); forceUpdate(n => n + 1); toast.success('Возвращён текст по умолчанию'); }} className="btn-secondary text-xs">Сбросить по умолчанию</button>
               </div>
               )}
+              {lkTab === 'links' && (
+                <div className="card-base p-4 space-y-3">
+                  <div>
+                    <h3 className="section-title">Ссылки офер</h3>
+                    <p className="text-xs text-gray-400">Ссылки для кнопок «Маркет Подробнее» и «Продвижение Подробнее» в ЛК поставщика.</p>
+                  </div>
+                  {([['crossdock', 'Маркет Подробнее'], ['promo', 'Продвижение Подробнее']] as const).map(([k, label]) => (
+                    <label key={k} className="block">
+                      <span className="form-label">{label}</span>
+                      <input className="form-input" value={freshStore.settings.lkLinks?.[k] || ''} onChange={e => updateStore(s => ({ ...s, settings: { ...s.settings, lkLinks: { crossdock: '', promo: '', ...s.settings.lkLinks, [k]: e.target.value } } }))} placeholder="https://" />
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

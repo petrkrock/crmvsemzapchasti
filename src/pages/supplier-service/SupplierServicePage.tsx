@@ -475,7 +475,7 @@ export default function SupplierServicePage() {
                           </div>
                         ) : (
                           <div className="border border-dashed border-gray-200 rounded-xl p-3 text-center">
-                            <p className="text-[11px] text-gray-400">Персональный менеджер не настроен.</p>
+                            <p className="text-[11px] text-gray-400">Персональный менеджер доступен при активных услугах платформы.</p>
                           </div>
                         )}
                       </div>
@@ -930,7 +930,7 @@ export default function SupplierServicePage() {
                 <div className="flex items-center gap-2">
                   {(['covered', 'empty'] as const).map(f => (
                     <button key={f} type="button" onClick={() => setCityFilter(prev => prev === f ? 'all' : f)}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${cityFilter === f ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-blue-300'}`}>
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${cityFilter === f ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
                       {f === 'covered' ? 'Есть условия' : 'Нет условий'}
                     </button>
                   ))}
@@ -982,7 +982,7 @@ export default function SupplierServicePage() {
                             }
                             setPendingCity(prev => prev === c ? null : c);
                           }}
-                          className={`text-sm px-4 py-2 rounded-xl border transition-colors ${active ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-red-300'} ${pendingCity === c ? 'ring-2 ring-red-300' : ''}`}>
+                          className={`text-sm px-4 py-2 rounded-xl border transition-colors ${active ? 'bg-green-50 border-green-300 text-green-700 font-medium' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-[#64a2ef]'} ${pendingCity === c ? 'ring-2 ring-red-300' : ''}`}>
                           {c}
                         </button>
                       );
