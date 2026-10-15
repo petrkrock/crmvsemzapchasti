@@ -57,17 +57,25 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
   return {};
 }
 
+// v1.30.40: ЭДО — ОТДЕЛЬНЫМ запросом (как ТЗ v1.23.36): если колонок edo_* ещё нет в БД
+// до прогона миграции — PostgREST ронял бы весь SELECT и ЛК падал с 404.
+async function edoFields(client: ReturnType<typeof createClient>, id: string): Promise<Record<string, unknown>> {
+  const r = await client.from('suppliers').select('edo_operator, edo_token').eq('id', id).maybeSingle();
+  return (!r.error && r.data) ? (r.data as Record<string, unknown>) : {};
+}
+
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history, edo_operator, edo_token, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands, price_email')
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands, price_email')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
     .limit(1);
   if (error || !data?.length) return null;
   const extra = await extraFields(client, (data[0] as SupplierRow).id);
-  return { ...(data[0] as SupplierRow), ...(extra as object) } as SupplierRow;
+  const edo = await edoFields(client, (data[0] as SupplierRow).id);
+  return { ...(data[0] as SupplierRow), ...(extra as object), ...edo } as SupplierRow;
 }
 
 function pinOk(expected: string | undefined, provided: unknown): boolean {

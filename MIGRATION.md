@@ -1,3 +1,18 @@
+## v1.30.40 — Hotfix: устойчивость к миграции ЭДО (404 ЛК и синхрон)
+
+- Edge function supplier-service: колонки edo_operator/edo_token вынесены из основного
+  SELECT findSupplierByToken в отдельный запрос с фолбэком (урок ТЗ v1.23.36) — ЛК
+  больше не падает с 404, если SQL-миграция ещё не прогнана.
+- supabase.ts: защита всех точек записи suppliers/buyers (create/update/пакетный push) —
+  при ошибке об отсутствии колонок edo_* пакет вырезается от этих ключей и запрос
+  повторяется один раз; синхрон больше не умирает целиком до прогона SQL.
+- Таблицы Поставщики/Покупатели: «ответственный» под датой показывается даже если
+  серверное responsible_name пустое — фолбэк-lookup имени из users по responsibleId.
+
+SQL: не требуется (миграция ЭДО — из v1.30.39, см. ниже; порядок: SQL → deploy
+supplier-service → сборка фронта). Файлы: supplier-service/index.ts, supabase.ts,
+SuppliersPage.tsx, BuyersPage.tsx.
+
 # MIGRATION — история версий ВСЕМЗАПЧАСТИ CRM
 
 ## v1.30.39 — Удаление сервиса доставки (полный срез фичи)
