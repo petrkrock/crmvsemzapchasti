@@ -352,6 +352,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.lkNews)) settings.lkNews = [];
     if (!Array.isArray(settings.lkVendorNews)) settings.lkVendorNews = [];
     if (!settings.lkLinks) settings.lkLinks = { crossdock: '', promo: '' };
+    // v1.30.43: операторы (персональные менеджеры) ЛК поставщика
+    if (!Array.isArray(settings.lkOperators)) settings.lkOperators = [];
     if (!Array.isArray(settings.edoOperators)) settings.edoOperators = [];
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)

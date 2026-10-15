@@ -613,6 +613,20 @@ export interface LkNews {
   fullText?: string;
 }
 
+/** v1.30.43: Оператор (персональный менеджер) ЛК поставщика */
+export interface LkOperator {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  avatar?: string;
+  /** Связанный пользователь CRM (выбор из существующих) */
+  userId: string;
+  /** Ссылка на аккаунт в MAX */
+  maxLink?: string;
+  createdAt: string;
+}
+
 export interface AppSettings {
   statuses: StatusConfig[];
   buyerCategoryComment?: { A: string; B: string; C: string }; // этап 1.8 — комментарии оборота категорий покупателей
@@ -641,6 +655,8 @@ export interface AppSettings {
   lkVendorNews?: LkNews[];
   /** v1.30.0: Ссылки офер для кнопок Кросс-докинг / Продвижение */
   lkLinks?: { crossdock?: string; promo?: string };
+  /** v1.30.43: Операторы (персональные менеджеры) ЛК поставщика — настройка в Настройки → ЛК Поставщик */
+  lkOperators?: LkOperator[];
   /** v1.29.33: Справочник операторов ЭДО (Настройки → Источники) */
   edoOperators?: string[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */

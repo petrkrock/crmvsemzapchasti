@@ -443,7 +443,14 @@ const [tab, setTab] = useState('Статусы');
   }
 
   // v1.30.0: подвкладки «ЛК Поставщик»
-  const [lkTab, setLkTab] = useState<'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('dashboard');
+  const [lkTab, setLkTab] = const [opName, setOpName] = useState('');
+  const [opPhone, setOpPhone] = useState('');
+  const [opEmail, setOpEmail] = useState('');
+  const [opAvatarBusy, setOpAvatarBusy] = useState(false);
+  const [opMaxLink, setOpMaxLink] = useState('');
+  const [opAvatar, setOpAvatar] = useState('');
+  const [opUserId, setOpUserId] = useState('');
+  useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('dashboard');
   const [lkBannerImg, setLkBannerImg] = useState('');
   const [lkBannerLink, setLkBannerLink] = useState('');
   const [lkNewsTitle, setLkNewsTitle] = useState('');
@@ -483,6 +490,32 @@ const [tab, setTab] = useState('Статусы');
       updateStore(s => ({ ...s, settings: { ...s.settings, lkBanner: { image: data.publicUrl, link: s.settings.lkBanner?.link || '' } } }));
       forceUpdate(n => n + 1); toast.success('Баннер загружен');
     } catch (err) { toast.error(`Баннер: ${(err as Error)?.message || 'ошибка загрузки'}`); }
+  }
+
+  function addOperator() {
+    if (!opName.trim()) { toast.error('Укажите ФИО оператора'); return; }
+    if (!opUserId) { toast.error('Выберите пользователя (роль)'); return; }
+    const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, avatar: opAvatar.trim() || undefined, userId: opUserId, maxLink: opMaxLink.trim() || undefined, createdAt: new Date().toISOString() };
+    updateStore(s => ({ ...s, settings: { ...s.settings, lkOperators: [...(s.settings.lkOperators || []), op] } }));
+    setOpName(''); setOpPhone(''); setOpEmail(''); setOpAvatar(''); setOpUserId(''); setOpMaxLink('');
+    forceUpdate(n => n + 1); toast.success('Оператор создан');
+  }
+  async function uploadOperatorAvatar(file: File) {
+    if (!isSupabaseConfigured()) { toast.error('Supabase не настроен'); return; }
+    setOpAvatarBusy(true);
+    try {
+      const fileName = `lk-avatar-${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
+      const { error } = await supabase.storage.from('lk-assets').upload(`files/${fileName}`, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('lk-assets').getPublicUrl(`files/${fileName}`);
+      setOpAvatar(data.publicUrl);
+      toast.success('Аватар загружен');
+    } catch (e) { toast.error('Не удалось загрузить аватар'); }
+    finally { setOpAvatarBusy(false); }
+  }
+  function removeOperator(id: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, lkOperators: (s.settings.lkOperators || []).filter(o => o.id !== id) } }));
+    forceUpdate(n => n + 1); toast.success('Оператор удалён');
   }
 
   function deleteAdType(id: string) {
@@ -1530,13 +1563,52 @@ const [tab, setTab] = useState('Статусы');
 {tab === 'ЛК Поставщик' && (
             <div className="space-y-4">
               <div className="flex gap-2 flex-wrap">
-                {[['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия'], ['links', 'Ссылки офер']].map(([k, l]) => (
+                {[['manager', 'Оператор'], ['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия'], ['links', 'Ссылки офер']].map(([k, l]) => (
                   <button key={k} onClick={() => setLkTab(k as typeof lkTab)} className={`btn-secondary text-xs ${lkTab === k ? '!border-red-600 !text-red-600' : ''}`}>{l}</button>
                 ))}
               </div>
 
 
-              {lkTab === 'dashboard' && (
+                {lkTab === 'manager' && (
+            <div className="card-base p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">Персональный менеджер</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input className="form-input" placeholder="ФИО *" value={opName} onChange={e => setOpName(e.target.value)} />
+                <input className="form-input" placeholder="Телефон" value={opPhone} onChange={e => setOpPhone(e.target.value)} />
+                <input className="form-input" placeholder="Email" value={opEmail} onChange={e => setOpEmail(e.target.value)} />
+                <input className="form-input" placeholder="MAX — ссылка на аккаунт (https://...)" value={opMaxLink} onChange={e => setOpMaxLink(e.target.value)} />
+                <label className="form-input flex items-center gap-2 cursor-pointer text-xs text-gray-500">
+                  {opAvatarBusy ? 'Загрузка…' : 'Аватар: загрузить изображение'}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadOperatorAvatar(f); e.target.value = ''; }} />
+                </label>
+                <select className="form-input" value={opUserId} onChange={e => setOpUserId(e.target.value)}>
+                  <option value="">Роль * (выберите пользователя)</option>
+                  {(store.settings.users || []).map(u => <option key={u.id} value={u.id}>{u.name}{u.role === 'admin' ? ' · Администратор' : ' · Менеджер'}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-3">
+                {opAvatar.trim() && <img src={opAvatar.trim()} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} />}
+                <button onClick={addOperator} className="btn-primary text-xs">Создать оператора</button>
+              </div>
+              <div className="space-y-2">
+                {(store.settings.lkOperators || []).map(op => {
+                  const linked = (store.settings.users || []).find(u => u.id === op.userId);
+                  return (
+                    <div key={op.id} className="flex items-center gap-3 border border-gray-200 rounded-xl px-3 py-2.5 flex-wrap">
+                      {op.avatar ? <img src={op.avatar} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} /> : <span className="w-9 h-9 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">{(op.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                      <span className="text-sm font-medium text-gray-800">{op.name}</span>
+                      <span className="text-xs text-gray-500">{op.phone || '—'}</span>
+                      {op.email && <span className="text-xs text-gray-500">{op.email}</span>}
+                      <span className="text-xs text-gray-400">Роль: {linked?.name || '—'}</span>
+                      <button onClick={() => removeOperator(op.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
+                    </div>
+                  );
+                })}
+                {!(store.settings.lkOperators || []).length && <p className="text-xs text-gray-400">Операторы не созданы.</p>}
+              </div>
+            </div>
+            )}
+          {lkTab === 'dashboard' && (
                 <div className="card-base p-5 space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800 mb-1">Счётчики дашборда</h3>
                   <p className="text-[11px] text-gray-400">«Из базы» — значение считается автоматически из данных CRM. Города считаются из базы всегда.</p>

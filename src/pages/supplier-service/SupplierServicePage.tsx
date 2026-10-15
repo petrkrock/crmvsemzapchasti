@@ -60,6 +60,7 @@ export default function SupplierServicePage() {
   const [whSkuHint, setWhSkuHint] = useState(false); // подсказка «Склад» в разделе Склад
   // v1.29.0: единый кабинет
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
+  const [lkOp, setLkOp] = useState<Record<string, unknown> | null>(null); // v1.30.43: оператор ЛК
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [cabEdit, setCabEdit] = useState(false);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -153,6 +154,7 @@ export default function SupplierServicePage() {
         body: JSON.stringify({ token, pin: pinCode }),
       });
       const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
     } catch { /* останется null — покажем «—» */ }
@@ -443,6 +445,42 @@ export default function SupplierServicePage() {
                       </div>
                     </div>
 
+                        {lkOp?.name ? (
+                          <div className="flex items-center gap-3 border border-dashed border-gray-200 rounded-xl p-3 bg-white">
+                            {String(lkOp.avatar || '')
+                              ? <img src={String(String(lkOp.avatar || ''))} alt="" className="w-[55px] h-[55px] rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
+                              : <span className="w-[55px] h-[55px] rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(String(lkOp.name) || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-semibold text-gray-400">Персональный менеджер</p>
+                              <p className="text-sm font-bold text-gray-900 truncate">{String(String(lkOp.name))}</p>
+                              <div className="flex items-center gap-1.5 mt-1.5 whitespace-nowrap">
+                                {String(lkOp.phone || '') && (
+                                  <button type="button" title="Скопировать номер"
+                                    onClick={() => { navigator.clipboard?.writeText(String(String(lkOp.phone || ''))); setNotice('Номер скопирован'); }}
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    Телефон
+                                  </button>
+                                )}
+                                {String(lkOp.email || '') && (
+                                  <a href={`mailto:${String(String(lkOp.email || ''))}`} title="Написать письмо"
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    Почта
+                                  </a>
+                                )}
+                                {String(lkOp.maxLink || '') && (
+                                  <a href={String(String(lkOp.maxLink || ''))} target="_blank" rel="noreferrer" title="Открыть аккаунт в MAX"
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                    MAX
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="border border-dashed border-gray-200 rounded-xl p-3 text-center">
+                            <p className="text-[11px] text-gray-400">Персональный менеджер не настроен.</p>
+                          </div>
+                        )}
                                         {/* СВОДКА ПО ПОСТАВЩИКУ */}
                     <div>
                       <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5 h-full">
@@ -490,7 +528,7 @@ export default function SupplierServicePage() {
                     <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
                       style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
                     <div className="relative px-6 py-5">
-                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-6 gap-y-5">
+                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-x-6 gap-y-5">
                         {[
                           { label: 'Магазинов и СТО', value: (counters.buyersMode === 'db' ? Number(dash?.dbBuyers ?? 0) : Number(counters.buyersCount ?? 0)) },
                           { label: 'Запросов в день', value: Number(counters.requestsPerDay ?? 1000) },
@@ -720,7 +758,7 @@ export default function SupplierServicePage() {
 
             {lkTab === 'cabinet' && (() => {
               const cb = cabinet || {};
-              const svc = ['DBS', 'FBS', 'MEDIA']; // значение FBS хранится как есть
+              const svc = ['DBS', 'MARKET', 'MEDIA']; // значение FBS хранится как есть
               const activeServices = svc.filter(s => (cb.services as string[] || []).includes(s));
               const row = (label: string, value: unknown) => (
                 <div className="flex items-baseline gap-3 text-sm py-1.5">
