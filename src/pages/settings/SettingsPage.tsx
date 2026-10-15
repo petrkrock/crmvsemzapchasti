@@ -443,7 +443,8 @@ const [tab, setTab] = useState('Статусы');
   }
 
   // v1.30.0: подвкладки «ЛК Поставщик»
-  const [lkTab, setLkTab] = const [opName, setOpName] = useState('');
+  const [lkTab, setLkTab] = useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('dashboard');
+  const [opName, setOpName] = useState('');
   const [opPhone, setOpPhone] = useState('');
   const [opEmail, setOpEmail] = useState('');
   const [opAvatarBusy, setOpAvatarBusy] = useState(false);

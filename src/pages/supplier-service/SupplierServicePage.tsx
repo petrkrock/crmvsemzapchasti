@@ -442,33 +442,30 @@ export default function SupplierServicePage() {
                           className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-2.5 transition-colors">
                           Открыть ЧАТ
                         </button>
-                      </div>
-                    </div>
-
                         {lkOp?.name ? (
                           <div className="flex items-center gap-3 border border-dashed border-gray-200 rounded-xl p-3 bg-white">
-                            {String(lkOp.avatar || '')
-                              ? <img src={String(String(lkOp.avatar || ''))} alt="" className="w-[55px] h-[55px] rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
-                              : <span className="w-[55px] h-[55px] rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(String(lkOp.name) || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
+                            {lkOp.avatar
+                              ? <img src={String(lkOp.avatar)} alt="" className="w-[55px] h-[55px] rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
+                              : <span className="w-[55px] h-[55px] rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(lkOp.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
                             <div className="min-w-0 flex-1">
                               <p className="text-[10px] font-semibold text-gray-400">Персональный менеджер</p>
-                              <p className="text-sm font-bold text-gray-900 truncate">{String(String(lkOp.name))}</p>
+                              <p className="text-sm font-bold text-gray-900 truncate">{String(lkOp.name)}</p>
                               <div className="flex items-center gap-1.5 mt-1.5 whitespace-nowrap">
-                                {String(lkOp.phone || '') && (
+                                {lkOp.phone && (
                                   <button type="button" title="Скопировать номер"
-                                    onClick={() => { navigator.clipboard?.writeText(String(String(lkOp.phone || ''))); setNotice('Номер скопирован'); }}
+                                    onClick={() => { navigator.clipboard?.writeText(String(lkOp.phone)); setNotice('Номер скопирован'); }}
                                     className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
                                     Телефон
                                   </button>
                                 )}
-                                {String(lkOp.email || '') && (
-                                  <a href={`mailto:${String(String(lkOp.email || ''))}`} title="Написать письмо"
+                                {lkOp.email && (
+                                  <a href={`mailto:${String(lkOp.email)}`} title="Написать письмо"
                                     className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
                                     Почта
                                   </a>
                                 )}
-                                {String(lkOp.maxLink || '') && (
-                                  <a href={String(String(lkOp.maxLink || ''))} target="_blank" rel="noreferrer" title="Открыть аккаунт в MAX"
+                                {lkOp.maxLink && (
+                                  <a href={String(lkOp.maxLink)} target="_blank" rel="noreferrer" title="Открыть аккаунт в MAX"
                                     className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
                                     MAX
                                   </a>
@@ -481,6 +478,8 @@ export default function SupplierServicePage() {
                             <p className="text-[11px] text-gray-400">Персональный менеджер не настроен.</p>
                           </div>
                         )}
+                      </div>
+                    </div>
                                         {/* СВОДКА ПО ПОСТАВЩИКУ */}
                     <div>
                       <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5 h-full">
