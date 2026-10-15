@@ -317,10 +317,6 @@ export interface Supplier {
   serviceSearch?: ServiceSearchCondition[];
   /** Доступ к самообслуживанию: поставщик сам заполняет склады и условия сервиса поиска по ссылке /s/<token> */
   serviceAccess?: { token: string; pin?: string; enabled: boolean; createdAt: string };
-  /** v1.29.0: Доставка (DBO) — доступ к ЛК доставки по ссылке /d/<token>. СВОЯ настройка, с DBS не связана. */
-  deliveryAccess?: { token: string; pin?: string; enabled: boolean; createdAt: string };
-  /** v1.29.0: Данные договора доставки (DBO) — анкета в разделе Доставка */
-  deliveryContract?: DeliveryContract;
   history: HistoryEntry[];
   additionalContacts?: string;
   additionalComment?: string;
@@ -539,8 +535,6 @@ export interface AppUser {
     media: boolean;
     /** Проценка (ТЗ v1.24.0): единое управление условиями DBS всех поставщиков. */
     pricing: boolean;
-    /** Доставка (ТЗ v1.29.0): сервис доставки (DBO) — единый раздел и вкладка анкеты поставщика. */
-    delivery: boolean;
     planfact: boolean;
     analytics: boolean;
     knowledge: boolean;
@@ -604,35 +598,6 @@ export interface FormConfig {
   updatedAt: string;
 }
 
-/** v1.29.0: Договор доставки (DBO) — анкета поставщика в разделе Доставка */
-export interface DeliveryContract {
-  route?: string;
-  scheduleDays?: string[];
-  scheduleFrom?: string;
-  scheduleTo?: string;
-  warehouseId?: string;
-  cities?: string[];
-  operatorId?: string;
-  status?: string;
-  /** Номер договора — обязателен при активации */
-  contractNumber?: string;
-  /** Дата договора — обязательна при активации */
-  contractDate?: string;
-  serviceTariff?: string;
-  cityTariff?: string;
-  comment?: string;
-}
-
-/** v1.29.0: Остановка маршрута самовывоза (DBO) */
-export interface RouteStop {
-  supplierId: string;
-  /** Диапазон времени — вручную от и до */
-  from: string;
-  to: string;
-  /** Порядок погрузки (1–10): чем выше цифра, тем ниже в списке */
-  order?: number;
-}
-
 /** v1.30.0: Новость платформы для ЛК поставщика */
 export interface LkNews {
   id: string;
@@ -648,91 +613,6 @@ export interface LkNews {
   fullText?: string;
 }
 
-/** v1.29.0: Маршрут самовывоза (DBO) */
-export interface DeliveryRoute {
-  id: string;
-  /** Номер маршрута */
-  number: string;
-  /** Время выезда с ЦС */
-  departureTime: string;
-  /** График: ПН..ВС */
-  scheduleDays: string[];
-  stops: RouteStop[];
-  /** Время прибытия на ЦС */
-  arrivalTime: string;
-  createdAt: string;
-  /** История изменений маршрута */
-  history?: { at: string; by: string; action: string }[];
-}
-
-/** v1.29.0: Тариф доставки (DBO) — Тариф сервиса / Тариф за Город */
-export interface DeliveryTariff {
-  id: string;
-  name: string;
-  /** Стоимость в месяц (устарело — см. basePackage) */
-  pricePerMonth: number;
-  /** v1.30.29: Базовый пакет (₽/мес) */
-  basePackage?: number;
-  /** Ставка за город (₽/день) */
-  cityRate?: number;
-  /** Точек доставки включено (шт) */
-  pointsIncluded?: number;
-  /** Стоимость последующей точки (₽/шт) */
-  extraPointPrice?: number;
-  /** v1.30.33: Габарит — включено (м³) */
-  volumeIncluded?: number;
-  /** Габарит — шаг сверх (м³) */
-  volumeExtraStep?: number;
-  /** Габарит — цена за шаг сверх (₽) */
-  volumeExtraPrice?: number;
-  createdAt: string;
-}
-
-/** v1.30.31: Задание на доставку */
-export interface DeliveryTask {
-  id: string;
-  supplierId: string;
-  date: string;
-  city: string;
-  points: number;
-  rate: number;
-  extra: number;
-  /** v1.30.33: сверх габарит (м³) и сумма */
-  volumeExtra?: number;
-  volumeExtraSum?: number;
-  total: number;
-  status?: string;
-  createdAt: string;
-}
-
-/** v1.30.23: Строка таблицы городов доставки */
-export interface DeliveryCityRow {
-  id: string;
-  city: string;
-  supplierId: string;
-  status?: string;
-  activatedAt?: string;
-  tariff?: string;
-  history?: { at: string; by: string; action: string }[];
-}
-
-/** v1.29.0: Оператор доставки (DBO) */
-export interface DeliveryOperator {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  avatar?: string;
-  /** Связанный пользователь CRM (выбор из существующих) */
-  userId: string;
-  /** Ссылка на аккаунт в MAX */
-  maxLink?: string;
-  createdAt: string;
-}
-
-/** v1.30.36: Статус задания на доставку с настраиваемыми цветами (Настройки → Доставка → Статусы) */
-export interface DeliveryTaskStatus { name: string; bgColor: string; textColor: string; }
-
 export interface AppSettings {
   statuses: StatusConfig[];
   buyerCategoryComment?: { A: string; B: string; C: string }; // этап 1.8 — комментарии оборота категорий покупателей
@@ -746,20 +626,6 @@ export interface AppSettings {
   buyerTypes: string[];
   ticketTypes: string[];
   cities: string[];
-  /** Города, доступные для доставки (DBO) — ТЗ v1.29.0, вкладка Настройки → Доставка */
-  deliveryCities?: string[];
-  /** Операторы доставки (DBO) — ТЗ v1.29.0, данные показываются в ЛК доставки */
-  deliveryOperators?: DeliveryOperator[];
-  /** Статусы договоров доставки (DBO) — системные, ТЗ v1.29.0 */
-  deliveryContractStatuses?: string[];
-  /** v1.30.36: Статусы заданий на доставку (DBO) — системные, с редактируемыми цветами */
-  deliveryTaskStatuses?: DeliveryTaskStatus[];
-  /** Тарифы сервиса доставки (DBO) */
-  deliveryServiceTariffs?: DeliveryTariff[];
-  /** Тарифы за Город (DBO) */
-  deliveryCityTariffs?: DeliveryTariff[];
-  /** Маршруты самовывоза (DBO) */
-  deliveryRoutes?: DeliveryRoute[];
   /** v1.30.0: Дашборд ЛК поставщика (счётчики: manual/database) */
   lkDashboard?: {
     buyersMode: 'manual' | 'db'; buyersCount: number;
@@ -773,20 +639,10 @@ export interface AppSettings {
   lkNews?: LkNews[];
   /** v1.30.0: «От поставщиков поставщикам» — слайдер новостей в ЛК */
   lkVendorNews?: LkNews[];
-  /** v1.30.0: Ссылки офер для кнопок Доставка / Кросс-докинг / Продвижение */
-  lkLinks?: { delivery?: string; crossdock?: string; promo?: string };
+  /** v1.30.0: Ссылки офер для кнопок Кросс-докинг / Продвижение */
+  lkLinks?: { crossdock?: string; promo?: string };
   /** v1.29.33: Справочник операторов ЭДО (Настройки → Источники) */
   edoOperators?: string[];
-  /** v1.30.22: МКП (мин. количество поставщиков) по городам доставки — только для CRM */
-  deliveryCityMinSuppliers?: Record<string, number>;
-  /** v1.30.23: Таблица «Города доставки» (город × поставщик) */
-  deliveryCityRows?: DeliveryCityRow[];
-  /** v1.30.31: Задания на доставку */
-  deliveryTasks?: DeliveryTask[];
-  /** v1.30.26: График и время развоза по городам доставки */
-  deliveryCitySchedules?: Record<string, { days: string[]; from: string; to: string }>;
-  /** v1.30.23: Таблица «Города доставки» (город × поставщик) */
-  deliveryCityRows?: DeliveryCityRow[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
   quickLinks: { mail: string; platform: string };
   planCities: PlanCity[];
@@ -802,7 +658,7 @@ export interface AppSettings {
   /** Роли контактов (ТЗ v1.22.30): справочник Настройки → Источники → «Роль». Директор, Менеджер, Собственник, РОП, ТП — названия редактируемые. */
   roleTypes?: string[];
   /** Шаблоны приветствий (Настройки → Приветствия) */
-  greetings?: { supplier?: string; delivery?: string };
+  greetings?: { supplier?: string };
   mediaAdTypes: MediaAdType[];
   mediaTariffs?: MediaTariff[];  // legacy
   mediaStatuses: MediaStatus[];

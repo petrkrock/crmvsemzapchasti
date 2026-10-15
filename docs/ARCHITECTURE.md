@@ -54,7 +54,7 @@ Nginx + PM2 (Node ≥ 18.18). Бэкенд в обоих случаях — об
 | `tasks` | Задачи (history, resolved_at, deleted_at, priority) |
 | `tickets` | Обращения поддержки (task_id FK → tasks) |
 | `media_records` | Медиа-размещения |
-| `app_settings` | JSONB-хранилище: справочники, пользователи, лиды, план/факт, доставка, ЛК, база знаний |
+| `app_settings` | JSONB-хранилище: справочники, пользователи, лиды, план/факт, ЛК, база знаний |
 | `profiles` | Профили auth-пользователей (role: admin/manager) |
 | `user_access` | Серверная копия ограничений менеджера (синхронизируется триггером) |
 | `app_logs` | Журнал действий (DELETE/EXPORT/VIEW) |

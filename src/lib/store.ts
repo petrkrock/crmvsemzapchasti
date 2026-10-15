@@ -6,7 +6,7 @@ import type {
 } from '@/types';
 import { EMPTY_ACCESS } from '@/types';
 import { useEffect, useState } from 'react';
-import { DEFAULT_DELIVERY_TASK_STATUSES, DEFAULT_STATUSES, DEFAULT_LEAD_STATUSES, DEFAULT_TASK_ENTITY_TYPES, DEFAULT_TASK_TYPES, SYSTEM_TASK_TYPE, CONTACT_PREFS, DEFAULT_SUPPLIER_GREETING, DEFAULT_FORM_CONFIGS, DEFAULT_FORM_CONSENT } from '@/constants';
+import { DEFAULT_STATUSES, DEFAULT_LEAD_STATUSES, DEFAULT_TASK_ENTITY_TYPES, DEFAULT_TASK_TYPES, SYSTEM_TASK_TYPE, CONTACT_PREFS, DEFAULT_SUPPLIER_GREETING, DEFAULT_FORM_CONFIGS, DEFAULT_FORM_CONSENT } from '@/constants';
 import { generateId } from './utils';
 import {
   isSupabaseConfigured, pullRemoteSnapshot, saveSettings,
@@ -86,7 +86,7 @@ function defaultAdmin(): AppUser {
     id: 'admin-1', name: 'Администратор', email: 'admin@vz.tech', password: 'admin123',
     role: 'admin',
     // Администратору все разделы доступны всегда — permissions/access для него не используются
-    permissions: { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, pricing: true, delivery: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true },
+    permissions: { dashboard: true, suppliers: true, buyers: true, tasks: true, support: true, media: true, pricing: true, planfact: true, analytics: true, knowledge: true, planfactEdit: true },
     access: { ...EMPTY_ACCESS },
     note: '',
     status: 'active',
@@ -119,7 +119,6 @@ const DEFAULT_SOURCES: Source[] = [
 const DEFAULT_SUPPLIER_SERVICES: SupplierService[] = [
   { id: 'svc-1',  name: 'DBS',   createdAt: new Date().toISOString(), system: true },
   { id: 'svc-2',  name: 'FBS',   createdAt: new Date().toISOString(), system: true },
-  { id: 'svc-3',  name: 'DBO',   createdAt: new Date().toISOString(), system: true }, // v1.29.0: системный сервис доставки
   { id: 'svc-4',  name: 'MEDIA', createdAt: new Date().toISOString(), system: true },
 ];
 
@@ -250,10 +249,9 @@ export function getStore(): CRMStore {
       const oldTags = ps['supplierTags'] as Array<{ id: string; name: string; createdAt: string }> | undefined;
       settings.supplierServices = (oldTags && Array.isArray(oldTags) && oldTags.length > 0) ? oldTags : DEFAULT_SUPPLIER_SERVICES;
     }
-    // v1.29.0: системные сервисы продаж — ВНЕ гейта (иначе существующие базы не получают DBO).
-    // Выставляем флаг system и гарантируем наличие DBO в настройках и План/Факт.
+    // Системные сервисы продаж — ВНЕ гейта.
     {
-      const SYS_SVC = ['DBS', 'MARKET', 'DBO', 'MEDIA'];
+      const SYS_SVC = ['DBS', 'MARKET', 'MEDIA'];
       if (!Array.isArray(settings.supplierServices)) settings.supplierServices = [];
       SYS_SVC.forEach(name => {
         const existing = settings.supplierServices.find(s => s.name === name);
@@ -335,17 +333,6 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!settings.ticketTypes || !Array.isArray(settings.ticketTypes)) settings.ticketTypes = [...DEFAULT_TICKET_TYPES];
     // Города для карточек поставщиков/покупателей
     if (!settings.cities || !Array.isArray(settings.cities)) settings.cities = [...DEFAULT_CITIES];
-    // v1.29.0: города доставки (DBO) — по умолчанию ПУСТО (независимый список, с городами CRM не связан)
-    if (!Array.isArray(settings.deliveryCities)) settings.deliveryCities = [];
-    if (!Array.isArray(settings.deliveryOperators)) settings.deliveryOperators = [];
-    // v1.29.0: системные статусы договоров доставки
-    if (!Array.isArray(settings.deliveryContractStatuses)) settings.deliveryContractStatuses = ['ЛИД', 'Ждёт активации', 'Активный', 'Аннулирован'];
-    else if (!settings.deliveryContractStatuses.includes('ЛИД')) settings.deliveryContractStatuses.unshift('ЛИД'); // v1.29.0: системный статус ЛИД — первым
-    if (!Array.isArray(settings.deliveryServiceTariffs)) settings.deliveryServiceTariffs = [];
-    // v1.30.36: системные статусы заданий на доставку (с цветами)
-    if (!Array.isArray(settings.deliveryTaskStatuses) || !settings.deliveryTaskStatuses.length) settings.deliveryTaskStatuses = DEFAULT_DELIVERY_TASK_STATUSES.map(st => ({ ...st }));
-    if (!Array.isArray(settings.deliveryCityTariffs)) settings.deliveryCityTariffs = [];
-    if (!Array.isArray(settings.deliveryRoutes)) settings.deliveryRoutes = [];
     // v1.30.0: дашборд ЛК поставщика
     if (!settings.lkDashboard) settings.lkDashboard = { buyersMode: 'manual', buyersCount: 500, warehousesMode: 'db', warehousesCount: 500, skuMode: 'manual', skuCount: 350000, requestsPerDay: 1000 };
     else {
@@ -364,17 +351,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!settings.lkBanner) settings.lkBanner = { image: '', link: '' };
     if (!Array.isArray(settings.lkNews)) settings.lkNews = [];
     if (!Array.isArray(settings.lkVendorNews)) settings.lkVendorNews = [];
-    if (!settings.lkLinks) settings.lkLinks = { delivery: '', crossdock: '', promo: '' };
+    if (!settings.lkLinks) settings.lkLinks = { crossdock: '', promo: '' };
     if (!Array.isArray(settings.edoOperators)) settings.edoOperators = [];
-    if (!settings.deliveryCityMinSuppliers || typeof settings.deliveryCityMinSuppliers !== 'object') settings.deliveryCityMinSuppliers = {};
-    if (!Array.isArray(settings.deliveryCityRows)) settings.deliveryCityRows = [];
-    if (!Array.isArray(settings.deliveryTasks)) settings.deliveryTasks = [];
-    if (!settings.deliveryCitySchedules || typeof settings.deliveryCitySchedules !== 'object') settings.deliveryCitySchedules = {};
-    // v1.29.0 (ресофт): единый ЛК поставщика — если есть только доставочный доступ, переносим токен/PIN в serviceAccess
-    if (Array.isArray(ps.suppliers)) ps.suppliers = ps.suppliers.map((sp: Supplier) => {
-      if (!sp.serviceAccess?.token && sp.deliveryAccess?.token) return { ...sp, serviceAccess: sp.deliveryAccess };
-      return sp;
-    });
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)
     if (!settings.quickLinks || typeof settings.quickLinks !== 'object') {
@@ -562,7 +540,7 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     });
 
     // Migrate user permissions
-    settings.users = settings.users.map(u => ({ ...u, permissions: { delivery: u.role === 'admin', media: true, ...u.permissions } }));
+    settings.users = settings.users.map(u => ({ ...u, permissions: { media: true, ...u.permissions } }));
 
     // Migrate media records: ensure new fields exist
     parsed.mediaRecords = (parsed.mediaRecords || []).map(r => ({
@@ -635,7 +613,7 @@ export function updateStore(updater: (store: CRMStore) => CRMStore) {
 type StoreListener = () => void;
 const storeListeners = new Set<StoreListener>();
 
-// Пакетная доставка: сколько бы saveStore ни вызвалось синхронно (realtime-эхо,
+// Пакетная отправка: сколько бы saveStore ни вызвалось синхронно (realtime-эхо,
 // merge-цепочки, пакетные правки) — подписчики получают ОДИН тик на микротаску.
 // Механически исключает React #301 «Too many re-renders» от шторма уведомлений.
 let notifyScheduled = false;
@@ -712,7 +690,7 @@ type EntityName = 'suppliers' | 'buyers' | 'tasks' | 'tickets' | 'mediaRecords';
 // значит CRM↔ЛК зеркальны: удаление/правка SKU в любом месте доезжает до базы и отображается
 // в другом. Исключения оставлены только для НЕмапируемых серверных полей (иначе вечный цикл).
 const VOLATILE_SYNC_KEYS = new Set(['updatedAt', 'updated_at', 'history',
-  'serviceAccess', 'service_access', 'companyScore', 'company_score', 'scoring']); // v1.29.0: deliveryAccess убран — иначе токен/PIN ЛК доставки не доезжали до БД (404 «Недействительная ссылка»)
+  'serviceAccess', 'service_access', 'companyScore', 'company_score', 'scoring']);
 
 function stableEntityJson(value: unknown): string {
   if (Array.isArray(value)) return '[' + value.map(stableEntityJson).join(',') + ']';

@@ -157,8 +157,9 @@ function mapSupplier(row: Record<string, unknown>): Supplier {
     requisites: (row.requisites as Supplier['requisites']) ?? undefined,
     serviceSearch: (row.service_search as Supplier['serviceSearch']) || [],
     serviceAccess: (row.service_access as Supplier['serviceAccess']) ?? undefined,
-    deliveryAccess: (row.delivery_access as Supplier['deliveryAccess']) ?? undefined,
-    deliveryContract: (row.delivery_contract as Supplier['deliveryContract']) ?? undefined,
+    // v1.30.39: ЭДО — колонки edo_operator/edo_token
+    edoOperator: (row.edo_operator as string) ?? undefined,
+    edoToken: (row.edo_token as string) ?? undefined,
     history: (row.history as Supplier['history']) || [],
     additionalContacts: (row.additional_contacts as string) ?? undefined,
     additionalComment: (row.additional_comment as string) ?? undefined,
@@ -205,8 +206,8 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.requisites !== undefined) db.requisites = s.requisites;
   if (s.serviceSearch !== undefined) db.service_search = s.serviceSearch;
   if (s.serviceAccess !== undefined) db.service_access = s.serviceAccess;
-  db.delivery_access = s.deliveryAccess || null; // v1.30.20: null при удалении, иначе серверная копия не очищалась
-  db.delivery_contract = s.deliveryContract || null;
+  if (s.edoOperator !== undefined) db.edo_operator = orNull(s.edoOperator);
+  if (s.edoToken !== undefined) db.edo_token = orNull(s.edoToken);
   if (s.history !== undefined) db.history = s.history;
   if (s.additionalContacts !== undefined) db.additional_contacts = orNull(s.additionalContacts);
   if (s.additionalComment !== undefined) db.additional_comment = orNull(s.additionalComment);

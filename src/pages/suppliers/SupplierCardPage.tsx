@@ -24,7 +24,7 @@ import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import { toast } from 'sonner';
 import ContactPrefIcon from '@/components/features/ContactPrefIcons';
 
-const TABS = ['Анкета', 'Склад', 'Сервис проценки (DBS)', 'Доставка (DBO)', 'Скоринг', 'Дополнительно', 'История'];
+const TABS = ['Анкета', 'Склад', 'Сервис проценки (DBS)', 'Скоринг', 'Дополнительно', 'История'];
 const SS_FIELDS: { key: keyof ServiceSearchCondition; label: string }[] = [
   { key: 'city', label: 'Город показов' }, { key: 'warehouseName', label: 'Склад поставщика' },
   { key: 'representative', label: 'Представитель' }, { key: 'contacts', label: 'Контакты' },
@@ -646,18 +646,19 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   {editing ? <textarea className="form-input min-h-[80px] resize-none" value={form.comment || ''} onChange={e => setForm(f => ({ ...f, comment: e.target.value }))} /> : <p className="text-sm text-brand-black py-2">{freshSupplier.comment || '—'}</p>}
                 </div>
               </div>
+            {/* v1.30.39: ЭДО — поля перенесены на верхний уровень Supplier */}
             <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-3 flex-wrap">
                         <span className="text-xs font-semibold text-gray-500 w-32">ЭДО</span>
                         {editing ? (
                           <>
-                            <select className="form-input text-xs w-48" value={String((form as Supplier).deliveryContract?.edoOperator || '')} onChange={e => setFormState({ ...(form as Supplier), deliveryContract: { ...(form as Supplier).deliveryContract, edoOperator: e.target.value } })}>
+                            <select className="form-input text-xs w-48" value={String((form as Supplier).edoOperator || '')} onChange={e => setForm(f => ({ ...f, edoOperator: e.target.value }))}>
                               <option value="">— Оператор ЭДО —</option>
                               {(getStore().settings.edoOperators || []).map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
-                            <input className="form-input text-[11px] flex-1 min-w-[200px]" placeholder="Идентификатор ЭДО" value={String((form as Supplier).deliveryContract?.edoToken || '')} onChange={e => setFormState({ ...(form as Supplier), deliveryContract: { ...(form as Supplier).deliveryContract, edoToken: e.target.value } })} />
+                            <input className="form-input text-[11px] flex-1 min-w-[200px]" placeholder="Идентификатор ЭДО" value={String((form as Supplier).edoToken || '')} onChange={e => setForm(f => ({ ...f, edoToken: e.target.value }))} />
                           </>
                         ) : (
-                          <span className="text-sm text-gray-800">{freshSupplier.deliveryContract?.edoOperator || '—'}{freshSupplier.deliveryContract?.edoToken ? <span className="text-[10px] text-gray-500 break-all"> · Идентификатор: {freshSupplier.deliveryContract.edoToken}</span> : null}</span>
+                          <span className="text-sm text-gray-800">{freshSupplier.edoOperator || '—'}{freshSupplier.edoToken ? <span className="text-[10px] text-gray-500 break-all"> · Идентификатор: {freshSupplier.edoToken}</span> : null}</span>
                         )}
                       </div>
           
@@ -885,13 +886,6 @@ function setWarehouseStatus(locId: string, status: WarehouseStatus) {
                   )}
                 </div>
               ))}
-            </div>
-          )}
-
-          {tab === 'Доставка (DBO)' && (
-            <div className="card-base p-8 text-center">
-              <p className="text-sm font-semibold text-gray-700">Доставка (DBO)</p>
-              <p className="text-xs text-gray-400 mt-2">Раздел появится в следующих обновлениях.</p>
             </div>
           )}
 

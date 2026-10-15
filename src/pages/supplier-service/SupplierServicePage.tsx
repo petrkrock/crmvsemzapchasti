@@ -2,7 +2,7 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Loader2, Check, CheckCircle2, AlertCircle, Plus, Trash2, Pencil, X, MapPin, Warehouse, FileText, Truck, Info, ChevronDown, ArrowUpRight, Headset, Wallet, Undo2, LayoutDashboard, Search, Boxes, LogOut, Megaphone, UserRound, Copy } from 'lucide-react';
+import { Check, AlertCircle, Plus, Trash2, Pencil, X, Warehouse, Truck, Info, ChevronDown, LayoutDashboard, Search, Boxes, LogOut, Megaphone, Copy } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -31,18 +31,8 @@ const EMPTY_COND: Cond = { city: '', warehouseName: '', representative: '', cont
 const LK_MENU = [
   { key: 'dashboard', label: '', icon: LayoutDashboard },
   { key: 'pricing', label: 'Проценка', icon: Search },
-  { key: 'delivery', label: 'Доставка', icon: Truck },
   { key: 'crossdock', label: 'Маркет', icon: Boxes },
   { key: 'promo', label: 'Продвижение', icon: Megaphone },
-] as const;
-
-// v1.29.0: подвкладки раздела «Доставка»
-const DL_MENU = [
-  { key: 'mycities', label: 'Мои города', icon: MapPin },
-  { key: 'deliveries', label: 'Доставки', icon: Truck },
-  { key: 'returns', label: 'Возвраты', icon: Undo2 },
-  { key: 'documents', label: 'Документы', icon: FileText },
-  { key: 'finance', label: 'Финансы', icon: Wallet },
 ] as const;
 
 export default function SupplierServicePage() {
@@ -67,25 +57,13 @@ export default function SupplierServicePage() {
   const [whErr, setWhErr] = useState<Record<string, boolean>>({}); // незаполненные поля склада
   const [whMsHint, setWhMsHint] = useState(false); // подсказка мультисклада
   const [faqHint, setFaqHint] = useState(false); // подсказка «Вопрос» в проценке
-  const [activateOpen, setActivateOpen] = useState(false); // модалка активации доставки
-  const [citiesHint, setCitiesHint] = useState(false); // подсказка «Мои города доставки»
-  const [tariffModal, setTariffModal] = useState(false); // таблица тарифа
-  const [myTariff, setMyTariff] = useState<Record<string, unknown> | null>(null); // v1.30.29
-  const [mcFilter, setMcFilter] = useState(''); // фильтр статусов «Мои города»
-  const [myCities, setMyCities] = useState<Array<{ rowId: string; city: string; status: string; activatedAt?: string; days?: string[]; from?: string; to?: string }>>([]); // v1.30.24+
-  const [citySchedules, setCitySchedules] = useState<Record<string, { days: string[]; from: string; to: string }>>({}); // v1.30.26
-  const [addCityModal, setAddCityModal] = useState<string | null>(null); // город на добавление
-  const [activateWh, setActivateWh] = useState('');
   const [whSkuHint, setWhSkuHint] = useState(false); // подсказка «Склад» в разделе Склад
-  // v1.29.0: единый кабинет — меню и данные доставки (DBO)
-  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'delivery' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
+  // v1.29.0: единый кабинет
+  const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [cabEdit, setCabEdit] = useState(false);
-  const [deliveryInfo, setDeliveryInfo] = useState<Record<string, unknown> | null>(null);
-  const [dlCities, setDlCities] = useState<string[]>([]);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
   const [newsModal, setNewsModal] = useState<Record<string, string> | null>(null); // полный текст новости
-  const [dlTab, setDlTab] = useState<'mycities' | 'deliveries' | 'returns' | 'documents' | 'finance'>('mycities'); // ТЗ v1.23.8: подсказка прайс-листа
   const [cityHint, setCityHint] = useState(false); // ТЗ v1.23.9: совет по городам
   const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
   const [statusFilter, setStatusFilter] = useState<'all' | 'Новое' | 'Загружено' | 'Есть изменения'>('all'); // ТЗ v1.23.10: фильтр условий по статусу
@@ -100,8 +78,8 @@ export default function SupplierServicePage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   // ТЗ v1.23.55: тост гаснет сам через 4с
-    // v1.29.0: данные доставки при входе/старте (единый кабинет)
-  useEffect(() => { if (pinPassed) loadDeliveryInfo(); }, [pinPassed]);
+    // данные кабинета при входе/старте
+  useEffect(() => { if (pinPassed) loadLkInfo(); }, [pinPassed]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(''), 4000);
@@ -166,7 +144,7 @@ export default function SupplierServicePage() {
     return () => ro.disconnect();
   }, [data, pinPassed, loading]);
 
-  async function loadDeliveryInfo() {
+  async function loadLkInfo() {
     try {
       const pinCode = sessionStorage.getItem('dbs_pin') || '';
       const r = await fetch(getFunctionsUrl('supplier-service'), {
@@ -175,12 +153,8 @@ export default function SupplierServicePage() {
         body: JSON.stringify({ token, pin: pinCode }),
       });
       const d = await r.json().catch(() => ({}));
-      if (r.ok && d?.delivery) { setDeliveryInfo(d.delivery); setDlCities(d.deliveryCities || []); }
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
-      if (r.ok && d?.delivery?.myCities) setMyCities(d.delivery.myCities);
-      if (r.ok && d?.delivery?.citySchedules) setCitySchedules(d.delivery.citySchedules);
-      if (r.ok && d?.delivery?.tariff !== undefined) setMyTariff(d.delivery.tariff);
     } catch { /* останется null — покажем «—» */ }
   }
 
@@ -448,364 +422,7 @@ export default function SupplierServicePage() {
                 </div>
               )}
 
-              {/* МОДАЛКА АКТИВАЦИИ ДОСТАВКИ */}
-            {activateOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setActivateOpen(false)}>
-                <div className="absolute inset-0 bg-black/50" />
-                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                  <h3 className="text-base font-bold text-gray-900">Для активации доставки выберите Ваш склад.</h3>
-                  <select className="form-input text-xs w-full" value={activateWh} onChange={e => setActivateWh(e.target.value)}>
-                    <option value="">— выберите склад —</option>
-                    {(data?.warehouses || []).map((w: Record<string, unknown>, i: number) => (
-                      <option key={String(w.id || i)} value={String(w.id || i)}>{String(w.city || '')}{w.address ? `, ${String(w.address)}` : ''}</option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-gray-400">Заполните в личном кабинете идентификатор участника ЭДО — туда придет Ваш договор.</p>
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[11px] text-gray-500 leading-relaxed">
-                    Внимание! Активация договора Вас ни к чему не обязывает, для полноценной работы доставки добавьте интересующие Вас города в настройках и оплатите подписку на сервис.
-                  </div>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={async () => {
-                      if (!activateWh) { setNotice('Выберите склад'); return; }
-                      const err = await post({ warehouseId: activateWh, status: 'Ждёт активации' });
-                      if (err) setNotice(err);
-                      else { setNotice('Заявка на активацию отправлена'); setActivateOpen(false); loadDeliveryInfo(); }
-                    }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Активировать</button>
-                    <button type="button" onClick={() => setActivateOpen(false)} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отменить</button>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {addCityModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAddCityModal(null)}>
-                  <div className="absolute inset-0 bg-black/50" />
-                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-base font-bold text-gray-900">Добавить город {addCityModal} в доставку?</h3>
-                  {(() => {
-                    const sch = citySchedules[addCityModal];
-                    return sch ? (
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-500">График и время развоза:</p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="flex gap-0.5">
-                            {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                              <span key={d} className={`w-6 h-5 text-[9px] rounded border flex items-center justify-center ${(sch.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
-                            ))}
-                          </span>
-                          <span className="text-xs text-gray-600">с {sch.from || '—'} до {sch.to || '—'}</span>
-                        </div>
-                      </div>
-                    ) : null;
-                  })()}
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[11px] text-gray-500 leading-relaxed space-y-1">
-                    <p>Внимание! Все заказы, принятые сегодня, будут доставлены получателям завтра.</p>
-                    <p>Для покупателей срок поставки всегда составляет 1 день (сегодня заказ - завтра доставка).</p>
-                  </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={async () => {
-                        const err = await post({ addDeliveryCity: addCityModal });
-                        if (err) setNotice(err);
-                        else { setNotice('Город добавлен в доставку'); setAddCityModal(null); loadDeliveryInfo(); }
-                      }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Добавить</button>
-                      <button type="button" onClick={() => setAddCityModal(null)} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отменить</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-
-
-
-            {lkTab === 'dashboard' && (() => {
-              const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
-              const lkLinks = (dash?.lkLinks as Record<string, string>) || {};
-              const news = (dash?.news as Array<Record<string, string>>) || [];
-              const counters = (dash?.counters as Record<string, unknown>) || {};
-              const covered = new Set((data?.serviceSearch || []).map((c: { city: string }) => c.city).filter(Boolean)).size;
-              return (
-                <>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* БАННЕР */}
-                    <div>
-                      {banner.image ? (
-                        <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
-                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden w-[375px] h-[280px] max-w-full">
-                          <img src={banner.image} alt="Баннер" className="w-full h-full object-cover" />
-                        </a>
-                      ) : (
-                        <div className="bg-white border border-gray-200 rounded-2xl w-[375px] h-[280px] max-w-full flex items-center justify-center">
-                          <p className="text-gray-300 font-bold text-4xl tracking-widest select-none">БАННЕР</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* VZ ЧАТ */}
-                    <div>
-                      <div className="bg-white border border-gray-200 rounded-2xl p-5 pt-[1.85rem] space-y-3 h-full relative">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
-                          <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
-                            className="w-8 h-8 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
-                            <Headset size={15} />
-                          </a>
-                        </div>
-                        <div className="h-1" />
-                        <div className="flex items-center gap-4 text-sm text-gray-700">
-                          <span>Непрочитанные: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
-                          <span>Новые контакты: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
-                        </div>
-                        <button type="button"
-                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-2.5 transition-colors">
-                          Открыть ЧАТ
-                        </button>
-                        {deliveryInfo?.operatorName ? (
-                          <div className="flex items-center gap-3 border border-dashed border-gray-200 rounded-xl p-3 bg-white">
-                            {deliveryInfo.operatorAvatar
-                              ? <img src={String(deliveryInfo.operatorAvatar)} alt="" className="w-[55px] h-[55px] rounded-full object-cover border border-gray-200 shrink-0" onError={ev => (ev.currentTarget.style.display = 'none')} />
-                              : <span className="w-[55px] h-[55px] rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">{String(deliveryInfo.operatorName || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[10px] font-semibold text-gray-400">Персональный менеджер</p>
-                              <p className="text-sm font-bold text-gray-900 truncate">{String(deliveryInfo.operatorName)}</p>
-                              <div className="flex items-center gap-1.5 mt-1.5 whitespace-nowrap">
-                                {deliveryInfo.operatorPhone && (
-                                  <button type="button" title="Скопировать номер"
-                                    onClick={() => { navigator.clipboard?.writeText(String(deliveryInfo.operatorPhone)); setNotice('Номер скопирован'); }}
-                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                                    Телефон
-                                  </button>
-                                )}
-                                {deliveryInfo.operatorEmail && (
-                                  <a href={`mailto:${String(deliveryInfo.operatorEmail)}`} title="Написать письмо"
-                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                                    Почта
-                                  </a>
-                                )}
-                                {deliveryInfo.operatorMaxLink && (
-                                  <a href={String(deliveryInfo.operatorMaxLink)} target="_blank" rel="noreferrer" title="Открыть аккаунт в MAX"
-                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                                    MAX
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="border border-dashed border-gray-200 rounded-xl p-3 text-center">
-                            <p className="text-[11px] text-gray-400">Персональный менеджер доступен поставщику при активированных сервисах продаж.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                                        {/* СВОДКА ПО ПОСТАВЩИКУ */}
-                    <div>
-                      <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5 h-full">
-                        <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
-                          style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
-                        <div className="relative space-y-4">
-                        <button type="button" onClick={() => setLkTab('cabinet')} title="Личный кабинет"
-                        className="w-full flex items-center justify-between gap-3 bg-gray-100 hover:bg-gray-200 rounded-xl px-4 py-2.5 transition-colors text-left">
-                        <span className="text-xs font-semibold text-gray-800 uppercase tracking-wide truncate">{data?.companyName}</span>
-                        <span role="button" tabIndex={0}
-                          onClick={e => { e.stopPropagation(); setLkTab('wh'); }}
-                          onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setLkTab('wh'); } }}
-                          className="flex items-center gap-1.5 bg-green-600 hover:bg-green-800 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-colors shrink-0 cursor-pointer"
-                          title="Склад">
-                          <Warehouse size={13} /> СКЛАД
-                        </span>
-                      </button>
-                      <div className="divide-y divide-gray-100 text-[13px]">
-                          <div className="py-2 flex gap-3">
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
-                            <div className="space-y-1.5 text-gray-600">
-                              <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span> <span className="text-gray-400 text-xs">(из {(data?.availableCities || []).length})</span></p>
-                            </div>
-                          </div>
-                          <div className="py-2 flex gap-3">
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Доставка</span>
-                            <p className="flex items-center gap-1.5">
-                              {deliveryInfo?.status ? (
-                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${deliveryInfo.status === 'Активный' ? 'bg-green-50 text-green-700' : deliveryInfo.status === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'}`}>{String(deliveryInfo.status)}</span>
-                              ) : (
-                                <>
-                                  <button type="button" onClick={() => lkLinks['delivery'] && window.open(lkLinks['delivery'], '_blank', 'noreferrer')} title={lkLinks['delivery'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
-                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button>
-                                  <button type="button" title="Активировать" onClick={() => { setActivateWh(String(deliveryInfo?.warehouseId || '')); setActivateOpen(true); }}
-                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button>
-                                </>
-                              )}
-                            </p>
-                          </div>
-                          <div className="py-2 flex gap-3">
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Маркет</span>
-                            <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['crossdock'] && window.open(lkLinks['crossdock'], '_blank', 'noreferrer')} title={lkLinks['crossdock'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
-                          </div>
-                          <div className="py-2 flex gap-3">
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
-                            <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['promo'] && window.open(lkLinks['promo'], '_blank', 'noreferrer')} title={lkLinks['promo'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
-                          </div>
-                        </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* СЧЁТЧИКИ — B2B-дашборд */}
-                  <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 ">
-                    <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
-                      style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
-                    <div className="relative px-6 py-5">
-                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-6 gap-y-5">
-                        {[
-                          { label: 'Магазинов и СТО', value: (counters.buyersMode === 'db' ? Number(dash?.dbBuyers ?? 0) : Number(counters.buyersCount ?? 0)) },
-                          { label: 'Запросов в день', value: Number(counters.requestsPerDay ?? 1000) },
-                          { label: 'Складов', value: (counters.warehousesMode === 'db' ? Number(dash?.warehousesTotal ?? 0) : Number(counters.warehousesCount ?? 0)) },
-                          { label: 'SKU на платформе', value: (counters.skuMode === 'db' ? Number(dash?.skuTotal ?? 0) : Number(counters.skuCount ?? 350000)) },
-                          { label: 'Городов проценки', value: (data?.availableCities || []).length },
-                          { label: 'Городов доставки', value: dlCities.length },
-                        ].map((m, i) => (
-                          <div key={m.label} className="relative pl-3 border-l border-gray-200">
-                            <p className="text-[17px] leading-none font-bold text-gray-900 tabular-nums tracking-tight">
-                              {m.value.toLocaleString('ru-RU')}
-                            </p>
-                            <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400 leading-tight">{m.label}</p>
-                            <span className="absolute -left-px top-0 h-5 w-[2px] bg-red-500 rounded-full" style={{ opacity: 0.35 + i * 0.12 }} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-
-                  {/* НОВОСТИ */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-gray-600">Новости платформы</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {news.map(n => {
-                        const inner = (
-                          <>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{n.tag || 'Новая функция'}</span>
-                              <span className="text-[11px] text-gray-400">{n.date}</span>
-                            </div>
-                            <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
-                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{n.text}</p>
-                          </>
-                        );
-                        const openN = n.link
-                          ? () => window.open(n.link, '_blank', 'noreferrer')
-                          : () => setNewsModal(n);
-                        return (
-                          <button key={n.id} type="button" onClick={openN}
-                            className="block w-full text-left bg-[#eef3fb] rounded-2xl p-4 space-y-2 transition-colors hover:shadow-md">
-                            {inner}
-                          </button>
-                        );
-                      })}
-                      {!news.length && <p className="text-xs text-gray-400 md:col-span-3">Новости появятся после публикации (Настройки → ЛК Поставщик → Новости).</p>}
-                    </div>
-                  </div>
-
-                  {/* ОТ ПОСТАВЩИКОВ ПОСТАВЩИКАМ — слайдер */}
-                  {(() => {
-                    const vendorNews = (dash?.vendorNews as Array<Record<string, string>>) || [];
-                    const card = (n: Record<string, string>, clamp = 'line-clamp-2') => {
-                      const inner = (
-                        <>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{n.tag || 'Новая функция'}</span>
-                            <span className="text-[11px] text-gray-400">{n.date}</span>
-                          </div>
-                          <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
-                          <p className={`text-xs text-gray-500 leading-relaxed ${clamp}`}>{n.text}</p>
-                        </>
-                      );
-                      const cls = "block bg-[#e7fcf9] rounded-2xl p-4 space-y-2 transition-colors hover:shadow-md h-full";
-                      const open = n.link
-                        ? () => window.open(n.link, '_blank', 'noreferrer')
-                        : () => setNewsModal(n);
-                      return <button key={n.id} type="button" onClick={open} className={cls + ' text-left w-full'}>{inner}</button>;
-                    };
-                    return (
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-medium text-gray-600">От поставщиков к поставщикам</h3>
-                        {vendorNews.length ? (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {vendorNews.slice(0, 3).map(n => card(n, 'line-clamp-3'))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-400">Материалы появятся после публикации.</p>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-              {activateOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setActivateOpen(false)}>
-                  <div className="absolute inset-0 bg-black/50" />
-                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-base font-bold text-gray-900">Для активации доставки выберите Ваш склад.</h3>
-                    <select className="form-input text-xs w-full" value={activateWh} onChange={e => setActivateWh(e.target.value)}>
-                      <option value="">— выберите склад —</option>
-                      {(data?.warehouses || []).map((w: Record<string, unknown>, i: number) => (
-                        <option key={String(w.id || i)} value={String(w.id || i)}>{String(w.city || '')}{w.address ? `, ${String(w.address)}` : ''}</option>
-                      ))}
-                    </select>
-                    <p className="text-[11px] text-gray-400">Заполните в личном кабинете идентификатор участника ЭДО — туда придет Ваш договор.</p>
-                    <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-[11px] text-gray-500 leading-relaxed">
-                      Внимание! Активация договора Вас ни к чему не обязывает, для полноценной работы доставки добавьте интересующие Вас города в настройках и оплатите подписку на сервис.
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={async () => {
-                        if (!activateWh) { setNotice('Выберите склад'); return; }
-                        const err = await post({ warehouseId: activateWh, status: 'Ждёт активации' });
-                        if (err) setNotice(err);
-                        else { setNotice('Заявка на активацию отправлена'); setActivateOpen(false); loadDeliveryInfo(); }
-                      }} className="text-xs font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Активировать</button>
-                      <button type="button" onClick={() => setActivateOpen(false)} className="text-xs font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отменить</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-
-
-
-              {/* МОДАЛКА ПОЛНОГО ТЕКСТА НОВОСТИ */}
-              {newsModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setNewsModal(null)}>
-                  <div className="absolute inset-0 bg-black/40" />
-                  <div className="relative bg-slate-100 rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{newsModal.tag || 'Новая функция'}</span>
-                        <h3 className="text-base font-bold text-gray-900 mt-2">{newsModal.title}</h3>
-                        <p className="text-[11px] text-gray-400 mt-1">{newsModal.date}</p>
-                      </div>
-                      <button type="button" onClick={() => setNewsModal(null)}
-                        className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">✕</button>
-                    </div>
-                    {newsModal.fullText
-                      ? <div className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: newsModal.fullText }} />
-                      : <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{newsModal.text}</p>}
-                  </div>
-                </div>
-              )}
-                </>
-              );
-            })()}
-
-            {lkTab === 'crossdock' && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Маркет</p>
-                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
-              </div>
-            )}
 
             {lkTab === 'promo' && (
               <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
@@ -865,7 +482,7 @@ export default function SupplierServicePage() {
                       <h3 className="text-sm font-semibold text-gray-800">Email отправки прайсов</h3>
                       <div className="flex items-center gap-2">
                         <input className="form-input text-xs flex-1 min-w-0" placeholder="price@example.ru" value={String(cabinet?.priceEmail || '')} onChange={e => setCabinet({ ...(cabinet || {}), priceEmail: e.target.value })} />
-                        <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadDeliveryInfo(); } }}
+                        <button type="button" onClick={async () => { const err = await post({ priceEmail: cabinet?.priceEmail || '' }); if (err) setNotice(err); else { setNotice('Email для прайсов сохранён'); loadLkInfo(); } }}
                           className="text-[11px] font-semibold px-2.5 h-10 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить</button>
                       </div>
                       <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600">
@@ -915,178 +532,10 @@ export default function SupplierServicePage() {
               );
             })()}
 
-            {lkTab === 'delivery' && (
-              <>
-                {/* ПОДМЕНЮ ДОСТАВКИ (второй уровень) */}
-                <div className="flex gap-2">
-                  {DL_MENU.map(m => (
-                    <button key={m.key} type="button" onClick={() => setDlTab(m.key)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white border ${dlTab === m.key ? 'text-red-600' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
-                      <m.icon size={15} /> {m.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-                  <div className="self-center">
-                    {deliveryInfo?.warehouse ? (
-                      <span title={String(deliveryInfo.warehouse)} className="inline-flex text-gray-700"><Warehouse size={17} /></span>
-                    ) : <h2 className="text-sm font-semibold text-gray-400">—</h2>}
-                  </div>
-                  <div className="self-center">
-                    <h2 className="text-sm font-semibold text-gray-900">
-                      {deliveryInfo?.routeNumber ? `№${String(deliveryInfo.routeNumber)}` : '—'}
-                      {deliveryInfo?.routeStopTime ? <span className="text-xs font-normal text-gray-500"> · {String(deliveryInfo.routeStopTime)}</span> : null}
-                    </h2>
-                  </div>
-                  <div>
-                    <div className="flex gap-1">
-                      {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                        <span key={d}
-                          className={`w-6 h-5 text-[9px] rounded-md border flex items-center justify-center ${((deliveryInfo?.routeDays as string[]) || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>
-                          {d}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="self-center text-xs text-gray-500">
-                    Активных городов: <b className="text-gray-900 tabular-nums">{deliveryInfo ? Number(deliveryInfo.citiesCount || 0) : '—'}</b>
-                  </div>
-                  <div className="flex items-center gap-4 sm:gap-6 ml-auto text-xs flex-wrap">
-                    <span className="flex items-center gap-2"><span className="text-gray-500">Договор:</span>{deliveryInfo?.contractNumber ? <span className="text-gray-900 font-semibold">№ {String(deliveryInfo.contractNumber)}{deliveryInfo?.contractDate ? ` от ${String(deliveryInfo.contractDate).split('-').reverse().join('.')}` : ''}</span> : <b className="text-gray-900">—</b>}</span>
-                    {deliveryInfo?.status ? (
-                      <span className={`ml-1 inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md ${deliveryInfo.status === 'Активный' ? 'bg-green-50 text-green-700' : deliveryInfo.status === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'}`}>
-                        {String(deliveryInfo.status)}
-                      </span>
-                    ) : (
-                      <button type="button" onClick={() => { setActivateWh(String(deliveryInfo?.warehouseId || '')); setActivateOpen(true); }} title="Активировать доставку"
-                        className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-xs font-semibold transition-colors">
-                        Активировать
-                      </button>
-                    )}
-                    <span className="inline-flex items-center gap-1.5 ml-1">
-                      <button type="button" onClick={() => setTariffModal(true)} title="Тариф"
-                        className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
-                        <FileText size={15} />
-                      </button>
-                      <button type="button" title="Инфо"
-                        onClick={() => { const u = (dash?.lkLinks as Record<string, string>)?.delivery; if (u) window.open(u, '_blank', 'noreferrer'); else setNotice('Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'); }}
-                        className="w-9 h-9 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
-                        <Info size={15} />
-                      </button>
-                    </span>
-                  </div>
-                </div>
-
-                {dlTab === 'mycities' && (
-                  <>
-                    {dlTab === 'mycities' && (<>
-<div className={`relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div>
-                          <h3 className="section-title">Доступные города доставки</h3>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs pt-1">
-                          <span className="flex items-center gap-2"><span className="text-gray-500">Всего городов:</span> <b className="text-gray-900">{dlCities.length}</b></span>
-                        </div>
-                      </div>
-                      {dlCities.length ? (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-                          {dlCities.map(c => {
-                            const taken = myCities.some(mc => mc.city === c);
-                            return (
-                              <button key={c} type="button" disabled={taken} onClick={() => setAddCityModal(c)}
-                                className={`px-3 py-2.5 rounded-xl border text-left transition-colors ${taken ? 'bg-green-50 border-green-300 text-green-700 cursor-default' : 'bg-blue-50/60 border-blue-200 text-gray-700 hover:border-blue-400'}`}>
-                                <span className="text-sm truncate block text-center">{c}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-400">Список городов появится после настройки (Настройки → Доставка → Города).</p>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {dlTab !== 'mycities' && (
-                  <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                    <p className="text-sm font-semibold text-gray-700">{DL_MENU.find(x => x.key === dlTab)?.label}</p>
-                    <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
-                  </div>
-                )}
-              <div className={`bg-white border border-gray-200 rounded-2xl p-5 space-y-4 ${!deliveryInfo?.status ? 'pointer-events-none opacity-50 select-none' : ''}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="section-title">Мои города доставки (DBO)</h3>
-                          {myCities.length === 0 && (
-                            <p className="text-sm text-gray-400 mt-1">Шаг 1. Выберите интересующий Вас город или города, из доступных городов доставки.</p>
-                          )}
-                        </div>
-                        <span className="flex items-center gap-1">
-                          {['', 'Ждёт активации', 'Активный', 'Заморожен'].map(st => (
-                            <button key={st || 'all'} type="button" onClick={() => setMcFilter(st)}
-                              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${mcFilter === st ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>
-                              {st || 'Все'}
-                            </button>
-                          ))}
-                        </span>
-                        <span className="relative inline-block shrink-0">
-                          <button type="button" onClick={() => setCitiesHint(v => !v)} title="Подсказка"
-                            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${citiesHint ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
-                            ?
-                          </button>
-                          {citiesHint && (
-                            <span className="absolute right-0 top-full mt-2 z-30 w-80 max-w-[calc(100vw-4rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2 block" onClick={e => e.stopPropagation()}>
-                              <p><b className="text-red-700">Шаг 1.</b> Активируйте договор доставки.</p>
-                              <p><b className="text-red-700">Шаг 2.</b> Оплатите подписку на сервис доставки.</p>
-                              <p><b className="text-red-700">Шаг 3.</b> Выберите города доставки и дождитесь модерации.</p>
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      {myCities.length ? (() => {
-                        const cell = (label: string, value: React.ReactNode) => (
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">{label}</p>
-                            <div className="text-sm font-medium text-gray-800">{value || '—'}</div>
-                          </div>
-                        );
-                        return myCities.filter(mc => !mcFilter || (mc.status || 'Ждёт активации') === mcFilter).map(mc => {
-                          const st = mc.status || 'Ждёт активации';
-                          const stCls = st === 'Активный' ? 'bg-green-100 text-green-700' : st === 'Заморожен' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700';
-                          return (
-                            <div key={mc.rowId} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[180px_minmax(220px,1fr)_150px_130px] items-center gap-x-4 gap-y-2 bg-gray-50 rounded-xl px-4 py-3 text-sm mb-2">
-                              {cell('Город', mc.city)}
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">График развоза (с - до)</p>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="flex gap-1">
-                                    {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                                      <span key={d} className={`w-6 h-6 text-[10px] flex items-center justify-center rounded-md border ${(mc.days || []).includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400'}`}>{d}</span>
-                                    ))}
-                                  </span>
-                                  <span className="text-xs text-gray-600">с {mc.from || '—'} до {mc.to || '—'}</span>
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">Статус</p>
-                                <span className={`inline-block text-[11px] font-semibold px-2 py-1 rounded-md ${stCls}`}>{st}</span>
-                              </div>
-                              {cell('Дата активации', mc.activatedAt || '—')}
-                            </div>
-                          );
-                        });
-                      })() : null}
-                    </div>
-                    </>)}
-
-                    </>
-            )}
 
             {lkTab === 'cabinet' && (() => {
               const cb = cabinet || {};
-              const svc = ['DBS', 'DBO', 'FBS', 'MEDIA']; // значение FBS хранится как есть
+              const svc = ['DBS', 'FBS', 'MEDIA']; // значение FBS хранится как есть
               const activeServices = svc.filter(s => (cb.services as string[] || []).includes(s));
               const row = (label: string, value: unknown) => (
                 <div className="flex items-baseline gap-3 text-sm py-1.5">
@@ -1107,7 +556,7 @@ export default function SupplierServicePage() {
                         {((cabinet?.edoOperators as string[]) || []).map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                       <input className="form-input text-[11px] flex-1 min-w-[220px]" placeholder="Идентификатор ЭДО" value={String(cb.edoToken || '')} onChange={e => setCabinet({ ...cb, edoToken: e.target.value })} />
-                      <button type="button" onClick={async () => { const err = await post({ edoOperator: cb.edoOperator || '', edoToken: cb.edoToken || '' }); if (err) setNotice(err); else { setNotice('ЭДО сохранено'); loadDeliveryInfo(); } }}
+                      <button type="button" onClick={async () => { const err = await post({ edoOperator: cb.edoOperator || '', edoToken: cb.edoToken || '' }); if (err) setNotice(err); else { setNotice('ЭДО сохранено'); loadLkInfo(); } }}
                         className="text-[11px] font-semibold px-2.5 h-10 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors whitespace-nowrap">Сохранить ЭДО</button>
                     </div>
                   </div>
@@ -1172,9 +621,9 @@ export default function SupplierServicePage() {
                         </button>
                       ) : (
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <button type="button" onClick={async () => { const err = await post({ contactName: cb.contactName || '', contactRole: cb.contactRole || '', phone: cb.contactPhone || '', email: cb.contactEmail || '' }); if (err) setNotice(err); else { setNotice('Контакты сохранены'); setCabEdit(false); loadDeliveryInfo(); } }}
+                          <button type="button" onClick={async () => { const err = await post({ contactName: cb.contactName || '', contactRole: cb.contactRole || '', phone: cb.contactPhone || '', email: cb.contactEmail || '' }); if (err) setNotice(err); else { setNotice('Контакты сохранены'); setCabEdit(false); } }}
                             className="text-[11px] font-semibold px-2.5 h-10 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Сохранить</button>
-                          <button type="button" onClick={() => { setCabEdit(false); loadDeliveryInfo(); }}
+                          <button type="button" onClick={() => { setCabEdit(false); }}
                             className="btn-secondary text-xs">Отмена</button>
                         </div>
                       )}

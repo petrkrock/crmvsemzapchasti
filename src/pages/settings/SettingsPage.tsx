@@ -13,7 +13,7 @@ const ALL_SYSTEM_STATUSES = ['Активный', 'Новый с сайта', 'Л
 import { Plus, Save, Trash2, X, Edit2,  Users, CheckCircle2, XCircle, Settings2, Package, Megaphone, MapPin, List, Tag, Video, FileEdit, Copy, ExternalLink , Pencil, Check, Ban, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SETTINGS_TABS = ['Статусы', 'Сервисы', 'Пользователи', 'Уведомления', 'Типы и города', 'Кнопки', 'Товары', 'Источники', 'Задачи', 'Доставка', 'Медиа', 'Формы', 'ЛК Поставщик', 'API']; // v1.29.0: переименование вкладок + Доставка (перед Медиа)
+const SETTINGS_TABS = ['Статусы', 'Сервисы', 'Пользователи', 'Уведомления', 'Типы и города', 'Кнопки', 'Товары', 'Источники', 'Задачи', 'Медиа', 'Формы', 'ЛК Поставщик', 'API']; // v1.29.0: переименование вкладок
 
 const STATUS_SECTIONS = [
   { key: 'supplier', label: 'Поставщики' },
@@ -204,14 +204,13 @@ const [tab, setTab] = useState('Статусы');
   // ── USERS (ТЗ «Управление пользователями») ──
   // Разделы, выдаваемые менеджеру. «Настройки» и «База данных» в списке нет
   // принципиально — они доступны только администратору (ТЗ п.3).
-  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: true, support: true, leads: false, media: false, pricing: false, delivery: false, planfact: false, analytics: false, knowledge: true , planfactEdit: false }; // дефолт менеджера (ТЗ v1.21.6): задачи/поддержка/база знаний — включены, медиа — нет
+  const ALL_PERMS_FALSE: AppUser['permissions'] = { dashboard: true, suppliers: false, buyers: false, tasks: true, support: true, leads: false, media: false, pricing: false, planfact: false, analytics: false, knowledge: true , planfactEdit: false }; // дефолт менеджера (ТЗ v1.21.6): задачи/поддержка/база знаний — включены, медиа — нет
   const PERM_LABELS: Array<{ key: keyof AppUser['permissions']; label: string }> = [
     { key: 'dashboard', label: 'Дашборд' }, { key: 'planfact', label: 'План/Факт' },
     { key: 'suppliers', label: 'Поставщики' }, { key: 'buyers', label: 'Покупатели' },
     { key: 'tasks', label: 'Задачи' }, { key: 'support', label: 'Поддержка' },
     { key: 'leads', label: 'База лидов' }, { key: 'media', label: 'Медиа сервис' },
     { key: 'pricing', label: 'Проценка' },
-    { key: 'delivery', label: 'Доставка' },
     { key: 'knowledge', label: 'База знаний' },
   ];
   const [showNewUser, setShowNewUser] = useState(false);
@@ -361,9 +360,6 @@ const [tab, setTab] = useState('Статусы');
   const [newSourceName, setNewSourceName] = useState('');
   // v1.29.33: справочник операторов ЭДО (Источники)
   const [newEdoOp, setNewEdoOp] = useState('');
-  // v1.30.26-FIX: черновики и модалка удаления города доставки
-  const [cityDraft, setCityDraft] = useState<Record<string, { days: string[]; from: string; to: string; mkp: number | '' }>>({});
-  const [dcDeleteCity, setDcDeleteCity] = useState<string | null>(null);
   function addEdoOperator() {
     const v = newEdoOp.trim();
     if (!v) return;
@@ -446,12 +442,8 @@ const [tab, setTab] = useState('Статусы');
     forceUpdate(n => n + 1);
   }
 
-  // v1.29.0: города доставки (DBO) — вкладка Доставка
-  const [newDeliveryCity, setNewDeliveryCity] = useState('');
-  // v1.29.0: под-вкладки Доставки + форма оператора
-  const [deliveryTab, setDeliveryTab] = useState<'cities' | 'statuses' | 'serviceTariffs'>('cities');
   // v1.30.0: подвкладки «ЛК Поставщик»
-  const [lkTab, setLkTab] = useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('manager');
+  const [lkTab, setLkTab] = useState<'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('dashboard');
   const [lkBannerImg, setLkBannerImg] = useState('');
   const [lkBannerLink, setLkBannerLink] = useState('');
   const [lkNewsTitle, setLkNewsTitle] = useState('');
@@ -491,79 +483,6 @@ const [tab, setTab] = useState('Статусы');
       updateStore(s => ({ ...s, settings: { ...s.settings, lkBanner: { image: data.publicUrl, link: s.settings.lkBanner?.link || '' } } }));
       forceUpdate(n => n + 1); toast.success('Баннер загружен');
     } catch (err) { toast.error(`Баннер: ${(err as Error)?.message || 'ошибка загрузки'}`); }
-  }
-  const [opName, setOpName] = useState('');
-  const [opPhone, setOpPhone] = useState('');
-  const [opEmail, setOpEmail] = useState('');
-  const [opAvatarBusy, setOpAvatarBusy] = useState(false);
-  const [opMaxLink, setOpMaxLink] = useState('');
-  const [opAvatar, setOpAvatar] = useState('');
-  const [opUserId, setOpUserId] = useState('');
-  // v1.29.0: тарифы доставки
-  const [tariffName, setTariffName] = useState('');
-  const [tariffCityRate, setTariffCityRate] = useState('');
-  const [tariffPoints, setTariffPoints] = useState('');
-  const [tariffExtraPoint, setTariffExtraPoint] = useState('');
-  const [tariffVolInc, setTariffVolInc] = useState('');
-  const [tariffVolStep, setTariffVolStep] = useState('');
-  const [tariffVolPrice, setTariffVolPrice] = useState('');
-  const [editingTariffId, setEditingTariffId] = useState<string | null>(null);
-  const [tariffPrice, setTariffPrice] = useState('');
-  function addTariff(field: 'deliveryServiceTariffs' | 'deliveryCityTariffs') {
-    if (!tariffName.trim()) { toast.error('Укажите название тарифа'); return; }
-    const tariff = { id: `dt-${Date.now()}`, name: tariffName.trim(), pricePerMonth: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), basePackage: Math.max(0, parseFloat(tariffPrice.replace(',', '.')) || 0), cityRate: Math.max(0, parseFloat(tariffCityRate.replace(',', '.')) || 0), pointsIncluded: Math.max(0, parseInt(tariffPoints, 10) || 0), extraPointPrice: Math.max(0, parseFloat(tariffExtraPoint.replace(',', '.')) || 0),
-      volumeIncluded: Math.max(0, parseFloat(tariffVolInc.replace(',', '.')) || 0),
-      volumeExtraStep: 1, // шаг фиксирован: 1 (л)
-      volumeExtraPrice: Math.max(0, parseFloat(tariffVolPrice.replace(',', '.')) || 0), createdAt: new Date().toISOString() };
-    if (editingTariffId) {
-      updateStore(s => ({ ...s, settings: { ...s.settings, [field]: (s.settings[field] || []).map(x => x.id === editingTariffId ? { ...x, ...tariff, id: x.id, createdAt: x.createdAt } : x) } }));
-      setEditingTariffId(null); toast.success('Тариф сохранён');
-    } else {
-      updateStore(s => ({ ...s, settings: { ...s.settings, [field]: [...(s.settings[field] || []), tariff] } }));
-      toast.success('Тариф создан');
-    }
-    setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint(''); setTariffVolInc(''); setTariffVolStep(''); setTariffVolPrice('');
-    forceUpdate(n => n + 1);
-  }
-  function removeTariff(field: 'deliveryServiceTariffs' | 'deliveryCityTariffs', id: string) {
-    updateStore(s => ({ ...s, settings: { ...s.settings, [field]: (s.settings[field] || []).filter(x => x.id !== id) } }));
-    forceUpdate(n => n + 1); toast.success('Тариф удалён');
-  }
-  function addOperator() {
-    if (!opName.trim()) { toast.error('Укажите ФИО оператора'); return; }
-    if (!opUserId) { toast.error('Выберите пользователя (роль)'); return; }
-    const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, avatar: opAvatar.trim() || undefined, userId: opUserId, maxLink: opMaxLink.trim() || undefined, createdAt: new Date().toISOString() };
-    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryOperators: [...(s.settings.deliveryOperators || []), op] } }));
-    setOpName(''); setOpPhone(''); setOpEmail(''); setOpAvatar(''); setOpUserId(''); setOpMaxLink('');
-    forceUpdate(n => n + 1); toast.success('Оператор создан');
-  }
-  async function uploadOperatorAvatar(file: File) {
-    if (!isSupabaseConfigured()) { toast.error('Supabase не настроен'); return; }
-    setOpAvatarBusy(true);
-    try {
-      const fileName = `dbo-avatar-${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
-      const { error } = await supabase.storage.from('lk-assets').upload(`files/${fileName}`, file);
-      if (error) throw error;
-      const { data } = supabase.storage.from('lk-assets').getPublicUrl(`files/${fileName}`);
-      setOpAvatar(data.publicUrl);
-      toast.success('Аватар загружен');
-    } catch (e) { toast.error('Не удалось загрузить аватар'); }
-    finally { setOpAvatarBusy(false); }
-  }
-  function removeOperator(id: string) {
-    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryOperators: (s.settings.deliveryOperators || []).filter(o => o.id !== id) } }));
-    forceUpdate(n => n + 1); toast.success('Оператор удалён');
-  }
-  function addDeliveryCity() {
-    const v = newDeliveryCity.trim();
-    if (!v) return;
-    if ((store.settings.deliveryCities || []).some(c => c.toLowerCase() === v.toLowerCase())) { toast.error('Город уже есть в списке'); return; }
-    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCities: [...(s.settings.deliveryCities || []), v].sort((a, b) => a.localeCompare(b, 'ru')) } }));
-    setNewDeliveryCity(''); forceUpdate(n => n + 1);
-  }
-  function removeDeliveryCity(v: string) {
-    updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCities: (s.settings.deliveryCities || []).filter(c => c !== v) } }));
-    forceUpdate(n => n + 1);
   }
 
   function deleteAdType(id: string) {
@@ -711,19 +630,18 @@ const [tab, setTab] = useState('Статусы');
     ] },
     { perm: 'media' as const, label: 'Медиа сервис', dims: [] },
     { perm: 'pricing' as const, label: 'Проценка', dims: [] },
-    { perm: 'delivery' as const, label: 'Доставка', dims: [] },
     { perm: 'knowledge' as const, label: 'База знаний', dims: [] },
   ];
   // Тип дашборда менеджера определяет доступные разделы (ТЗ v1.21.6): МОП — только покупательские,
   // МОЗ — только поставщические; недоступные блоки скрываем, а права на сохранении принудительно снимаем.
   const DASH_SECTIONS: Record<'mop' | 'moz', Array<keyof AppUser['permissions']>> = {
     mop: ['dashboard', 'planfact', 'buyers', 'tasks', 'support', 'leads', 'knowledge'],
-    moz: ['dashboard', 'planfact', 'suppliers', 'tasks', 'support', 'leads', 'media', 'pricing', 'delivery', 'knowledge'],
+    moz: ['dashboard', 'planfact', 'suppliers', 'tasks', 'support', 'leads', 'media', 'pricing', 'knowledge'],
   };
   const applyDashboardSections = (role: AppUser['role'], dashboardType: 'mop' | 'moz' | undefined, perms: AppUser['permissions']): AppUser['permissions'] => {
     if (role !== 'manager' || !dashboardType) return perms;
     const next = { ...perms };
-    (dashboardType === 'mop' ? ['suppliers', 'media', 'pricing', 'delivery'] as const : ['buyers'] as const).forEach(k => { next[k] = false; });
+    (dashboardType === 'mop' ? ['suppliers', 'media', 'pricing'] as const : ['buyers'] as const).forEach(k => { next[k] = false; });
     return next;
   };
   // Порядок блоков «Доступ к разделам» (ТЗ v1.21.0): Дашборд → План/Факт → Поставщики → Покупатели →
@@ -735,7 +653,6 @@ const [tab, setTab] = useState('Статусы');
     sectionByPerm('dashboard'), sectionByPerm('planfact'), sectionByPerm('suppliers'), sectionByPerm('buyers'),
     sectionByPerm('tasks'), sectionByPerm('support'), sectionByPerm('leads'), sectionByPerm('media'),
     sectionByPerm('pricing'),
-    sectionByPerm('delivery'),
     adminRow('Аналитика'),
     sectionByPerm('knowledge'),
     adminRow('Настройки'),
@@ -1004,7 +921,7 @@ const [tab, setTab] = useState('Статусы');
           {/* ── SUPPLIER SERVICES ── */}
           {tab === 'Сервисы' && (
             <div className="space-y-4">
-              <h3 className="section-title flex items-center gap-2"><Tag size={16} className="text-brand-red" /> Сервисы продаж (DBS, DBO, MARKET, MEDIA и др.)</h3>
+              <h3 className="section-title flex items-center gap-2"><Tag size={16} className="text-brand-red" /> Сервисы продаж (DBS, MARKET, MEDIA и др.)</h3>
               <div className="flex gap-2">
                 <input className="form-input flex-1" placeholder="Новый сервис..." value={newServiceName} onChange={e => setNewServiceName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addService()} />
                 <button onClick={addService} className="btn-primary text-xs"><Plus size={14} /> Добавить</button>
@@ -1432,205 +1349,6 @@ const [tab, setTab] = useState('Статусы');
           )}
 
           {/* ── MEDIA SERVICE SETTINGS ── */}
-          {tab === 'Доставка' && (
-          <div className="space-y-4">
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={() => setDeliveryTab('cities')} className={`btn-secondary text-xs ${deliveryTab === 'cities' ? '!border-red-600 !text-red-600' : ''}`}>Города</button>
-              <button onClick={() => setDeliveryTab('statuses')} className={`btn-secondary text-xs ${deliveryTab === 'statuses' ? '!border-red-600 !text-red-600' : ''}`}>Статусы</button>
-              <button onClick={() => setDeliveryTab('serviceTariffs')} className={`btn-secondary text-xs ${deliveryTab === 'serviceTariffs' ? '!border-red-600 !text-red-600' : ''}`}>Тарифы DBO</button>
-            </div>
-            {deliveryTab === 'serviceTariffs' && (
-              <div className="card-base p-5 space-y-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-1">Тарифы DBO</h3>
-                <div className="space-y-3">
-                  <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 1. Идентификация</p>
-                    <input className="form-input text-xs" placeholder="Название тарифа" value={tariffName} onChange={e => setTariffName(e.target.value)} />
-                    <p className="text-[10px] text-gray-400">Название тарифа в системе и в счетах клиента</p>
-                  </div>
-                  <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 2. Фиксированный платёж</p>
-                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Базовый пакет (₽/мес)" value={tariffPrice} onChange={e => setTariffPrice(e.target.value.replace(/[^\d.,]/g, ''))} />
-                    <p className="text-[10px] text-gray-400">Ежедневный самовывоз со склада, Персональный менеджер, приёмка и обработка документов, возвратов. Списывается один раз в месяц и не зависит от количества городов и доставок.</p>
-                  </div>
-                  <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 3. Переменные платежи</p>
-                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Ставка за город (₽/день)" value={tariffCityRate} onChange={e => setTariffCityRate(e.target.value.replace(/[^\d.,]/g, ''))} />
-                    <p className="text-[10px] text-gray-400">Списывается за каждый день, когда в городе была хотя бы одна доставка. Городов можно подключить любое количество — по каждому ставка считается отдельно</p>
-                    <input className="form-input text-xs w-44" inputMode="numeric" placeholder="Точек доставки включено (шт)" value={tariffPoints} onChange={e => setTariffPoints(e.target.value.replace(/\D/g, ''))} />
-                    <p className="text-[10px] text-gray-400">Входит в ставку за город. Если точек в городе меньше лимита — доплата не берётся. Область действия: на каждый город</p>
-                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Стоимость последующей точки (₽/шт)" value={tariffExtraPoint} onChange={e => setTariffExtraPoint(e.target.value.replace(/[^\d.,]/g, ''))} />
-                    <p className="text-[10px] text-gray-400">Начисляется только за точки сверх включённого лимита. Считается по каждому городу отдельно</p>
-                  </div>
-                  <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Блок 4. Объём (л)</p>
-                    <input className="form-input text-xs w-44" inputMode="decimal" placeholder="Например 600 (л)" value={tariffVolInc} onChange={e => setTariffVolInc(e.target.value.replace(/[^\d.,]/g, ''))} />
-                    <p className="text-[10px] text-gray-400">Входит в общий объем отгрузки на город. Область действия: на каждый город.</p>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-gray-700 bg-gray-100 rounded-md px-3 py-2">Шаг 1 (л)</span>
-                      <input className="form-input text-xs w-36" inputMode="decimal" placeholder="6 ₽" value={tariffVolPrice} onChange={e => setTariffVolPrice(e.target.value.replace(/[^\d.,]/g, ''))} />
-                    </div>
-                    <p className="text-[10px] text-gray-400">Начисляется только сверх включённого Объёма. Считается по каждому городу отдельно, на всю доставку.</p>
-                  </div>
-                  <button onClick={() => addTariff('deliveryServiceTariffs')} className="btn-primary text-xs">{editingTariffId ? 'Сохранить тариф' : 'Создать тариф'}</button>
-                  {editingTariffId && <button onClick={() => { setEditingTariffId(null); setTariffName(''); setTariffPrice(''); setTariffCityRate(''); setTariffPoints(''); setTariffExtraPoint(''); setTariffVolInc(''); setTariffVolStep(''); setTariffVolPrice(''); }} className="btn-secondary text-xs">Отмена</button>}
-                </div>
-                <div className="space-y-2">
-                  {(store.settings.deliveryServiceTariffs || []).map(tf => (
-                    <div key={tf.id} className="flex items-center gap-3 border border-gray-200 rounded-xl px-3 py-2.5 flex-wrap">
-                      <span className="text-sm font-medium text-gray-800 flex-1">{tf.name}</span>
-                      <span className="text-xs text-gray-500">Базовый: <b>{tf.basePackage ?? tf.pricePerMonth} ₽/мес</b></span>
-                      <span className="text-xs text-gray-500">Город: <b>{tf.cityRate ?? '—'} ₽/день</b></span>
-                      <span className="text-xs text-gray-500">Точек: <b>{tf.pointsIncluded ?? '—'}</b> · сверх: <b>{tf.extraPointPrice ?? '—'} ₽</b> · Объём: <b>{tf.volumeIncluded ?? '—'} (л)</b> · сверх: <b>{tf.volumeExtraStep ?? '—'} (л) / {tf.volumeExtraPrice ?? '—'} ₽</b></span>
-                      <button onClick={() => { setEditingTariffId(tf.id); setTariffName(tf.name); setTariffPrice(String(tf.basePackage ?? tf.pricePerMonth ?? '')); setTariffCityRate(String(tf.cityRate ?? '')); setTariffPoints(String(tf.pointsIncluded ?? '')); setTariffExtraPoint(String(tf.extraPointPrice ?? '')); setTariffVolInc(String(tf.volumeIncluded ?? '')); setTariffVolStep(String(tf.volumeExtraStep ?? '')); setTariffVolPrice(String(tf.volumeExtraPrice ?? '')); }} className="text-xs text-gray-500 hover:underline">Редактировать</button>
-                      <button onClick={() => removeTariff('deliveryServiceTariffs', tf.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
-                    </div>
-                  ))}
-                  {!(store.settings.deliveryServiceTariffs || []).length && <p className="text-xs text-gray-400">Тарифы не созданы.</p>}
-                </div>
-              </div>
-            )}
-
-            {deliveryTab === 'statuses' && (
-            <div className="card-base p-5 space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-1">Статусы доставки</h3>
-                <p className="text-xs text-gray-400">Системные статусы заданий на доставку. Удаление недоступно.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {(store.settings.deliveryTaskStatuses || []).map(st => (
-                  <span key={st.name} className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border border-gray-200" style={{ backgroundColor: st.bgColor, color: st.textColor }}>
-                    <span className="font-medium">{st.name}</span>
-                    <label className="inline-flex items-center gap-1 text-[10px] cursor-pointer" title="Цвет фона статуса">фон<input type="color" value={st.bgColor} onChange={e => updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTaskStatuses: (s.settings.deliveryTaskStatuses || []).map(x => x.name === st.name ? { ...x, bgColor: e.target.value } : x) } }))} className="w-4 h-4 p-0 border-0 bg-transparent cursor-pointer" /></label>
-                    <label className="inline-flex items-center gap-1 text-[10px] cursor-pointer" title="Цвет текста статуса">текст<input type="color" value={st.textColor} onChange={e => updateStore(s => ({ ...s, settings: { ...s.settings, deliveryTaskStatuses: (s.settings.deliveryTaskStatuses || []).map(x => x.name === st.name ? { ...x, textColor: e.target.value } : x) } }))} className="w-4 h-4 p-0 border-0 bg-transparent cursor-pointer" /></label>
-                    <span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span>
-                  </span>
-                ))}
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-1">Статусы городов</h3>
-                <p className="text-xs text-gray-400">Системные статусы городов доставки. Удаление недоступно.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Ждёт активации', 'Активный', 'Заморожен'].map(c => (
-                  <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span></span>
-                ))}
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-1">Статусы договоров</h3>
-                <p className="text-xs text-gray-400">Системные статусы договоров доставки (DBO). Удаление недоступно.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {(store.settings.deliveryContractStatuses || []).map(c => (
-                  <span key={c} className="inline-flex items-center gap-1.5 bg-brand-gray border border-brand-gray-mid text-sm px-3 py-1.5 rounded-full">{c}<span className="text-[10px] font-semibold px-1.5 rounded-full bg-gray-200 text-gray-500">Системный</span></span>
-                ))}
-              </div>
-            </div>
-            )}
-            {deliveryTab === 'cities' && (
-            <div className="card-base p-5 space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-1">Города (для сервиса доставки DBO)</h3>
-              <p className="text-xs text-gray-400 mb-3">Список городов, доступных к доставке.</p>
-              <div className="flex gap-2 mb-3">
-                <input className="form-input flex-1" placeholder="Новый город..." value={newDeliveryCity} onChange={e => setNewDeliveryCity(e.target.value)} onKeyDown={e => e.key === 'Enter' && addDeliveryCity()} />
-                <button onClick={addDeliveryCity} className="btn-primary text-xs whitespace-nowrap">Добавить</button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {(store.settings.deliveryCities || []).length > 0 && (
-                  <div className="overflow-x-auto border border-gray-100 rounded-xl">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-gray-50">
-                          <th className="table-header text-left">Город</th>
-                          <th className="table-header text-left">График развоза</th>
-                          <th className="table-header text-left">(с - до)</th>
-                          <th className="table-header text-left">МКП</th>
-                          <th className="table-header text-right">Действия</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(store.settings.deliveryCities || []).map(c => {
-                          const sch = (store.settings.deliveryCitySchedules || {})[c] || { days: [], from: '', to: '' };
-                          const mkpCur = (store.settings.deliveryCityMinSuppliers || {})[c] ?? '';
-                          const draft = cityDraft[c];
-                          const val = draft || { days: sch.days, from: sch.from, to: sch.to, mkp: mkpCur };
-                          const setD = (patch: Partial<{ days: string[]; from: string; to: string; mkp: number | '' }>) => setCityDraft(d => ({ ...d, [c]: { ...val, ...patch } }));
-                          const dirty = !!draft;
-                          return (
-                            <tr key={c} className="border-t border-gray-100">
-                              <td className="table-cell font-medium text-gray-800">{c}</td>
-                              <td className="table-cell">
-                                <span className="flex gap-0.5">
-                                  {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => (
-                                    <button key={d} type="button" onClick={() => setD({ days: val.days.includes(d) ? val.days.filter(x => x !== d) : [...val.days, d] })}
-                                      className={`w-6 h-5 text-[9px] rounded border transition-colors ${val.days.includes(d) ? 'bg-green-600 border-green-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-400 hover:border-green-300'}`}>{d}</button>
-                                  ))}
-                                </span>
-                              </td>
-                              <td className="table-cell whitespace-nowrap">
-                                <input type="time" className="form-input text-xs w-auto" value={val.from} onChange={ev => setD({ from: ev.target.value })} />
-                                <span className="text-xs text-gray-400 mx-1">—</span>
-                                <input type="time" className="form-input text-xs w-auto" value={val.to} onChange={ev => setD({ to: ev.target.value })} />
-                              </td>
-                              <td className="table-cell">
-                                <input className="form-input text-xs w-16" inputMode="numeric" value={val.mkp === '' ? '' : String(val.mkp)} placeholder="—"
-                                  onChange={ev => setD({ mkp: ev.target.value.replace(/\D/g, '') === '' ? '' : Math.max(0, parseInt(ev.target.value.replace(/\D/g, ''), 10)) })} />
-                              </td>
-                              <td className="table-cell text-right whitespace-nowrap">
-                                <button type="button" disabled={!dirty} onClick={() => {
-                                  updateStore(s => ({ ...s, settings: { ...s.settings,
-                                    deliveryCitySchedules: { ...(s.settings.deliveryCitySchedules || {}), [c]: { days: val.days, from: val.from, to: val.to } },
-                                    deliveryCityMinSuppliers: { ...(s.settings.deliveryCityMinSuppliers || {}), [c]: val.mkp === '' ? 0 : val.mkp },
-                                  } }));
-                                  setCityDraft(d => { const x = { ...d }; delete x[c]; return x; });
-                                  forceUpdate(n => n + 1); toast.success('Сохранено');
-                                }} className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-40">Сохранить</button>{' '}
-                                <button type="button" onClick={() => {
-                                  updateStore(s => ({ ...s, settings: { ...s.settings, deliveryCities: (s.settings.deliveryCities || []).filter(x => x !== c) } }));
-                                  forceUpdate(n => n + 1); toast.success(`Город ${c} остановлен (убран из всех доступных мест)`);
-                                }} className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Остановить</button>{' '}
-                                <button type="button" title="Удалить навсегда" onClick={() => setDcDeleteCity(c)}
-                                  className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={13} /></button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                {!(store.settings.deliveryCities || []).length && <p className="text-xs text-gray-400">Города не добавлены.</p>}
-
-                {/* МОДАЛКА УДАЛЕНИЯ ГОРОДА ДОСТАВКИ */}
-                {dcDeleteCity && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDcDeleteCity(null)}>
-                    <div className="absolute inset-0 bg-black/50" />
-                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                      <h3 className="text-base font-bold text-gray-900">Удалить город {dcDeleteCity} навсегда?</h3>
-                      <p className="text-xs text-gray-500">Город будет удалён из списка доставки вместе с настройками (график, МКП).</p>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => {
-                          const c = dcDeleteCity;
-                          updateStore(s => {
-                            const sch = { ...(s.settings.deliveryCitySchedules || {}) }; delete sch[c];
-                            const mk = { ...(s.settings.deliveryCityMinSuppliers || {}) }; delete mk[c];
-                            return { ...s, settings: { ...s.settings, deliveryCities: (s.settings.deliveryCities || []).filter(x => x !== c), deliveryCitySchedules: sch, deliveryCityMinSuppliers: mk } };
-                          });
-                          forceUpdate(n => n + 1); toast.success(`Город ${c} удалён`);
-                          setDcDeleteCity(null);
-                        }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Удалить</button>
-                        <button type="button" onClick={() => setDcDeleteCity(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Отмена</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            </div>
-            )}
-          </div>
-        )}
 
         {tab === 'Медиа' && (
             <div className="space-y-4">
@@ -1812,65 +1530,11 @@ const [tab, setTab] = useState('Статусы');
 {tab === 'ЛК Поставщик' && (
             <div className="space-y-4">
               <div className="flex gap-2 flex-wrap">
-                {[['manager', 'Персональный менеджер'], ['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия'], ['links', 'Ссылки офер']].map(([k, l]) => (
+                {[['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия'], ['links', 'Ссылки офер']].map(([k, l]) => (
                   <button key={k} onClick={() => setLkTab(k as typeof lkTab)} className={`btn-secondary text-xs ${lkTab === k ? '!border-red-600 !text-red-600' : ''}`}>{l}</button>
                 ))}
               </div>
 
-            {lkTab === 'manager' && (
-            <div className="card-base p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-800 mb-1">Персональный менеджер</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input className="form-input" placeholder="ФИО *" value={opName} onChange={e => setOpName(e.target.value)} />
-                <input className="form-input" placeholder="Телефон" value={opPhone} onChange={e => setOpPhone(e.target.value)} />
-                <input className="form-input" placeholder="Email" value={opEmail} onChange={e => setOpEmail(e.target.value)} />
-                <input className="form-input" placeholder="MAX — ссылка на аккаунт (https://...)" value={opMaxLink} onChange={e => setOpMaxLink(e.target.value)} />
-                <label className="form-input flex items-center gap-2 cursor-pointer text-xs text-gray-500">
-                  {opAvatarBusy ? 'Загрузка…' : 'Аватар: загрузить изображение'}
-                  <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadOperatorAvatar(f); e.target.value = ''; }} />
-                </label>
-                <select className="form-input" value={opUserId} onChange={e => setOpUserId(e.target.value)}>
-                  <option value="">Роль * (выберите пользователя)</option>
-                  {(store.settings.users || []).map(u => <option key={u.id} value={u.id}>{u.name}{u.role === 'admin' ? ' · Администратор' : ' · Менеджер'}</option>)}
-                </select>
-              </div>
-              <div className="flex items-center gap-3">
-                {opAvatar.trim() && <img src={opAvatar.trim()} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} />}
-                <button onClick={addOperator} className="btn-primary text-xs">Создать оператора</button>
-              </div>
-              <div className="space-y-2">
-                {(store.settings.deliveryOperators || []).map(op => {
-                  const linked = (store.settings.users || []).find(u => u.id === op.userId);
-                  return (
-                    <div key={op.id} className="flex items-center gap-3 border border-gray-200 rounded-xl px-3 py-2.5 flex-wrap">
-                      {op.avatar ? <img src={op.avatar} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} /> : <span className="w-9 h-9 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">{(op.name || '?').split(' ').map(w => w[0]).slice(0, 2).join('')}</span>}
-                      <span className="text-sm font-medium text-gray-800">{op.name}</span>
-                      <span className="text-xs text-gray-500">{op.phone || '—'}</span>
-                      {op.email && <span className="text-xs text-gray-500">{op.email}</span>}
-                      <span className="text-xs text-gray-400">Роль: {linked?.name || '—'}</span>
-                      <button onClick={() => removeOperator(op.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
-                    </div>
-                  );
-                })}
-                {!(store.settings.deliveryOperators || []).length && <p className="text-xs text-gray-400">Операторы не созданы.</p>}
-              </div>
-            </div>
-            )}
-              {lkTab === 'links' && (
-                <div className="card-base p-5 space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-800 mb-1">Ссылки офер</h3>
-                  <p className="text-[11px] text-gray-400">Ссылки для кнопок раздела «О компании» в ЛК поставщика (Доставка, Кросс-докинг, Продвижение).</p>
-                  <div className="space-y-3">
-                    {([['delivery', 'Доставка'], ['crossdock', 'Кросс-докинг'], ['promo', 'Продвижение']] as const).map(([k, label]) => (
-                      <div key={k}>
-                        <label className="text-xs font-semibold text-gray-600">{label}</label>
-                        <input className="form-input text-xs mt-1" placeholder="https://..." value={freshStore.settings.lkLinks?.[k] || ''}
-                          onChange={e => { updateStore(s => ({ ...s, settings: { ...s.settings, lkLinks: { delivery: '', crossdock: '', promo: '', ...s.settings.lkLinks, [k]: e.target.value } } })); forceUpdate(n => n + 1); }} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {lkTab === 'dashboard' && (
                 <div className="card-base p-5 space-y-4">
