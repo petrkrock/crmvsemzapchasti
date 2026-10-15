@@ -397,39 +397,6 @@ export default function SupplierServicePage() {
             )}
 
               {/* МОДАЛКА ТАРИФА (v1.30.29) */}
-              {tariffModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setTariffModal(false)}>
-                  <div className="absolute inset-0 bg-black/50" />
-                  <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-bold text-gray-900">Подключенный тариф</h3>
-                      <button type="button" onClick={() => setTariffModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-                    </div>
-                    {myTariff ? (
-                      <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 bg-gray-50 rounded-xl px-4 py-3 text-sm">
-                        <span className="text-gray-500">Тариф</span><b className="text-gray-900 text-right">{String(myTariff.name || '—')}</b>
-                        <span className="text-gray-500">Базовый пакет</span><b className="text-gray-900 text-right">{Number(myTariff.basePackage ?? myTariff.pricePerMonth) || 0} ₽/мес</b>
-                        <span className="text-gray-500">Ставка за город</span><b className="text-gray-900 text-right">{Number(myTariff.cityRate) || 0} ₽/день</b>
-                        <span className="text-gray-500">Точек включено</span><b className="text-gray-900 text-right">{Number(myTariff.pointsIncluded) || 0} шт</b>
-                        <span className="text-gray-500">Точка сверх лимита</span><b className="text-gray-900 text-right">{Number(myTariff.extraPointPrice) || 0} ₽/шт</b>
-                        <span className="text-gray-500">Объём включено</span><b className="text-gray-900 text-right">{Number(myTariff.volumeIncluded) || 0} (л)</b>
-                        <span className="text-gray-500">Сверх объёма</span><b className="text-gray-900 text-right">{Number(myTariff.volumeExtraStep) || 0} (л) · {Number(myTariff.volumeExtraPrice) || 0} ₽</b>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400">Тариф не подключён.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-
-
-            {lkTab === 'promo' && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Продвижение</p>
-                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
-              </div>
-            )}
 
             {lkTab === 'wh' && (() => {
               const whs = (data?.warehouses || []) as Array<Record<string, unknown>>;
