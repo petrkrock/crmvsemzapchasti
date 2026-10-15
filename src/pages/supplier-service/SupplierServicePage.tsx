@@ -2,7 +2,7 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
-import { Check, AlertCircle, Plus, Trash2, Pencil, X, Warehouse, Truck, Info, ChevronDown, LayoutDashboard, Search, Boxes, LogOut, Megaphone, Copy } from 'lucide-react';
+import { AlertCircle, Boxes, Check, ChevronDown, Copy, Headset, Info, LayoutDashboard, LogOut, Megaphone, Pencil, Plus, Search, Trash2, Truck, Warehouse, X } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
 interface Cond { city: string; warehouseName: string; representative: string; contacts: string;
@@ -397,6 +397,224 @@ export default function SupplierServicePage() {
             )}
 
               {/* МОДАЛКА ТАРИФА (v1.30.29) */}
+
+            {lkTab === 'dashboard' && (() => {
+              const banner = (dash?.banner as Record<string, string>) || { image: '', link: '' };
+              const lkLinks = (dash?.lkLinks as Record<string, string>) || {};
+              const news = (dash?.news as Array<Record<string, string>>) || [];
+              const counters = (dash?.counters as Record<string, unknown>) || {};
+              const covered = new Set((data?.serviceSearch || []).map((c: { city: string }) => c.city).filter(Boolean)).size;
+              return (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* БАННЕР */}
+                    <div>
+                      {banner.image ? (
+                        <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
+                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden w-[375px] h-[280px] max-w-full">
+                          <img src={banner.image} alt="Баннер" className="w-full h-full object-cover" />
+                        </a>
+                      ) : (
+                        <div className="bg-white border border-gray-200 rounded-2xl w-[375px] h-[280px] max-w-full flex items-center justify-center">
+                          <p className="text-gray-300 font-bold text-4xl tracking-widest select-none">БАННЕР</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* VZ ЧАТ */}
+                    <div>
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 pt-[1.85rem] space-y-3 h-full relative">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-base font-bold text-gray-900">ВЗ ЧАТ</h3>
+                          <a href="https://vsemzapchasti.ru/support" target="_blank" rel="noreferrer" title="Поддержка"
+                            className="w-8 h-8 rounded-full bg-white border border-gray-300 hover:border-red-600 hover:text-red-600 text-gray-500 flex items-center justify-center transition-colors">
+                            <Headset size={15} />
+                          </a>
+                        </div>
+                        <div className="h-1" />
+                        <div className="flex items-center gap-4 text-sm text-gray-700">
+                          <span>Непрочитанные: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
+                          <span>Новые контакты: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">0</span></span>
+                        </div>
+                        <button type="button"
+                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold rounded-xl py-2.5 transition-colors">
+                          Открыть ЧАТ
+                        </button>
+                      </div>
+                    </div>
+
+                                        {/* СВОДКА ПО ПОСТАВЩИКУ */}
+                    <div>
+                      <div className="relative overflow-hidden bg-white border border-gray-200 rounded-2xl p-5 h-full">
+                        <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
+                          style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+                        <div className="relative space-y-4">
+                        <button type="button" onClick={() => setLkTab('cabinet')} title="Личный кабинет"
+                        className="w-full flex items-center justify-between gap-3 bg-gray-100 hover:bg-gray-200 rounded-xl px-4 py-2.5 transition-colors text-left">
+                        <span className="text-xs font-semibold text-gray-800 uppercase tracking-wide truncate">{data?.companyName}</span>
+                        <span role="button" tabIndex={0}
+                          onClick={e => { e.stopPropagation(); setLkTab('wh'); }}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setLkTab('wh'); } }}
+                          className="flex items-center gap-1.5 bg-green-600 hover:bg-green-800 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-colors shrink-0 cursor-pointer"
+                          title="Склад">
+                          <Warehouse size={13} /> СКЛАД
+                        </span>
+                      </button>
+                      <div className="divide-y divide-gray-100 text-[13px]">
+                          <div className="py-2 flex gap-3">
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
+                            <div className="space-y-1.5 text-gray-600">
+                              <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span> <span className="text-gray-400 text-xs">(из {(data?.availableCities || []).length})</span></p>
+                            </div>
+                          </div>
+                          <div className="py-2 flex gap-3">
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Маркет</span>
+                            <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['crossdock'] && window.open(lkLinks['crossdock'], '_blank', 'noreferrer')} title={lkLinks['crossdock'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
+                          </div>
+                          <div className="py-2 flex gap-3">
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
+                            <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['promo'] && window.open(lkLinks['promo'], '_blank', 'noreferrer')} title={lkLinks['promo'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
+                          </div>
+                        </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* СЧЁТЧИКИ — B2B-дашборд */}
+                  <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 ">
+                    <div className="absolute inset-0 opacity-[0.5] pointer-events-none"
+                      style={{ backgroundImage: 'linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+                    <div className="relative px-6 py-5">
+                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-6 gap-y-5">
+                        {[
+                          { label: 'Магазинов и СТО', value: (counters.buyersMode === 'db' ? Number(dash?.dbBuyers ?? 0) : Number(counters.buyersCount ?? 0)) },
+                          { label: 'Запросов в день', value: Number(counters.requestsPerDay ?? 1000) },
+                          { label: 'Складов', value: (counters.warehousesMode === 'db' ? Number(dash?.warehousesTotal ?? 0) : Number(counters.warehousesCount ?? 0)) },
+                          { label: 'SKU на платформе', value: (counters.skuMode === 'db' ? Number(dash?.skuTotal ?? 0) : Number(counters.skuCount ?? 350000)) },
+                          { label: 'Городов проценки', value: (data?.availableCities || []).length },
+                        ].map((m, i) => (
+                          <div key={m.label} className="relative pl-3 border-l border-gray-200">
+                            <p className="text-[17px] leading-none font-bold text-gray-900 tabular-nums tracking-tight">
+                              {m.value.toLocaleString('ru-RU')}
+                            </p>
+                            <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400 leading-tight">{m.label}</p>
+                            <span className="absolute -left-px top-0 h-5 w-[2px] bg-red-500 rounded-full" style={{ opacity: 0.35 + i * 0.12 }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+
+                  {/* НОВОСТИ */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-gray-600">Новости платформы</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {news.map(n => {
+                        const inner = (
+                          <>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{n.tag || 'Новая функция'}</span>
+                              <span className="text-[11px] text-gray-400">{n.date}</span>
+                            </div>
+                            <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
+                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{n.text}</p>
+                          </>
+                        );
+                        const openN = n.link
+                          ? () => window.open(n.link, '_blank', 'noreferrer')
+                          : () => setNewsModal(n);
+                        return (
+                          <button key={n.id} type="button" onClick={openN}
+                            className="block w-full text-left bg-[#eef3fb] rounded-2xl p-4 space-y-2 transition-colors hover:shadow-md">
+                            {inner}
+                          </button>
+                        );
+                      })}
+                      {!news.length && <p className="text-xs text-gray-400 md:col-span-3">Новости появятся после публикации (Настройки → ЛК Поставщик → Новости).</p>}
+                    </div>
+                  </div>
+
+                  {/* ОТ ПОСТАВЩИКОВ ПОСТАВЩИКАМ — слайдер */}
+                  {(() => {
+                    const vendorNews = (dash?.vendorNews as Array<Record<string, string>>) || [];
+                    const card = (n: Record<string, string>, clamp = 'line-clamp-2') => {
+                      const inner = (
+                        <>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{n.tag || 'Новая функция'}</span>
+                            <span className="text-[11px] text-gray-400">{n.date}</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
+                          <p className={`text-xs text-gray-500 leading-relaxed ${clamp}`}>{n.text}</p>
+                        </>
+                      );
+                      const cls = "block bg-[#e7fcf9] rounded-2xl p-4 space-y-2 transition-colors hover:shadow-md h-full";
+                      const open = n.link
+                        ? () => window.open(n.link, '_blank', 'noreferrer')
+                        : () => setNewsModal(n);
+                      return <button key={n.id} type="button" onClick={open} className={cls + ' text-left w-full'}>{inner}</button>;
+                    };
+                    return (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-gray-600">От поставщиков к поставщикам</h3>
+                        {vendorNews.length ? (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {vendorNews.slice(0, 3).map(n => card(n, 'line-clamp-3'))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400">Материалы появятся после публикации.</p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+
+
+
+
+              {/* МОДАЛКА ПОЛНОГО ТЕКСТА НОВОСТИ */}
+              {newsModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setNewsModal(null)}>
+                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="relative bg-slate-100 rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-500">{newsModal.tag || 'Новая функция'}</span>
+                        <h3 className="text-base font-bold text-gray-900 mt-2">{newsModal.title}</h3>
+                        <p className="text-[11px] text-gray-400 mt-1">{newsModal.date}</p>
+                      </div>
+                      <button type="button" onClick={() => setNewsModal(null)}
+                        className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">✕</button>
+                    </div>
+                    {newsModal.fullText
+                      ? <div className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: newsModal.fullText }} />
+                      : <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{newsModal.text}</p>}
+                  </div>
+                </div>
+              )}
+                </>
+              );
+            })()}
+
+            {lkTab === 'crossdock' && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Маркет</p>
+                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+              </div>
+            )}
+
+            {lkTab === 'promo' && (
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+                <p className="text-sm font-semibold text-gray-700">Продвижение</p>
+                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+              </div>
+            )}
 
             {lkTab === 'wh' && (() => {
               const whs = (data?.warehouses || []) as Array<Record<string, unknown>>;
