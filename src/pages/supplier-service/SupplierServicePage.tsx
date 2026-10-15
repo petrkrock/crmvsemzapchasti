@@ -69,6 +69,7 @@ export default function SupplierServicePage() {
   const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
   const [statusFilter, setStatusFilter] = useState<'all' | 'Новое' | 'Загружено' | 'Есть изменения'>('all'); // ТЗ v1.23.10: фильтр условий по статусу
   const [statusHint, setStatusHint] = useState(false);
+  const [actHint, setActHint] = useState(false); // v1.30.47: подсказка кнопки «Не активирован» (статус платформы)
   const [pendingCity, setPendingCity] = useState<string | null>(null); // ТЗ v1.23.11: город, ждущий кнопку «Создать условия»
   const [editingWhId, setEditingWhId] = useState<string | null>(null); // ТЗ v1.23.32: редактирование склада (карандаш)
   const [whHint, setWhHint] = useState(false);
@@ -503,12 +504,18 @@ export default function SupplierServicePage() {
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Статус</span>
                             <div className="flex-1">
+                              {/* v1.30.47: «Не активирован» — кнопка с подсказкой по клику (паттерн «Совет по городам»), радиус как у «Подробнее» */}
                               {(data?.status || '') === 'Активный' ? (
-                                <span className="inline-block text-xs px-3 py-1.5 rounded-full bg-green-50 text-green-700 font-medium">Активирован</span>
+                                <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700">Активирован</span>
                               ) : (
                                 <>
-                                  <span className="inline-block text-xs px-3 py-1.5 rounded-full bg-red-50 text-red-700 font-medium">Не активирован</span>
-                                  <p className="text-[11px] text-gray-400 mt-1.5">(Для активации на платформе создайте свой склад в разделе «Склады» и добавьте Условия для сервиса проценки. После модерации ваш склад станет активным.)</p>
+                                  <button type="button" onClick={() => setActHint(v => !v)} title="Как активироваться?"
+                                    className="text-xs font-semibold px-2.5 py-1 rounded-md bg-red-50 text-red-700 transition-colors">Не активирован</button>
+                                  {actHint && (
+                                    <div className="absolute left-0 top-8 z-30 w-96 max-w-[calc(100%-1rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed" onClick={e => e.stopPropagation()}>
+                                      Для активации на платформе создайте свой склад в разделе «Склады» и добавьте Условия для сервиса проценки. После модерации ваш склад станет активным.
+                                    </div>
+                                  )}
                                 </>
                               )}
                             </div>

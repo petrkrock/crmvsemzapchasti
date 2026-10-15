@@ -529,8 +529,12 @@ const [tab, setTab] = useState('Статусы');
   }
 
   function addDurationOption(adTypeId: string) {
-    if (!newDurationForm.periodLabel?.trim()) { toast.error('Введите период'); return; }
-    const opt: MediaDurationOption = { id: generateId(), periodLabel: newDurationForm.periodLabel || '', periodMonths: newDurationForm.periodMonths || 1, discount: newDurationForm.discount || 0, totalPrice: newDurationForm.totalPrice || 0, bonus: newDurationForm.bonus || '' };
+    // v1.30.48: «Срок Мес» обязателен (столбец «Срок *» убран); итого считается автоматически
+    if (!newDurationForm.periodMonths || newDurationForm.periodMonths < 1) { toast.error('Введите срок в месяцах'); return; }
+    const months = newDurationForm.periodMonths;
+    const adType = getStore().settings.mediaAdTypes?.find(t => t.id === adTypeId);
+    const computedTotal = Math.max(0, Math.round((adType?.pricePerMonth || 0) * months * (1 - (newDurationForm.discount || 0) / 100)));
+    const opt: MediaDurationOption = { id: generateId(), periodLabel: `${months} мес.`, periodMonths: months, discount: newDurationForm.discount || 0, totalPrice: computedTotal, bonus: newDurationForm.bonus || '' };
     updateStore(s => ({ ...s, settings: { ...s.settings, mediaAdTypes: (s.settings.mediaAdTypes || []).map(t => t.id === adTypeId ? { ...t, durationOptions: [...t.durationOptions, opt] } : t) } }));
     setNewDurationForm({ periodLabel: '1 мес.', periodMonths: 1, discount: 0, totalPrice: 0, bonus: '' });
     setAddingDurationForId(null); forceUpdate(n => n + 1); toast.success('Тариф добавлен');
@@ -1443,12 +1447,12 @@ const [tab, setTab] = useState('Статусы');
                       {expandedAdTypeId === at.id && (
                         <div className="p-3">
                           <table className="w-full text-xs mb-3">
-                            <thead><tr className="border-b border-brand-gray-mid"><th className="text-left py-1.5 px-2 text-gray-500">Срок</th><th className="text-right py-1.5 px-2 text-gray-500">₽/мес.</th><th className="text-right py-1.5 px-2 text-gray-500">Скидка</th><th className="text-right py-1.5 px-2 text-gray-500">Итого ₽</th><th className="py-1.5 px-2 text-gray-500">Бонус</th><th className="w-8"></th></tr></thead>
+                            <thead><tr className="border-b border-brand-gray-mid"><th className="text-left py-1.5 px-2 text-gray-500">Срок, мес.</th><th className="text-right py-1.5 px-2 text-gray-500">₽/мес.</th><th className="text-right py-1.5 px-2 text-gray-500">Скидка</th><th className="text-right py-1.5 px-2 text-gray-500">Итого ₽</th><th className="py-1.5 px-2 text-gray-500">Бонус</th><th className="w-8"></th></tr></thead>
                             <tbody>
                               {at.durationOptions.length === 0 && <tr><td colSpan={6} className="text-center py-3 text-gray-400">Нет тарифов. Добавьте срок размещения.</td></tr>}
                               {at.durationOptions.map(opt => (
                                 <tr key={opt.id} className="border-b border-brand-gray-mid hover:bg-brand-gray">
-                                  <td className="py-1.5 px-2 font-medium">{opt.periodLabel}</td>
+                                  <td className="py-1.5 px-2 font-medium">{opt.periodMonths} мес.</td>
                                   <td className="py-1.5 px-2 text-right">{at.pricePerMonth.toLocaleString('ru')} ₽</td>
                                   <td className="py-1.5 px-2 text-right">{opt.discount > 0 ? <span className="text-green-600 font-medium">−{opt.discount}%</span> : '—'}</td>
                                   <td className="py-1.5 px-2 text-right font-semibold text-brand-red">{opt.totalPrice.toLocaleString('ru')} ₽</td>
@@ -1470,11 +1474,11 @@ const [tab, setTab] = useState('Статусы');
                           {/* Add duration option */}
                           {addingDurationForId === at.id ? (
                             <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 animate-fade-in">
-                              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-2">
-                                <div><label className="form-label text-xs">Срок *</label><input className="form-input text-xs" value={newDurationForm.periodLabel || ''} onChange={e => setNewDurationForm(f => ({ ...f, periodLabel: e.target.value }))} placeholder="6 мес." /></div>
-                                <div><label className="form-label text-xs">Мес.</label><input type="number" min="1" className="form-input text-xs" value={newDurationForm.periodMonths || 1} onChange={e => setNewDurationForm(f => ({ ...f, periodMonths: parseInt(e.target.value) || 1 }))} /></div>
-                                <div><label className="form-label text-xs">Скидка %</label><input type="number" min="0" max="100" className="form-input text-xs" value={newDurationForm.discount || 0} onChange={e => setNewDurationForm(f => ({ ...f, discount: parseInt(e.target.value) || 0 }))} /></div>
-                                <div><label className="form-label text-xs">Итого ₽</label><input type="number" min="0" className="form-input text-xs" value={newDurationForm.totalPrice || 0} onChange={e => setNewDurationForm(f => ({ ...f, totalPrice: parseInt(e.target.value) || 0 }))} /></div>
+                              {/* v1.30.48: столбец «Срок *» убран; «Срок Мес» обязателен (ввод цифрами); «Итого ₽» — авторасчёт */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                                <div><label className="form-label text-xs">Срок Мес *</label><input type="number" min="1" required className="form-input text-xs" value={newDurationForm.periodMonths || 1} onChange={e => setNewDurationForm(f => ({ ...f, periodMonths: parseInt(e.target.value) || 1 }))} /></div>
+                                <div><label className="form-label text-xs">Скидка %</label><input type="number" min="0" max="100" className="form-input text-xs" value={newDurationForm.discount || 0} onChange={e => setNewDurationForm(f => ({ ...f, discount: parseInt(e.target.value) || 0 }))} /><p className="text-[10px] text-gray-400 mt-0.5">% скидки от суммы за весь срок</p></div>
+                                <div><label className="form-label text-xs">Итого ₽</label><div className="form-input text-xs bg-gray-50 text-gray-800 font-semibold">{Math.max(0, Math.round((at.pricePerMonth || 0) * (newDurationForm.periodMonths || 1) * (1 - (newDurationForm.discount || 0) / 100))).toLocaleString('ru')}</div></div>
                                 <div><label className="form-label text-xs">Бонус</label><input className="form-input text-xs" value={newDurationForm.bonus || ''} onChange={e => setNewDurationForm(f => ({ ...f, bonus: e.target.value }))} placeholder="2 новости" /></div>
                               </div>
                               <div className="flex gap-2 justify-end">
