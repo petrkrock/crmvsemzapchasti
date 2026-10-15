@@ -587,7 +587,7 @@ function handleMassStatus() {
                       )}
                     </div>
                   </td>
-                  <td className="table-cell hidden lg:table-cell text-xs text-gray-400">{formatDate(s.createdAt)}{s.responsibleName && <div className="text-[10px] text-gray-400">{s.responsibleName}</div>}</td>
+                  <td className="table-cell hidden lg:table-cell text-xs text-gray-400">{formatDate(s.createdAt)}{(s.responsibleName || ((store.settings.users || []).find(u => u.id === s.responsibleId)?.name || '')) && <div className="text-[10px] text-gray-400">{s.responsibleName || (store.settings.users || []).find(u => u.id === s.responsibleId)?.name}</div>}</td>
                   <td className="table-cell" onClick={e => e.stopPropagation()}>
                     {/* ТЗ 1.8: горизонтально; «плей» в зелёном круге — только для НЕактивных; редактирование последним */}
                     <div className="flex items-center gap-1 justify-end">

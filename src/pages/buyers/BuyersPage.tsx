@@ -453,7 +453,7 @@ function handleMassStatus() {
                     <span className="cursor-pointer hover:opacity-75 transition-opacity" title="Сменить статус"><StatusBadge status={b.status} /></span>
                   </td>
                   <td className="table-cell hidden xl:table-cell"><span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold" style={BUYER_CAT_STYLE[b.category ?? 'C']} title={b.category ?? 'C'}>{b.category ?? 'C'}</span></td>
-                  <td className="table-cell hidden lg:table-cell text-xs text-gray-400">{formatDate(b.createdAt)}{b.responsibleName && <div className="text-[10px] text-gray-400">{b.responsibleName}</div>}</td>
+                  <td className="table-cell hidden lg:table-cell text-xs text-gray-400">{formatDate(b.createdAt)}{(b.responsibleName || ((store.settings.users || []).find(u => u.id === b.responsibleId)?.name || '')) && <div className="text-[10px] text-gray-400">{b.responsibleName || (store.settings.users || []).find(u => u.id === b.responsibleId)?.name}</div>}</td>
                   <td className="table-cell" onClick={e => e.stopPropagation()}>
                     {/* ТЗ 1.8: горизонтально; «плей» в зелёном круге — только для НЕактивных; редактирование последним */}
                     <div className="flex items-center gap-1 justify-end">

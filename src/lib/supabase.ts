@@ -436,17 +436,34 @@ export async function fetchSuppliers(): Promise<Supplier[]> {
   return (data || []).map(mapSupplier);
 }
 
+// v1.30.40: если в БД ещё нет колонок edo_* (до прогона миграции SQL) — PostgREST роняет ВЕСЬ
+// upsert (тот же урок, что ТЗ v1.23.36). Вырезаем edo-ключи и повторяем один раз.
+function stripEdoKeys<T extends Record<string, unknown>>(rows: T[]): T[] {
+  return rows.map(r => {
+    const { edo_operator, edo_token, ...rest } = r;
+    return rest as T;
+  });
+}
+function isMissingEdoColumnError(e: unknown): boolean {
+  const msg = String((e as { message?: string })?.message || e || '');
+  return msg.includes('edo_operator') || msg.includes('edo_token');
+}
+
 export async function createSupplier(supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<Supplier> {
   const uid = await currentAuthUserId();
-  const { data, error } = await requireClient().from('suppliers').upsert([{ ...(id ? { id } : {}), ...mapSupplierToDb(supplier), created_by: uid }], { onConflict: 'id' }).select().single();
-  if (error) throw error;
-  return mapSupplier(data);
+  const payload = [{ ...(id ? { id } : {}), ...mapSupplierToDb(supplier), created_by: uid }];
+  let res = await requireClient().from('suppliers').upsert(payload, { onConflict: 'id' }).select().single();
+  if (res.error && isMissingEdoColumnError(res.error)) res = await requireClient().from('suppliers').upsert(stripEdoKeys(payload), { onConflict: 'id' }).select().single();
+  if (res.error) throw res.error;
+  return mapSupplier(res.data);
 }
 
 export async function updateSupplier(id: string, updates: Partial<Supplier>): Promise<Supplier> {
-  const { data, error } = await requireClient().from('suppliers').update(mapSupplierToDb(updates)).eq('id', id).select().single();
-  if (error) throw error;
-  return mapSupplier(data);
+  const payload = mapSupplierToDb(updates);
+  let res = await requireClient().from('suppliers').update(payload).eq('id', id).select().single();
+  if (res.error && isMissingEdoColumnError(res.error)) res = await requireClient().from('suppliers').update(stripEdoKeys([payload])[0]).eq('id', id).select().single();
+  if (res.error) throw res.error;
+  return mapSupplier(res.data);
 }
 
 export async function deleteSupplier(id: string): Promise<void> {
@@ -464,15 +481,19 @@ export async function fetchBuyers(): Promise<Buyer[]> {
 
 export async function createBuyer(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<Buyer> {
   const uid = await currentAuthUserId();
-  const { data, error } = await requireClient().from('buyers').upsert([{ ...(id ? { id } : {}), ...mapBuyerToDb(buyer), created_by: uid }], { onConflict: 'id' }).select().single();
-  if (error) throw error;
-  return mapBuyer(data);
+  const payload = [{ ...(id ? { id } : {}), ...mapBuyerToDb(buyer), created_by: uid }];
+  let res = await requireClient().from('buyers').upsert(payload, { onConflict: 'id' }).select().single();
+  if (res.error && isMissingEdoColumnError(res.error)) res = await requireClient().from('buyers').upsert(stripEdoKeys(payload), { onConflict: 'id' }).select().single();
+  if (res.error) throw res.error;
+  return mapBuyer(res.data);
 }
 
 export async function updateBuyer(id: string, updates: Partial<Buyer>): Promise<Buyer> {
-  const { data, error } = await requireClient().from('buyers').update(mapBuyerToDb(updates)).eq('id', id).select().single();
-  if (error) throw error;
-  return mapBuyer(data);
+  const payload = mapBuyerToDb(updates);
+  let res = await requireClient().from('buyers').update(payload).eq('id', id).select().single();
+  if (res.error && isMissingEdoColumnError(res.error)) res = await requireClient().from('buyers').update(stripEdoKeys([payload])[0]).eq('id', id).select().single();
+  if (res.error) throw res.error;
+  return mapBuyer(res.data);
 }
 
 export async function deleteBuyer(id: string): Promise<void> {
@@ -761,11 +782,19 @@ export async function pushRemoteSnapshot(snapshot: RemoteSnapshot): Promise<bool
 
     if (snapshot.suppliers.length) {
       const rows = snapshot.suppliers.map(s => ({ id: s.id, ...mapSupplierToDb(s), created_by: safeCreatedBy(s.createdBy, uid) }));
-      tasks.push(client.from('suppliers').upsert(rows));
+      tasks.push((async () => {
+        let r = await client.from('suppliers').upsert(rows);
+        if (r.error && isMissingEdoColumnError(r.error)) r = await client.from('suppliers').upsert(stripEdoKeys(rows));
+        if (r.error) throw r.error;
+      })());
     }
     if (snapshot.buyers.length) {
       const rows = snapshot.buyers.map(b => ({ id: b.id, ...mapBuyerToDb(b), created_by: safeCreatedBy(b.createdBy, uid) }));
-      tasks.push(client.from('buyers').upsert(rows));
+      tasks.push((async () => {
+        let r = await client.from('buyers').upsert(rows);
+        if (r.error && isMissingEdoColumnError(r.error)) r = await client.from('buyers').upsert(stripEdoKeys(rows));
+        if (r.error) throw r.error;
+      })());
     }
     if (snapshot.tasks.length) {
       const rows = snapshot.tasks.map(t => ({ id: t.id, ...mapTaskToDb(t), created_by: safeCreatedBy(t.createdBy, uid) }));
