@@ -273,7 +273,7 @@ async function handlePost(req: Request) {
     if (body.edoToken !== undefined) patch.edo_token = String(body.edoToken ?? '').slice(0, 300);
   }
   if (!Object.keys(patch).length) {
-    // v1.30.39: данные кабинета и дашборда после проверки PIN
+    // данные кабинета и дашборда после проверки PIN
     const dsetRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
     const dset = (dsetRow.data?.settings || {}) as Record<string, unknown>;
     return json({
