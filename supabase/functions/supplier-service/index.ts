@@ -67,7 +67,7 @@ async function edoFields(client: ReturnType<typeof createClient>, id: string): P
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands, price_email')
+    .select('id, trade_name, status, service_access, warehouse_locations, service_search, history, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands, price_email')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -202,6 +202,8 @@ async function handleGet(req: Request) {
       contactEmail: supplier.email || (Array.isArray((supplier as { contacts?: Array<{ email?: string }> }).contacts) ? ((supplier as { contacts: Array<{ email?: string }> }).contacts[0]?.email ?? '') : '') || '',
         multiWarehouse: Boolean((supplier as { multiwarehouse?: boolean }).multiwarehouse ?? (supplier as { multi_warehouse?: boolean }).multi_warehouse ?? (supplier as { multiWarehouse?: boolean }).multiWarehouse), // ТЗ v1.25.16
     hasPin: Boolean(supplier.service_access?.pin),
+    // v1.30.46: статус активации на платформе (Supplier.status) — для блока «Статус» в ЛК
+    status: (supplier as { status?: string }).status || '',
     warehouses: supplier.warehouse_locations || [],
     availableCities,
     // Never expose protected supplier data before PIN verification.
