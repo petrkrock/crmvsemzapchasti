@@ -60,7 +60,7 @@ async function extraFields(client: ReturnType<typeof createClient>, id: string):
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
   const { data, error } = await client
     .from('suppliers')
-    .select('id, trade_name, service_access, warehouse_locations, service_search, history, delivery_contract, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands, price_email')
+    .select('id, trade_name, service_access, warehouse_locations, service_search, history, edo_operator, edo_token, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands, price_email')
     .is('deleted_at', null)
     .eq('service_access->>enabled', 'true')
     .eq('service_access->>token', token)
@@ -260,66 +260,14 @@ async function handlePost(req: Request) {
   for (const [k, col] of Object.entries(CAB_KEYS)) {
     if (body[k] !== undefined) patch[col] = String(body[k] ?? '').slice(0, 200);
   }
-  if (body.edoOperator !== undefined || body.edoToken !== undefined || body.status !== undefined || body.warehouseId !== undefined) {
-    const dc = { ...(supplier.delivery_contract || {}) };
-    if (body.edoOperator !== undefined) dc.edoOperator = String(body.edoOperator ?? '').slice(0, 100);
-    if (body.edoToken !== undefined) dc.edoToken = String(body.edoToken ?? '').slice(0, 300);
-    // v1.30.17: активация доставки из ЛК (склад + статус «Ждёт активации»)
-    if (body.status !== undefined) dc.status = String(body.status ?? '').slice(0, 50);
-    if (body.warehouseId !== undefined) dc.warehouseId = String(body.warehouseId ?? '').slice(0, 60);
-    patch.delivery_contract = dc;
-  }
-  // v1.30.24: поставщик добавляет город доставки из ЛК
-  if (body.addDeliveryCity !== undefined) {
-    const cityName = String(body.addDeliveryCity || '').slice(0, 100);
-    if (!cityName) return json({ error: 'Укажите город' }, 400);
-    const { data: stRow } = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
-    const st = (stRow?.settings || {}) as Record<string, unknown>;
-    const rows = [...((st.deliveryCityRows as Array<Record<string, unknown>>) || [])];
-    if (!rows.some(r => String(r.supplierId) === String(supplier.id) && String(r.city) === cityName)) {
-      rows.push({ id: `dcr-${Date.now()}`, city: cityName, supplierId: String(supplier.id), status: 'Ждёт активации', history: [{ at: new Date().toISOString(), by: 'Поставщик (ЛК)', action: `Город «${cityName}» добавлен в доставку` }] });
-      const { error: upErr } = await client.from('app_settings').update({ settings: { ...st, deliveryCityRows: rows } }).eq('id', 'global');
-      if (upErr) return json({ error: upErr.message }, 500);
-    }
-    return json({ ok: true });
+  if (body.edoOperator !== undefined || body.edoToken !== undefined) {
+    if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
+    if (body.edoToken !== undefined) patch.edo_token = String(body.edoToken ?? '').slice(0, 300);
   }
   if (!Object.keys(patch).length) {
-    // v1.29.0: данные доставки (DBO) для единого кабинета — после проверки PIN
+    // v1.30.39: данные кабинета и дашборда после проверки PIN
     const dsetRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
     const dset = (dsetRow.data?.settings || {}) as Record<string, unknown>;
-    const dc = (supplier.delivery_contract || {}) as Record<string, unknown>;
-    const dRoutes = (dset.deliveryRoutes as Array<Record<string, unknown>>) || [];
-    const rt = dRoutes.find(r => ((r.stops as Array<Record<string, unknown>>) || []).some(st => String(st.supplierId) === String(supplier.id)));
-    const rtStop = rt ? ((rt.stops as Array<Record<string, unknown>>) || []).find(st => String(st.supplierId) === String(supplier.id)) : null;
-    // v1.30.0: Персональный менеджер показывается ТОЛЬКО если ответственный поставщика связан с оператором (operator.userId === supplier.responsible)
-    const dOp = ((dset.deliveryOperators as Array<Record<string, unknown>>) || []).find(o => String(o.userId) === String(supplier.responsible_id || ''));
-    const dWh = ((supplier.warehouse_locations || []) as Array<Record<string, unknown>>).find(w => String(w.id || '') === String(dc.warehouseId || '')) || (supplier.warehouse_locations || [])[0];
-    const deliveryPayload = {
-      route: dc.route || '',
-      routeNumber: rt ? String(rt.number || '') : '',
-      routeDays: rt ? ((rt.scheduleDays as string[]) || []) : [],
-      routeStopTime: rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : '',
-      supplierId: String(supplier.id),
-      citySchedules: (dset.deliveryCitySchedules as Record<string, unknown>) || {},
-      tariff: (((dset.deliveryServiceTariffs as Array<Record<string, unknown>>) || []).find(tf => String(tf.id) === String(dc.serviceTariff || ''))) || null,
-      myCities: (((dset.deliveryCityRows as Array<Record<string, unknown>>) || []).filter(r => String(r.supplierId) === String(supplier.id)))
-        .map(r => {
-          const cityName = String(r.city || '');
-          const sch = ((dset.deliveryCitySchedules as Record<string, Record<string, unknown>>) || {})[cityName] || {};
-          return { rowId: String(r.id), city: cityName, status: String(r.status || ''), activatedAt: String(r.activatedAt || ''), days: (sch.days as string[]) || [], from: String(sch.from || ''), to: String(sch.to || '') };
-        }),
-      schedule: rt ? [((rt.scheduleDays as string[]) || []).join(' '), rtStop ? `${(rtStop.from as string) || '—'}–${(rtStop.to as string) || '—'}` : ''].filter(Boolean).join(' · ') : '',
-      warehouse: dWh ? `${dWh.city || ''}${dWh.city && dWh.address ? ', ' : ''}${dWh.address || ''}` : '',
-      citiesCount: ((dc.cities as string[]) || []).length,
-      operatorName: (dOp?.name as string) || '',
-      operatorAvatar: (dOp?.avatar as string) || '',
-      operatorPhone: (dOp?.phone as string) || '',
-      operatorEmail: (dOp?.email as string) || '',
-      operatorMaxLink: (dOp?.maxLink as string) || '',
-      status: (dc.status as string) || '',
-      contractNumber: dc.contractNumber || '',
-      contractDate: dc.contractDate || '',
-    };
     return json({
       ok: true,
       pinVerified: true,
@@ -338,9 +286,9 @@ async function handlePost(req: Request) {
         services: supplier.services || [],
         productGroups: supplier.product_groups || [],
         ownBrands: supplier.own_brands || [],
-        edoOperator: (supplier.delivery_contract || {}).edoOperator || '',
-        edoToken: (supplier.delivery_contract || {}).edoToken || '',
-        active: (supplier.delivery_contract || {}).status === 'Активный',
+        edoOperator: supplier.edo_operator || '',
+        edoToken: supplier.edo_token || '',
+        active: Boolean(supplier.edo_operator),
         edoOperators: (dset.edoOperators as string[]) || [],
         priceEmail: supplier.price_email || '',
       },
@@ -352,8 +300,6 @@ async function handlePost(req: Request) {
       multiWarehouse: Boolean((supplier as { multiwarehouse?: boolean }).multiwarehouse ?? (supplier as { multi_warehouse?: boolean }).multi_warehouse ?? (supplier as { multiWarehouse?: boolean }).multiWarehouse), // ТЗ v1.25.16
       warehouses: supplier.warehouse_locations || [],
       serviceSearch: supplier.service_search || [],
-      delivery: deliveryPayload,
-      deliveryCities: (dset.deliveryCities as string[]) || [], // v1.29.0: Города (для сервиса доставки DBO) — из настроек Доставка, с городами проценки не связаны
       // v1.30.0: дашборд ЛК (баннер, новости, счётчики)
       dashboard: {
         banner: (dset.lkBanner as Record<string, string>) || { image: '', link: '' },

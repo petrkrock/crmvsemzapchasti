@@ -1,28 +1,51 @@
-## v1.30.38 — Hotfix: коллизия имён deleteConfirmText в DeliveryPage
+# MIGRATION — история версий ВСЕМЗАПЧАСТИ CRM
 
-Сборка 1.30.37 падала: добавленные состояния удаления задания (deleteTaskId,
-deleteConfirmText) дублировали уже существующее состояние другой вкладки раздела
-Доставка (модалка удаления со словом «УДАЛИТЬ»). Переименованы в уникальные
-dtDeleteTaskId / dtDeleteConfirmText. Логика 1.30.37 не изменилась.
+## v1.30.39 — Удаление сервиса доставки (полный срез фичи)
 
-Файлы: src/pages/delivery/DeliveryPage.tsx. SQL: не требуется. Деплой: сборка фронта.
+Фича «Доставка» (DBO) удалена полностью — код, настройки, типы, документация.
 
-## v1.30.37 — Доставка: модалки подтверждений + доработка сводки и таблицы
+Файлы:
+- Удалены: src/pages/delivery/ (DeliveryPage.tsx, DeliverySupplierCardPage.tsx).
+- Изменены: App.tsx (роуты), navConfig.ts, types/index.ts, store.ts, constants/index.ts,
+  supabase.ts, supabase/schema.sql, AnalyticsPage.tsx, SettingsPage.tsx (секция «Доставка»,
+  вкладка «Персональный менеджер» ЛК), SupplierCardPage.tsx (вкладка «Доставка (DBO)»),
+  SupplierServicePage.tsx (раздел «Доставка» ЛК /s/), supabase/functions/supplier-service/index.ts.
 
-- Смена статуса задания — только через модалку подтверждения: селект в редактировании,
-  массовая смена статусов, новая кнопка «+» в кружочке в «Действиях» (= Выполнено,
-  имя статуса из настроек). Прямая смена статуса без подтверждения убрана, история
-  фиксируется как «Смена статуса: X» / «Массово: X».
-- Удаление задания — только через модалку с обязательным вводом слова «удалить»
-  (кнопка неактивна без точного ввода). Прямое удаление из строки убрано.
-- Сводка: фильтры СЕГОДНЯ / ЗАВТРА / ТЕКУЩИЙ МЕСЯЦ / ВЫБОР ВРУЧНУЮ (пресеты месяца
-  считаются автоматически; «вручную» активна при произвольном диапазоне).
-- «Не создано» — только цифра (красная при N>0); «Итого: Гор./Пост./Точек» — мелкий
-  серый шрифт.
-- Города сводки кликабельны — работают как фильтр таблицы по городу (повторный клик
-  снимает фильтр; активный город подсвечен красным).
-- Таблица: колонки Город/Дата/Точек/Ставка/Сверх лимит/Сверх объём — чёрный текст;
-  шапка «Комментарий менеджера» → «Комментарий».
+Что перенесено:
+- ЭДО: поля edoOperator/edoToken перенесены из delivery_contract на верхний уровень Supplier
+  и на колонки suppliers.edo_operator / suppliers.edo_token (маппинг обе стороны).
+- Сервис проценки (DBS), склады, условия ТК (deliverySchedule/deliveryTime складов) — без
+  изменений, не являются частью удалённой фичи.
 
-Файлы: только src/pages/delivery/DeliveryPage.tsx. SQL: не требуется. Деплой: сборка фронта.
+SQL для боевой базы (выполнить в указанном порядке):
+```sql
+-- 1. ЭДО: новые колонки + миграция данных из delivery_contract
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS edo_operator TEXT;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS edo_token TEXT;
+UPDATE suppliers SET edo_operator = COALESCE(edo_operator, delivery_contract->>'edoOperator')
+  WHERE delivery_contract ? 'edoOperator';
+UPDATE suppliers SET edo_token = COALESCE(edo_token, delivery_contract->>'edoToken')
+  WHERE delivery_contract ? 'edoToken';
+-- 2. Удаление колонок доставки
+ALTER TABLE suppliers DROP COLUMN IF EXISTS delivery_access;
+ALTER TABLE suppliers DROP COLUMN IF EXISTS delivery_contract;
+-- 3. Чистка ключей доставки в настройках (app_settings, JSONB)
+UPDATE app_settings
+SET settings = settings
+  - 'deliveryCities' - 'deliveryOperators' - 'deliveryContractStatuses'
+  - 'deliveryTaskStatuses' - 'deliveryServiceTariffs' - 'deliveryCityTariffs'
+  - 'deliveryRoutes' - 'deliveryCityMinSuppliers' - 'deliveryCityRows'
+  - 'deliveryTasks' - 'deliveryCitySchedules'
+WHERE id = 'global';
+-- 4. Удаление системного сервиса DBO из справочника сервисов
+UPDATE app_settings
+SET settings = jsonb_set(settings, '{supplierServices}', (
+  SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+  FROM jsonb_array_elements(settings->'supplierServices') elem
+  WHERE elem->>'name' <> 'DBO'
+))
+WHERE id = 'global';
+```
+
+Деплой: SQL → `supabase functions deploy supplier-service --no-verify-jwt` → сборка фронта → monitor-server (без изменений).
 

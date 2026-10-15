@@ -371,7 +371,7 @@ async function sendNotifications(type: EntityType, clean: Record<string, unknown
   }
 
   // Ждём все каналы (каждый с таймаутом 8с) — форма уже сохранена,
-  // здесь только добиваем доставку; ошибки каналов выше пойманы.
+  // здесь только добиваем отправку; ошибки каналов выше пойманы.
   await Promise.allSettled(jobs);
 }
 
