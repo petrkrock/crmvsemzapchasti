@@ -1,3 +1,11 @@
+## v1.30.41 — Hotfix: удалена остаточная модалка тарифа в ЛК поставщика
+
+В SupplierServicePage после среза фичи остался JSX-блок tariffModal (состояние было
+удалено, блок нет) — сборка падала «tariffModal is not defined». Блок вырезан,
+проведён полный аудит: висячих идентификаторов нет, баланс чисто.
+
+Файлы: src/pages/supplier-service/SupplierServicePage.tsx. SQL: не требуется.
+
 ## v1.30.40 — Hotfix: устойчивость к миграции ЭДО (404 ЛК и синхрон)
 
 - Edge function supplier-service: колонки edo_operator/edo_token вынесены из основного
