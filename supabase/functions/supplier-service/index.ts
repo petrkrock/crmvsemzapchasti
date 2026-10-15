@@ -276,10 +276,14 @@ async function handlePost(req: Request) {
     // данные кабинета и дашборда после проверки PIN
     const dsetRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
     const dset = (dsetRow.data?.settings || {}) as Record<string, unknown>;
+    // v1.30.43: оператор (персональный менеджер) ЛК — из настроек ЛК Поставщик
+    const lkOp = ((dset.lkOperators as Array<Record<string, unknown>>) || []).find(op => String(op.userId) === String(supplier.responsible_id || ''));
     return json({
       ok: true,
       pinVerified: true,
       phone: supplier.phone || '',
+      // v1.30.43: оператор ЛК (null — «Персональный менеджер не настроен»)
+      lkOperator: lkOp ? { name: (lkOp.name as string) || '', avatar: (lkOp.avatar as string) || '', phone: (lkOp.phone as string) || '', email: (lkOp.email as string) || '', maxLink: (lkOp.maxLink as string) || '' } : null,
       // v1.30.1: данные кабинета поставщика (страница «Кабинет» в ЛК)
       cabinet: {
         tradeName: supplier.trade_name || '',
