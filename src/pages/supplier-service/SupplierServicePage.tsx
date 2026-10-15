@@ -38,7 +38,7 @@ const LK_MENU = [
 export default function SupplierServicePage() {
   const { token = '' } = useParams<{ token: string }>();
 
-  const [data, setData] = useState<{ companyName: string; inn?: string; hasPin: boolean; warehouses: Wh[]; serviceSearch: Cond[]; availableCities: string[]; multiWarehouse: boolean } | null>(null);
+  const [data, setData] = useState<{ companyName: string; inn?: string; hasPin: boolean; warehouses: Wh[]; serviceSearch: Cond[]; availableCities: string[]; multiWarehouse: boolean; status?: string } | null>(null); // v1.30.46: status — активация на платформе
   const [loading, setLoading] = useState(true);
   const [fatal, setFatal] = useState('');
   const [pinPassed, setPinPassed] = useState(() => sessionStorage.getItem('dbs_pin_ok') === '1'); // ТЗ v1.23.19: переживает F5
@@ -103,6 +103,7 @@ export default function SupplierServicePage() {
         contactPhone: d.contactPhone ?? prev.contactPhone,
         contactEmail: d.contactEmail ?? prev.contactEmail,
         multiWarehouse: d.multiWarehouse ?? prev.multiWarehouse,
+        status: d.status ?? prev.status,
       } : d); if (sessionStorage.getItem('dbs_pin_ok') !== '1') setPinPassed(false); } }) // ТЗ v1.23.41: МЕРДЖ — иначе GET затирал условия после F5
       .catch(() => setFatal('Не удалось загрузить данные'))
       .finally(() => setLoading(false));
@@ -498,6 +499,20 @@ export default function SupplierServicePage() {
                         </span>
                       </button>
                       <div className="divide-y divide-gray-100 text-[13px]">
+                          {/* v1.30.46: статус активации на платформе (отдельно от статуса условий поставки) */}
+                          <div className="py-2 flex gap-3">
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Статус</span>
+                            <div className="flex-1">
+                              {(data?.status || '') === 'Активный' ? (
+                                <span className="inline-block text-xs px-3 py-1.5 rounded-full bg-green-50 text-green-700 font-medium">Активирован</span>
+                              ) : (
+                                <>
+                                  <span className="inline-block text-xs px-3 py-1.5 rounded-full bg-red-50 text-red-700 font-medium">Не активирован</span>
+                                  <p className="text-[11px] text-gray-400 mt-1.5">(Для активации на платформе создайте свой склад в разделе «Склады» и добавьте Условия для сервиса проценки. После модерации ваш склад станет активным.)</p>
+                                </>
+                              )}
+                            </div>
+                          </div>
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
                             <div className="space-y-1.5 text-gray-600">
