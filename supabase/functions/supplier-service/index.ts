@@ -273,6 +273,10 @@ async function handlePost(req: Request) {
   // v1.30.56: поставщик принял оферту — фиксируем редакцию в service_access (для повторного показа при смене редакции)
   if (body.acceptOfferEdition !== undefined) {
     patch.service_access = { ...(supplier.service_access || {}), offerAcceptedEdition: String(body.acceptOfferEdition).slice(0, 100) };
+    // v1.30.58: фиксируем принятие оферты в истории поставщика (карточка → История)
+    const hist = Array.isArray(supplier.history) ? [...supplier.history] : [];
+    hist.push({ at: new Date().toISOString(), by: 'Поставщик (ЛК)', action: `Оферта принята (редакция ${String(body.acceptOfferEdition).slice(0, 100)})` });
+    patch.history = hist.slice(-300);
   }
   if (body.edoOperator !== undefined || body.edoToken !== undefined) {
     if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
