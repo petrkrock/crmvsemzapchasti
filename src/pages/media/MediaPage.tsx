@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { Fragment, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId, formatDate } from '@/lib/utils';
@@ -268,8 +268,8 @@ const [deleteWord, setDeleteWord] = useState('');
                 const isEditingNotes = editingNotesId === r.id;
 
                 return (
-                  <>
-                    <tr key={r.id}
+                  <Fragment key={r.id}>
+                    <tr
                       className={`border-b border-brand-gray-mid hover:bg-brand-gray transition-colors ${ending ? 'bg-red-50 border-l-4 border-l-red-400' : ''} ${r.deletedAt ? 'opacity-50' : ''}`}>
                       {/* Expand toggle */}
                       <td className="table-cell">
@@ -385,7 +385,7 @@ const [deleteWord, setDeleteWord] = useState('');
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
