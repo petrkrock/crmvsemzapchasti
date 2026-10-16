@@ -69,7 +69,8 @@ export default function SupplierServicePage() {
   const [cityFilter, setCityFilter] = useState<'all' | 'covered' | 'empty'>('all'); // пилюли-фильтр городов
   const [statusFilter, setStatusFilter] = useState<'all' | 'Новое' | 'Загружено' | 'Есть изменения'>('all'); // ТЗ v1.23.10: фильтр условий по статусу
   const [statusHint, setStatusHint] = useState(false);
-  const [actHint, setActHint] = useState(false); // v1.30.47: подсказка кнопки «Не активирован» (статус платформы)
+  // v1.30.52: подсказка «Не активирован» — fixed-оверлей поверх всего, якорь под кнопкой (как совет по городам)
+  const [actHint, setActHint] = useState<{ top: number; left: number } | null>(null);
   const [pendingCity, setPendingCity] = useState<string | null>(null); // ТЗ v1.23.11: город, ждущий кнопку «Создать условия»
   const [editingWhId, setEditingWhId] = useState<string | null>(null); // ТЗ v1.23.32: редактирование склада (карандаш)
   const [whHint, setWhHint] = useState(false);
@@ -500,6 +501,12 @@ export default function SupplierServicePage() {
                         </span>
                       </button>
                       <div className="divide-y divide-gray-100 text-[13px]">
+                          <div className="py-2 flex gap-3">
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
+                            <div className="space-y-1.5 text-gray-600">
+                              <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span> <span className="text-gray-400 text-xs">(из {(data?.availableCities || []).length})</span></p>
+                            </div>
+                          </div>
                           {/* v1.30.46: статус активации на платформе (отдельно от статуса условий поставки) */}
                           <div className="py-2 flex gap-3">
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Статус</span>
@@ -509,21 +516,19 @@ export default function SupplierServicePage() {
                                 <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700">Активирован</span>
                               ) : (
                                 <>
-                                  <button type="button" onClick={() => setActHint(v => !v)} title="Как активироваться?"
+                                  {/* v1.30.52: окно поверх всего — fixed, не обрезается overflow-hidden карточки; позиция под кнопкой */}
+                                  <button type="button" onClick={e => {
+                                    const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                                    setActHint(p => p ? null : { top: r.bottom + 8, left: r.left });
+                                  }} title="Как активироваться?"
                                     className="text-xs font-semibold px-2.5 py-1 rounded-md bg-red-50 text-red-700 transition-colors">Не активирован</button>
                                   {actHint && (
-                                    <div className="absolute left-0 top-8 z-30 w-96 max-w-[calc(100%-1rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed" onClick={e => e.stopPropagation()}>
+                                    <div className="fixed z-50 w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed" style={{ top: actHint.top, left: actHint.left }}>
                                       Для активации на платформе создайте свой склад в разделе «Склады» и добавьте Условия для сервиса проценки. После модерации ваш склад станет активным.
                                     </div>
                                   )}
                                 </>
                               )}
-                            </div>
-                          </div>
-                          <div className="py-2 flex gap-3">
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Проценка</span>
-                            <div className="space-y-1.5 text-gray-600">
-                              <p>Подключено: <span className="bg-gray-100 rounded-md px-1.5 py-0.5 text-gray-900 font-semibold tabular-nums">{covered}</span> <span className="text-gray-400 text-xs">(из {(data?.availableCities || []).length})</span></p>
                             </div>
                           </div>
                           <div className="py-2 flex gap-3">

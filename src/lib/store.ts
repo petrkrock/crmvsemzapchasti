@@ -241,11 +241,6 @@ export function getStore(): CRMStore {
       settings.mediaStatuses = (settings.mediaStatuses || [])
         .filter(st => !MEDIA_REMOVE.includes(st.name))
         .map(st => ({ ...st, name: MEDIA_RENAME[st.name] || st.name, description: st.name === 'Заканчивается срок' ? 'Автоматический статус: выставляется системой при приближении даты окончания размещения.' : st.description }));
-      // записи с удалёнными/переименованными статусами — ремап (удалённые → «Новый заказ»)
-      if (Array.isArray(ps.mediaRecords)) ps.mediaRecords = ps.mediaRecords.map(r => {
-        const mapped = MEDIA_RENAME[r.status] || (MEDIA_REMOVE.includes(r.status) ? 'Новый заказ' : r.status);
-        return mapped === r.status ? r : { ...r, status: mapped };
-      });
     }
 
     if (!settings.mediaStatuses) settings.mediaStatuses = DEFAULT_MEDIA_STATUSES;
@@ -261,6 +256,13 @@ export function getStore(): CRMStore {
 
     // Migrate supplierTags → supplierServices
     const ps = settings as unknown as Record<string, unknown>;
+    // v1.30.49/51: ремап записей размещений с удалёнными/переименованными статусами (после инициализации ps!)
+    if (Array.isArray(ps.mediaRecords)) ps.mediaRecords = (ps.mediaRecords as Array<{ status?: string }>).map(r => {
+      const MEDIA_RENAME: Record<string, string> = { 'Запрос МК': 'Новый заказ', 'Ожидает места (предоплата)': 'Ожидает размещения' };
+      const MEDIA_REMOVE = ['Отправлен МК', 'Переговоры'];
+      const mapped = MEDIA_RENAME[r.status || ''] || (MEDIA_REMOVE.includes(r.status || '') ? 'Новый заказ' : r.status);
+      return mapped === r.status ? r : { ...r, status: mapped };
+    });
     if (!settings.supplierServices) {
       const oldTags = ps['supplierTags'] as Array<{ id: string; name: string; createdAt: string }> | undefined;
       settings.supplierServices = (oldTags && Array.isArray(oldTags) && oldTags.length > 0) ? oldTags : DEFAULT_SUPPLIER_SERVICES;
