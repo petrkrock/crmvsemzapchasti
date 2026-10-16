@@ -182,11 +182,11 @@ export default function SupplierServicePage() {
       setOfferGate(null); setOfferTextOpen(false);
     } catch { /* остаёмся на окне — повторный клик */ }
   }
-  // НЕТ — выход на экран ввода PIN
+  // НЕТ — функция кнопки «Выход»: на экран ввода PIN (data не трогаем — PIN-экрану нужны метаданные)
   function declineOffer() {
     sessionStorage.removeItem('dbs_pin_ok');
     sessionStorage.removeItem('dbs_pin');
-    setPinPassed(false); setData(null); setOfferGate(null); setOfferTextOpen(false);
+    setPinPassed(false); setOfferGate(null); setOfferTextOpen(false);
   }
 
   async function post(payload: Record<string, unknown>, silent = false): Promise<string | null> {
@@ -1319,17 +1319,20 @@ export default function SupplierServicePage() {
         {offerGate && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50" />
-            <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-fade-in">
-              <h3 className="text-base font-bold text-gray-900">Согласен с офертой</h3>
+            {/* v1.30.57: заголовок, «Прочитать оферту» текстом в ряду реквизитов, название ссылкой, окно чтения шире/выше */}
+            <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-fade-in">
+              <h3 className="text-base font-bold text-gray-900">Согласие с публичной офертой</h3>
               <div className="space-y-1.5">
-                <button type="button" onClick={() => setOfferTextOpen(v => !v)} title="Прочитать оферту"
-                  className="block text-sm font-semibold text-red-600 hover:underline text-left">{String(offerGate.name || 'Договор оферты')}</button>
                 <p className="text-xs text-gray-500">Редакция: <b className="text-gray-800">{String(offerGate.edition || '—')}</b></p>
                 <p className="text-xs text-gray-500">Дата публикации: <b className="text-gray-800">{String(offerGate.publishedAt || '').split('-').reverse().join('.') || '—'}</b></p>
                 <p className="text-xs text-gray-500">Дата вступления в силу: <b className="text-gray-800">{String(offerGate.effectiveAt || '').split('-').reverse().join('.') || '—'}</b></p>
+                <button type="button" onClick={() => setOfferTextOpen(v => !v)}
+                  className="block text-xs text-gray-500 hover:text-red-600 underline underline-offset-2 decoration-dotted transition-colors">Прочитать оферту</button>
+                <button type="button" onClick={() => setOfferTextOpen(v => !v)} title="Прочитать оферту"
+                  className="block text-sm font-semibold text-red-600 hover:underline text-left">{String(offerGate.name || 'Договор оферты')}</button>
               </div>
               {offerTextOpen && (
-                <div className="max-h-60 overflow-y-auto bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
+                <div className="max-h-96 overflow-y-auto bg-gray-50 border border-gray-100 rounded-xl p-4 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
                   {String(offerGate.text || '')}
                 </div>
               )}
