@@ -1523,8 +1523,8 @@ const [tab, setTab] = useState('Статусы');
                           <div className="sm:col-span-3 flex gap-2 justify-end"><button onClick={() => { setEditingMediaStatusId(null); setShowMediaStatusForm(false); }} className="btn-secondary text-xs">Отмена</button><button onClick={saveMediaStatus} className="btn-primary text-xs"><Save size={12} /></button></div>
                         </div>
                       ) : (
-                        {/* v1.30.49: под чипом — описание (для статусов с автоматическим действием) */}
                         <div className="flex items-center justify-between gap-2">
+                          {/* v1.30.49: под чипом — описание (для статусов с автоматическим действием) */}
                           <div className="flex-1 min-w-0">
                             <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: ms.bgColor, color: ms.textColor }}>{ms.name}</span>
                             {ms.description ? <p className="text-[10px] text-gray-400 mt-1.5 leading-snug">{ms.description}</p> : null}
