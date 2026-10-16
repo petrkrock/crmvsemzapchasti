@@ -64,6 +64,8 @@ export default function SupplierServicePage() {
   // v1.30.56: окно согласия с офертой (показывается при входе, пока редакция не принята; заново при новой редакции)
   const [offerGate, setOfferGate] = useState<Record<string, unknown> | null>(null);
   const [offerTextOpen, setOfferTextOpen] = useState(false);
+  const [lkOffer, setLkOffer] = useState<Record<string, unknown> | null>(null); // v1.30.58: включённая оферта (для чтения из кабинета)
+  const [offerView, setOfferView] = useState(false); // v1.30.58: режим чтения из кабинета (без ДА/НЕТ)
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [cabEdit, setCabEdit] = useState(false);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -162,6 +164,7 @@ export default function SupplierServicePage() {
       const d = await r.json().catch(() => ({}));
       if (r.ok && d?.offer !== undefined) {
         const oc = d.offer as Record<string, unknown> | null;
+        setLkOffer(oc);
         setOfferGate(oc && String(oc.edition || '') !== String(d.offerAcceptedEdition || '') ? oc : null);
       }
       if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
@@ -883,6 +886,13 @@ export default function SupplierServicePage() {
                         <span key={s} className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${activeServices.includes(s) ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{s}</span>
                       ))}
                     </div>
+                    {/* v1.30.58: ссылка на оферту — открывает модалку для чтения */}
+                    {lkOffer && (
+                      <button type="button" onClick={() => { setOfferView(true); setOfferTextOpen(true); }}
+                        className="block text-xs text-gray-500 hover:text-red-600 underline underline-offset-2 decoration-dotted transition-colors text-left">
+                        Прочитать оферту: {String(lkOffer.name || 'Договор оферты')} (редакция {String(lkOffer.edition || '—')})
+                      </button>
+                    )}
                   </div>
 
                   {/* КОНТАКТЫ ПРЕДСТАВИТЕЛЯ — редактируемо */}
@@ -1316,33 +1326,47 @@ export default function SupplierServicePage() {
         )}
 
         {/* v1.30.56: окно согласия с офертой — поверх ЛК, появляется при входе и при смене редакции */}
-        {offerGate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/50" />
-            {/* v1.30.57: заголовок, «Прочитать оферту» текстом в ряду реквизитов, название ссылкой, окно чтения шире/выше */}
-            <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-fade-in">
-              <h3 className="text-base font-bold text-gray-900">Согласие с публичной офертой</h3>
-              <div className="space-y-1.5">
-                <p className="text-xs text-gray-500">Редакция: <b className="text-gray-800">{String(offerGate.edition || '—')}</b></p>
-                <p className="text-xs text-gray-500">Дата публикации: <b className="text-gray-800">{String(offerGate.publishedAt || '').split('-').reverse().join('.') || '—'}</b></p>
-                <p className="text-xs text-gray-500">Дата вступления в силу: <b className="text-gray-800">{String(offerGate.effectiveAt || '').split('-').reverse().join('.') || '—'}</b></p>
-                <button type="button" onClick={() => setOfferTextOpen(v => !v)}
-                  className="block text-xs text-gray-500 hover:text-red-600 underline underline-offset-2 decoration-dotted transition-colors">Прочитать оферту</button>
-                <button type="button" onClick={() => setOfferTextOpen(v => !v)} title="Прочитать оферту"
-                  className="block text-sm font-semibold text-red-600 hover:underline text-left">{String(offerGate.name || 'Договор оферты')}</button>
-              </div>
-              {offerTextOpen && (
-                <div className="max-h-96 overflow-y-auto bg-gray-50 border border-gray-100 rounded-xl p-4 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
-                  {String(offerGate.text || '')}
+        {/* v1.30.58: единая модалка оферты — согласие (ДА/НЕТ) при новой редакции, режим чтения из кабинета */}
+        {(offerGate || offerView) && (() => {
+          const oc = offerGate || lkOffer;
+          if (!oc) return null;
+          const closeOffer = () => { setOfferGate(null); setOfferView(false); setOfferTextOpen(false); };
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50" onClick={closeOffer} />
+              <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-fade-in">
+                <h3 className="text-base font-bold text-gray-900">Согласие с публичной офертой</h3>
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-500">
+                    Прочитать оферту:{' '}
+                    <button type="button" onClick={() => setOfferTextOpen(v => !v)} title="Открыть текст оферты"
+                      className="text-red-600 font-semibold hover:underline">{String(oc.name || 'Договор оферты')}</button>
+                  </p>
+                  <div className="bg-gray-50 rounded-xl p-3 space-y-1">
+                    <p className="text-xs text-gray-500">Редакция: <b className="text-gray-800">{String(oc.edition || '—')}</b></p>
+                    <p className="text-xs text-gray-500">Дата публикации: <b className="text-gray-800">{String(oc.publishedAt || '').split('-').reverse().join('.') || '—'}</b></p>
+                    <p className="text-xs text-gray-500">Дата вступления в силу: <b className="text-gray-800">{String(oc.effectiveAt || '').split('-').reverse().join('.') || '—'}</b></p>
+                  </div>
                 </div>
-              )}
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={acceptOffer} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">ДА</button>
-                <button type="button" onClick={declineOffer} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">НЕТ</button>
+                {offerTextOpen && (
+                  <div className="max-h-96 overflow-y-auto bg-white border border-gray-200 rounded-xl p-4 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
+                    {String(oc.text || '')}
+                  </div>
+                )}
+                {offerGate ? (
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" onClick={acceptOffer} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">ДА</button>
+                    <button type="button" onClick={declineOffer} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">НЕТ</button>
+                  </div>
+                ) : (
+                  <div className="flex justify-end pt-1">
+                    <button type="button" onClick={closeOffer} className="text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Закрыть</button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
