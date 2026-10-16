@@ -270,6 +270,10 @@ async function handlePost(req: Request) {
   for (const [k, col] of Object.entries(CAB_KEYS)) {
     if (body[k] !== undefined) patch[col] = String(body[k] ?? '').slice(0, 200);
   }
+  // v1.30.56: поставщик принял оферту — фиксируем редакцию в service_access (для повторного показа при смене редакции)
+  if (body.acceptOfferEdition !== undefined) {
+    patch.service_access = { ...(supplier.service_access || {}), offerAcceptedEdition: String(body.acceptOfferEdition).slice(0, 100) };
+  }
   if (body.edoOperator !== undefined || body.edoToken !== undefined) {
     if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
     if (body.edoToken !== undefined) patch.edo_token = String(body.edoToken ?? '').slice(0, 300);
@@ -284,6 +288,12 @@ async function handlePost(req: Request) {
       ok: true,
       pinVerified: true,
       phone: supplier.phone || '',
+      // v1.30.56: включённая оферта + принятая редакция (ЛК показывает окно согласия при новой редакции)
+      offer: (() => {
+        const oc = ((dset.offerContracts as Array<Record<string, unknown>>) || []).find(c => c.enabled);
+        return oc ? { name: (oc.name as string) || '', edition: (oc.edition as string) || '', publishedAt: (oc.publishedAt as string) || '', effectiveAt: (oc.effectiveAt as string) || '', text: (oc.text as string) || '' } : null;
+      })(),
+      offerAcceptedEdition: ((supplier.service_access as Record<string, unknown> | null)?.offerAcceptedEdition as string) || '',
       // v1.30.43: оператор ЛК (null — «Персональный менеджер не настроен»)
       lkOperator: lkOp ? { name: (lkOp.name as string) || '', avatar: (lkOp.avatar as string) || '', phone: (lkOp.phone as string) || '', email: (lkOp.email as string) || '', maxLink: (lkOp.maxLink as string) || '' } : null,
       // v1.30.1: данные кабинета поставщика (страница «Кабинет» в ЛК)
