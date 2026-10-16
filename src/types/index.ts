@@ -318,7 +318,7 @@ export interface Supplier {
   requisites?: RequisitesData;
   serviceSearch?: ServiceSearchCondition[];
   /** Доступ к самообслуживанию: поставщик сам заполняет склады и условия сервиса поиска по ссылке /s/<token> */
-  serviceAccess?: { token: string; pin?: string; enabled: boolean; createdAt: string };
+  serviceAccess?: { token: string; pin?: string; enabled: boolean; createdAt: string; /** v1.30.56: редакция оферты, принятой поставщиком в ЛК */ offerAcceptedEdition?: string };
   history: HistoryEntry[];
   additionalContacts?: string;
   additionalComment?: string;

@@ -1783,10 +1783,11 @@ const [tab, setTab] = useState('Статусы');
           {/* ═══ ДОГОВОРА И ОФЕРТЫ (v1.30.55) ═══ */}
           {tab === 'Договора и оферты' && (
             <div className="card-base">
-              <div className="flex gap-2 border-b border-gray-100 px-4 overflow-x-auto">
+              {/* v1.30.56: кнопки как в других разделах (стиль ЛК Поставщик) */}
+              <div className="flex flex-wrap gap-2 px-4 pt-4">
                 {([['offer', 'Договор оферты']] as const).map(([k, l]) => (
                   <button key={k} type="button" onClick={() => setDocTab(k)}
-                    className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${docTab === k ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>{l}</button>
+                    className={`btn-secondary text-xs ${docTab === k ? '!border-red-600 !text-red-600' : ''}`}>{l}</button>
                 ))}
               </div>
               <div className="p-4 space-y-4">

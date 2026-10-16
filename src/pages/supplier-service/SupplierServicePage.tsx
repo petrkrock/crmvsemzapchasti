@@ -61,6 +61,9 @@ export default function SupplierServicePage() {
   // v1.29.0: единый кабинет
   const [lkTab, setLkTab] = useState<'dashboard' | 'pricing' | 'crossdock' | 'promo' | 'cabinet' | 'wh'>('dashboard');
   const [lkOp, setLkOp] = useState<Record<string, unknown> | null>(null); // v1.30.43: оператор ЛК
+  // v1.30.56: окно согласия с офертой (показывается при входе, пока редакция не принята; заново при новой редакции)
+  const [offerGate, setOfferGate] = useState<Record<string, unknown> | null>(null);
+  const [offerTextOpen, setOfferTextOpen] = useState(false);
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [cabEdit, setCabEdit] = useState(false);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -157,10 +160,33 @@ export default function SupplierServicePage() {
         body: JSON.stringify({ token, pin: pinCode }),
       });
       const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.offer !== undefined) {
+        const oc = d.offer as Record<string, unknown> | null;
+        setOfferGate(oc && String(oc.edition || '') !== String(d.offerAcceptedEdition || '') ? oc : null);
+      }
       if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
     } catch { /* останется null — покажем «—» */ }
+  }
+
+  // v1.30.56: принятие оферты — фиксируем редакцию на сервере
+  async function acceptOffer() {
+    try {
+      const pinCode = sessionStorage.getItem('dbs_pin') || '';
+      await fetch(getFunctionsUrl('supplier-service'), {
+        method: 'POST',
+        headers: { ...getAnonKeyHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin: pinCode, acceptOfferEdition: offerGate?.edition || '' }),
+      });
+      setOfferGate(null); setOfferTextOpen(false);
+    } catch { /* остаёмся на окне — повторный клик */ }
+  }
+  // НЕТ — выход на экран ввода PIN
+  function declineOffer() {
+    sessionStorage.removeItem('dbs_pin_ok');
+    sessionStorage.removeItem('dbs_pin');
+    setPinPassed(false); setData(null); setOfferGate(null); setOfferTextOpen(false);
   }
 
   async function post(payload: Record<string, unknown>, silent = false): Promise<string | null> {
@@ -1286,6 +1312,32 @@ export default function SupplierServicePage() {
             )}
 
             </>)}
+          </div>
+        )}
+
+        {/* v1.30.56: окно согласия с офертой — поверх ЛК, появляется при входе и при смене редакции */}
+        {offerGate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50" />
+            <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-fade-in">
+              <h3 className="text-base font-bold text-gray-900">Согласен с офертой</h3>
+              <div className="space-y-1.5">
+                <button type="button" onClick={() => setOfferTextOpen(v => !v)} title="Прочитать оферту"
+                  className="block text-sm font-semibold text-red-600 hover:underline text-left">{String(offerGate.name || 'Договор оферты')}</button>
+                <p className="text-xs text-gray-500">Редакция: <b className="text-gray-800">{String(offerGate.edition || '—')}</b></p>
+                <p className="text-xs text-gray-500">Дата публикации: <b className="text-gray-800">{String(offerGate.publishedAt || '').split('-').reverse().join('.') || '—'}</b></p>
+                <p className="text-xs text-gray-500">Дата вступления в силу: <b className="text-gray-800">{String(offerGate.effectiveAt || '').split('-').reverse().join('.') || '—'}</b></p>
+              </div>
+              {offerTextOpen && (
+                <div className="max-h-60 overflow-y-auto bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
+                  {String(offerGate.text || '')}
+                </div>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={acceptOffer} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">ДА</button>
+                <button type="button" onClick={declineOffer} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">НЕТ</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
