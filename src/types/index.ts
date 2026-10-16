@@ -629,6 +629,22 @@ export interface LkOperator {
   createdAt: string;
 }
 
+/** v1.30.55: Договор оферты */
+export interface OfferContract {
+  id: string;
+  name: string;
+  edition: string;
+  /** Дата публикации */
+  publishedAt: string;
+  /** Дата вступления в силу */
+  effectiveAt: string;
+  text: string;
+  /** Только один договор может быть включён */
+  enabled: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface AppSettings {
   statuses: StatusConfig[];
   buyerCategoryComment?: { A: string; B: string; C: string }; // этап 1.8 — комментарии оборота категорий покупателей
@@ -659,6 +675,8 @@ export interface AppSettings {
   lkLinks?: { crossdock?: string; promo?: string };
   /** v1.30.43: Операторы (персональные менеджеры) ЛК поставщика — настройка в Настройки → ЛК Поставщик */
   lkOperators?: LkOperator[];
+  /** v1.30.55: Договоры оферты (Настройки → Договора и оферты); включённым может быть только один */
+  offerContracts?: OfferContract[];
   /** v1.29.33: Справочник операторов ЭДО (Настройки → Источники) */
   edoOperators?: string[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */

@@ -13,7 +13,7 @@ const ALL_SYSTEM_STATUSES = ['Активный', 'Новый с сайта', 'Л
 import { Plus, Save, Trash2, X, Edit2,  Users, CheckCircle2, XCircle, Settings2, Package, Megaphone, MapPin, List, Tag, Video, FileEdit, Copy, ExternalLink , Pencil, Check, Ban, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SETTINGS_TABS = ['Статусы', 'Сервисы', 'Пользователи', 'Уведомления', 'Типы и города', 'Кнопки', 'Товары', 'Источники', 'Задачи', 'Медиа', 'Формы', 'ЛК Поставщик', 'API']; // v1.29.0: переименование вкладок
+const SETTINGS_TABS = ['Статусы', 'Сервисы', 'Пользователи', 'Уведомления', 'Типы и города', 'Кнопки', 'Товары', 'Источники', 'Задачи', 'Медиа', 'Формы', 'ЛК Поставщик', 'Договора и оферты', 'API']; // v1.29.0: переименование вкладок
 
 const STATUS_SECTIONS = [
   { key: 'supplier', label: 'Поставщики' },
@@ -451,6 +451,14 @@ const [tab, setTab] = useState('Статусы');
   const [opMaxLink, setOpMaxLink] = useState('');
   const [opAvatar, setOpAvatar] = useState('');
   const [opUserId, setOpUserId] = useState('');
+  // v1.30.55: договоры оферты
+  const [docTab, setDocTab] = useState<'offer'>('offer');
+  const [ocName, setOcName] = useState('');
+  const [ocEdition, setOcEdition] = useState('');
+  const [ocPublishedAt, setOcPublishedAt] = useState('');
+  const [ocEffectiveAt, setOcEffectiveAt] = useState('');
+  const [ocText, setOcText] = useState('');
+  const [editingOcId, setEditingOcId] = useState<string | null>(null);
   useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('dashboard');
   const [lkBannerImg, setLkBannerImg] = useState('');
   const [lkBannerLink, setLkBannerLink] = useState('');
@@ -517,6 +525,33 @@ const [tab, setTab] = useState('Статусы');
   function removeOperator(id: string) {
     updateStore(s => ({ ...s, settings: { ...s.settings, lkOperators: (s.settings.lkOperators || []).filter(o => o.id !== id) } }));
     forceUpdate(n => n + 1); toast.success('Оператор удалён');
+  }
+
+  // v1.30.55: CRUD договоров оферты; включённым может быть только один
+  function saveOfferContract() {
+    if (!ocName.trim()) { toast.error('Введите название договора'); return; }
+    if (!ocEdition.trim()) { toast.error('Введите редакцию'); return; }
+    if (!ocPublishedAt) { toast.error('Укажите дату публикации'); return; }
+    if (!ocEffectiveAt) { toast.error('Укажите дату вступления в силу'); return; }
+    if (!ocText.trim()) { toast.error('Введите текст договора'); return; }
+    const now = new Date().toISOString();
+    if (editingOcId) {
+      updateStore(s => ({ ...s, settings: { ...s.settings, offerContracts: (s.settings.offerContracts || []).map(c => c.id === editingOcId ? { ...c, name: ocName.trim(), edition: ocEdition.trim(), publishedAt: ocPublishedAt, effectiveAt: ocEffectiveAt, text: ocText, updatedAt: now } : c) } }));
+      toast.success('Договор обновлён');
+    } else {
+      const nc = { id: generateId(), name: ocName.trim(), edition: ocEdition.trim(), publishedAt: ocPublishedAt, effectiveAt: ocEffectiveAt, text: ocText, enabled: !(getStore().settings.offerContracts || []).some(c => c.enabled), createdAt: now };
+      updateStore(s => ({ ...s, settings: { ...s.settings, offerContracts: [...(s.settings.offerContracts || []), nc] } }));
+      toast.success('Договор создан');
+    }
+    setOcName(''); setOcEdition(''); setOcPublishedAt(''); setOcEffectiveAt(''); setOcText(''); setEditingOcId(null);
+  }
+  function enableOfferContract(id: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, offerContracts: (s.settings.offerContracts || []).map(c => ({ ...c, enabled: c.id === id })) } }));
+    toast.success('Договор включён');
+  }
+  function deleteOfferContract(id: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, offerContracts: (s.settings.offerContracts || []).filter(c => c.id !== id) } }));
+    toast.success('Договор удалён');
   }
 
   function deleteAdType(id: string) {
@@ -1742,6 +1777,59 @@ const [tab, setTab] = useState('Статусы');
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ═══ ДОГОВОРА И ОФЕРТЫ (v1.30.55) ═══ */}
+          {tab === 'Договора и оферты' && (
+            <div className="card-base">
+              <div className="flex gap-2 border-b border-gray-100 px-4 overflow-x-auto">
+                {([['offer', 'Договор оферты']] as const).map(([k, l]) => (
+                  <button key={k} type="button" onClick={() => setDocTab(k)}
+                    className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${docTab === k ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>{l}</button>
+                ))}
+              </div>
+              <div className="p-4 space-y-4">
+                {docTab === 'offer' && (
+                  <div className="space-y-4">
+                    <div className="card-base p-4 space-y-3">
+                      <h3 className="section-title">{editingOcId ? 'Редактирование договора' : 'Новый договор оферты'}</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label className="block"><span className="form-label">Название договора *</span><input className="form-input" value={ocName} onChange={e => setOcName(e.target.value)} /></label>
+                        <label className="block"><span className="form-label">Редакция *</span><input className="form-input" value={ocEdition} onChange={e => setOcEdition(e.target.value)} placeholder="напр. 1.0" /></label>
+                        <label className="block"><span className="form-label">Дата публикации *</span><input type="date" className="form-input" value={ocPublishedAt} onChange={e => setOcPublishedAt(e.target.value)} /></label>
+                        <label className="block"><span className="form-label">Дата вступления в силу *</span><input type="date" className="form-input" value={ocEffectiveAt} onChange={e => setOcEffectiveAt(e.target.value)} /></label>
+                      </div>
+                      <label className="block"><span className="form-label">Текст договора *</span><textarea className="form-input" rows={8} value={ocText} onChange={e => setOcText(e.target.value)} /></label>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={saveOfferContract} className="btn-primary text-xs">{editingOcId ? 'Сохранить изменения' : 'Создать договор'}</button>
+                        {editingOcId && <button type="button" onClick={() => { setEditingOcId(null); setOcName(''); setOcEdition(''); setOcPublishedAt(''); setOcEffectiveAt(''); setOcText(''); }} className="btn-secondary text-xs">Отмена</button>}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {(store.settings.offerContracts || []).map(c => (
+                        <div key={c.id} className="card-base p-4 flex items-start justify-between gap-3 flex-wrap">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-gray-800">{c.name}</p>
+                              <span className="text-[11px] text-gray-400">редакция {c.edition}</span>
+                              {c.enabled ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">Включён</span> : null}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">Публикация: {c.publishedAt ? c.publishedAt.split('-').reverse().join('.') : '—'} · В силе с: {c.effectiveAt ? c.effectiveAt.split('-').reverse().join('.') : '—'}</p>
+                            <p className="text-xs text-gray-400 mt-1 whitespace-pre-wrap line-clamp-2">{c.text}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {!c.enabled && <button type="button" onClick={() => enableOfferContract(c.id)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700 transition-colors">Сделать включённым</button>}
+                            <button type="button" onClick={() => { setEditingOcId(c.id); setOcName(c.name); setOcEdition(c.edition); setOcPublishedAt(c.publishedAt); setOcEffectiveAt(c.effectiveAt); setOcText(c.text); }} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Редактировать</button>
+                            <GuardedDelete inUse={false} onClick={() => deleteOfferContract(c.id)} />
+                          </div>
+                        </div>
+                      ))}
+                      {!(store.settings.offerContracts || []).length && <p className="text-xs text-gray-400 text-center py-6">Договоры не созданы.</p>}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
