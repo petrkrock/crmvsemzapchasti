@@ -117,7 +117,9 @@ const [deleteWord, setDeleteWord] = useState('');
     e.preventDefault();
     if (!form.supplierId) { toast.error('Выберите рекламодателя'); return; }
     // v_1.9: тип рекламы необязателен — пустой допустим
-    if (!form.endDate) { toast.error('Укажите дату окончания'); return; }
+    // v1.30.49: даты обязательны только при статусе «Активен на платформе»
+    if (form.status === 'Активен на платформе' && !form.startDate) { toast.error('Укажите дату начала'); return; }
+    if (form.status === 'Активен на платформе' && !form.endDate) { toast.error('Укажите дату окончания'); return; }
     const now = new Date().toISOString();
     const { _selectedAdTypeId: _unused, ...rest } = form;
     if (editingId) {
@@ -413,7 +415,8 @@ const [deleteWord, setDeleteWord] = useState('');
                 {/* v_1.9: тип рекламы необязателен */}
                 <select className="form-input" value={form.adTypeId || ''} onChange={e => handleAdTypeChange(e.target.value)}>
                   <option value="">Выберите...</option>
-                  {mediaAdTypes.filter(t => t.enabled !== false).map(t => <option key={t.id} value={t.id}>{t.name} (мест: {t.spotsCount}, {t.pricePerMonth.toLocaleString('ru')} ₽/мес.)</option>)}
+                  {/* v1.30.49: только название */}
+                  {mediaAdTypes.filter(t => t.enabled !== false).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
 
@@ -436,23 +439,24 @@ const [deleteWord, setDeleteWord] = useState('');
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="form-label">Дата начала *</label>
-                  <input type="date" required className="form-input" value={form.startDate || ''} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="form-label">Дата окончания *</label>
-                  <input type="date" required className="form-input" value={form.endDate || ''} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
-                </div>
-              </div>
-
               <div>
                 <label className="form-label">Статус *</label>
                 <select className="form-input" value={form.status || ''} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} required>
                   <option value="">Выберите...</option>
                   {mediaStatuses.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* v1.30.49: даты обязательны только при статусе «Активен на платформе» */}
+                <div>
+                  <label className="form-label">Дата начала{form.status === 'Активен на платформе' ? ' *' : ''}</label>
+                  <input type="date" required={form.status === 'Активен на платформе'} className="form-input" value={form.startDate || ''} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="form-label">Дата окончания{form.status === 'Активен на платформе' ? ' *' : ''}</label>
+                  <input type="date" required={form.status === 'Активен на платформе'} className="form-input" value={form.endDate || ''} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
+                </div>
               </div>
 
               <div>

@@ -189,6 +189,8 @@ export interface MediaStatus {
   name: string;
   bgColor: string;
   textColor: string;
+  /** v1.30.49: описание — если у статуса есть автоматическое действие */
+  description?: string;
   createdAt: string;
 }
 
