@@ -405,7 +405,7 @@ const [tab, setTab] = useState('Статусы');
       updateStore(s => ({ ...s, settings: { ...s.settings, mediaAdTypes: [...(s.settings.mediaAdTypes || []), nt] } }));
       toast.success('Формат добавлен');
     }
-    setShowAdTypeForm(false); setEditingAdTypeId(null); setAdTypeForm({ name: '', spotsCount: 1, pricePerMonth: 0 }); forceUpdate(n => n + 1);
+    setShowAdTypeForm(false); setEditingAdTypeId(null); setAdTypeForm({ name: '', spotsCount: 1, pricePerMonth: 0, description: '' }); forceUpdate(n => n + 1);
   }
 
   // ── Типы обращений (добавление / редактирование / удаление) ──
@@ -1444,6 +1444,8 @@ const [tab, setTab] = useState('Статусы');
                         <div><label className="form-label">Всего мест</label><input type="number" min="1" className="form-input" value={adTypeForm.spotsCount || 1} onChange={e => setAdTypeForm(f => ({ ...f, spotsCount: parseInt(e.target.value) || 1 }))} /></div>
                         <div><label className="form-label">Цена в месяц (₽)</label><input type="number" min="0" className="form-input" value={adTypeForm.pricePerMonth || 0} onChange={e => setAdTypeForm(f => ({ ...f, pricePerMonth: parseInt(e.target.value) || 0 }))} /></div>
                       </div>
+                      {/* v1.30.63: описание формата */}
+                      <label className="block mt-3"><span className="form-label">Описание</span><textarea className="form-input" rows={2} value={adTypeForm.description || ''} onChange={e => setAdTypeForm(f => ({ ...f, description: e.target.value }))} /></label>
                       <div className="flex gap-2 justify-end"><button type="button" onClick={() => setShowAdTypeForm(false)} className="btn-secondary text-xs">Отмена</button><button type="submit" className="btn-primary text-xs"><Save size={12} /> Сохранить</button></div>
                     </form>
                   )}
@@ -1471,7 +1473,7 @@ const [tab, setTab] = useState('Статусы');
                             </div>
                             <div className="flex gap-1">
                               <button onClick={() => setExpandedAdTypeId(expandedAdTypeId === at.id ? null : at.id)} className="p-1.5 text-gray-400 hover:text-brand-black rounded text-xs border border-brand-gray-mid px-2">{expandedAdTypeId === at.id ? 'Скрыть тарифы' : `Тарифы (${at.durationOptions.length})`}</button>
-                              <button onClick={() => { setEditingAdTypeId(at.id); setAdTypeForm({ name: at.name, spotsCount: at.spotsCount, pricePerMonth: at.pricePerMonth }); setShowAdTypeForm(true); }} className="p-1.5 text-gray-400 hover:text-brand-black rounded"><Edit2 size={14} /></button>
+                              <button onClick={() => { setEditingAdTypeId(at.id); setAdTypeForm({ name: at.name, spotsCount: at.spotsCount, pricePerMonth: at.pricePerMonth, description: at.description || '' }); setShowAdTypeForm(true); }} className="p-1.5 text-gray-400 hover:text-brand-black rounded"><Edit2 size={14} /></button>
                               <GuardedDelete inUse={itemInUse('adType', at.id, at.name)} onClick={() => deleteAdType(at.id)} title={at.name} />
                             </div>
                           </div>

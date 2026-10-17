@@ -166,6 +166,8 @@ export interface MediaDurationOption {
 export interface MediaAdType {
   id: string;
   name: string;
+  /** v1.30.63: описание формата размещения */
+  description?: string;
   spotsCount: number;       // всего мест
   pricePerMonth: number;    // базовая цена в месяц
   durationOptions: MediaDurationOption[];
@@ -216,6 +218,8 @@ export interface MediaRecord {
   contractNo?: string;
   contractDate?: string;
   history?: { at: string; by: string; action: string }[];
+  // v1.30.63: материал размещения (описание + файлы-картинки)
+  material?: { description: string; files: string[] };
   // legacy
   tariffId?: string;
   tariffName?: string;

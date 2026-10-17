@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId, formatDate } from '@/lib/utils';
 import { isAdmin, canSeeMedia, getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import type { MediaRecord, MediaDurationOption } from '@/types';
 import { Plus, Search, X, Edit2, Trash2, AlertTriangle, Clock, ChevronDown, ChevronUp, FileText, Save, History } from 'lucide-react';
@@ -53,6 +54,11 @@ const [deleteWord, setDeleteWord] = useState('');
   const [mcDate, setMcDate] = useState('');
   const [mcStatus, setMcStatus] = useState<'Новый' | 'Активный' | 'Не активный'>('Новый');
   const [historyContractId, setHistoryContractId] = useState<string | null>(null);
+  // v1.30.63: материал размещения (описание + файлы-картинки)
+  const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
+  const [materialDescBuffer, setMaterialDescBuffer] = useState('');
+  const [materialFilesBuffer, setMaterialFilesBuffer] = useState<string[]>([]);
+  const [materialBusy, setMaterialBusy] = useState(false);
 
   // v1.30.62: активный (или последний) договор поставщика — подставляется в размещение автоматически
   function autoContract(supplierId: string) {
@@ -184,7 +190,38 @@ const [deleteWord, setDeleteWord] = useState('');
     updateStore(s => ({ ...s, settings: { ...s.settings, mediaContracts: (s.settings.mediaContracts || []).filter(c => c.id !== id) } }));
     toast.success('Договор удалён');
   }
-  function handleDelete(id: string) {
+
+  // v1.30.63: материал размещения
+  function startEditMaterial(r: MediaRecord) {
+    setEditingMaterialId(r.id);
+    setMaterialDescBuffer(r.material?.description || '');
+    setMaterialFilesBuffer([...(r.material?.files || [])]);
+  }
+  async function uploadMaterialFile(file: File, recordId: string) {
+    if (!supabase) { toast.error('Загрузка файлов недоступна'); return; }
+    setMaterialBusy(true);
+    try {
+      const path = `media-materials/${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
+      const { error } = await supabase.storage.from('lk-assets').upload(path, file, { upsert: true });
+      if (error) { toast.error('Ошибка загрузки файла'); return; }
+      const { data } = supabase.storage.from('lk-assets').getPublicUrl(path);
+      setMaterialFilesBuffer(prev => [...prev, data.publicUrl]);
+    } finally { setMaterialBusy(false); }
+  }
+  function saveMaterial(recordId: string) {
+    const now = new Date().toISOString();
+    updateStore(s => ({
+      ...s,
+      mediaRecords: (s.mediaRecords || []).map(r => r.id === recordId ? {
+        ...r,
+        material: { description: materialDescBuffer, files: materialFilesBuffer },
+        updatedAt: now,
+        history: [...(r.history || []), { at: now, by: getCurrentUser()?.name || '—', action: 'Материал обновлён' }].slice(-200),
+      } : r),
+    }));
+    setEditingMaterialId(null);
+    toast.success('Материал сохранён');
+  }  function handleDelete(id: string) {
     if (!isAdmin()) { toast.error('Удаление доступно только администратору'); return; }
     // v_1.9: «Активен на платформе» — удаление невозможно
     const rec = (store.mediaRecords || []).find(r => r.id === id);
@@ -453,6 +490,42 @@ const [deleteWord, setDeleteWord] = useState('');
                                 </p>
                               )}
                             </div>
+
+                            {/* v1.30.63: материал размещения */}
+                            <div className="mt-3">
+                              <p className="text-xs font-semibold text-gray-500 mb-1">Материал</p>
+                              {editingMaterialId === r.id ? (
+                                <div className="space-y-2">
+                                  <textarea className="form-input text-xs" rows={2} value={materialDescBuffer} onChange={e => setMaterialDescBuffer(e.target.value)} placeholder="Описание материала" />
+                                  <div className="flex flex-wrap gap-2 items-center">
+                                    {materialFilesBuffer.map((u, fi) => (
+                                      <span key={fi} className="relative inline-block">
+                                        <img src={u} alt="" className="h-14 w-14 object-cover rounded-lg border border-gray-200" />
+                                        <button type="button" onClick={() => setMaterialFilesBuffer(prev => prev.filter((_, x) => x !== fi))} className="absolute -top-1 -right-1 bg-white rounded-full border border-gray-200 text-gray-400 hover:text-red-600"><X size={11} /></button>
+                                      </span>
+                                    ))}
+                                    <label className={`text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 cursor-pointer ${materialBusy ? 'opacity-50' : 'hover:bg-gray-200'}`}>
+                                      {materialBusy ? 'Загрузка…' : '+ Файл'}
+                                      <input type="file" accept="image/*" className="hidden" disabled={materialBusy} onChange={e => { const f = e.target.files?.[0]; if (f) uploadMaterialFile(f, r.id); e.target.value = ''; }} />
+                                    </label>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <button onClick={() => saveMaterial(r.id)} className="text-xs bg-brand-red text-white px-2 py-0.5 rounded flex items-center gap-1"><Save size={11} /> Сохранить</button>
+                                    <button onClick={() => setEditingMaterialId(null)} className="text-xs text-gray-400 px-2 py-0.5 rounded border border-brand-gray-mid">Отмена</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  {r.material?.description ? <p className="text-xs text-gray-600 whitespace-pre-wrap">{r.material.description}</p> : <p className="text-xs text-gray-300 italic">Материал не добавлен.</p>}
+                                  {r.material?.files?.length ? (
+                                    <div className="flex flex-wrap gap-2 mt-1.5">
+                                      {r.material.files.map((u, fi) => <a key={fi} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" className="h-14 w-14 object-cover rounded-lg border border-gray-200" /></a>)}
+                                    </div>
+                                  ) : null}
+                                  <button onClick={() => startEditMaterial(r)} className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1.5"><Edit2 size={11} /> {r.material ? 'Изменить' : 'Добавить'}</button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -490,6 +563,8 @@ const [deleteWord, setDeleteWord] = useState('');
                   {/* v1.30.49: только название */}
                   {mediaAdTypes.filter(t => t.enabled !== false).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
+                {/* v1.30.63: описание выбранного формата */}
+                {selectedAdType?.description ? <p className="text-[11px] text-gray-400 mt-1 leading-snug">{selectedAdType.description}</p> : null}
               </div>
 
               {selectedAdType && (
