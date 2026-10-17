@@ -270,13 +270,14 @@ async function handlePost(req: Request) {
   for (const [k, col] of Object.entries(CAB_KEYS)) {
     if (body[k] !== undefined) patch[col] = String(body[k] ?? '').slice(0, 200);
   }
-  // v1.30.56: поставщик принял оферту — фиксируем редакцию в service_access (для повторного показа при смене редакции)
+  // v1.30.60: поставщик принял оферту — самостоятельное сохранение и выход (иначе общий логгер писал запись «Склады»)
   if (body.acceptOfferEdition !== undefined) {
-    patch.service_access = { ...(supplier.service_access || {}), offerAcceptedEdition: String(body.acceptOfferEdition).slice(0, 100) };
-    // v1.30.59: фиксируем принятие оферты в истории поставщика (общий формат HistoryEntry)
+    const sa = { ...(supplier.service_access || {}), offerAcceptedEdition: String(body.acceptOfferEdition).slice(0, 100) };
     const hist = Array.isArray(supplier.history) ? [...supplier.history] : [];
     hist.push({ id: `h-${Date.now()}-offer`, date: new Date().toISOString(), field: 'offerAccepted', userId: 'supplier-self', userName: 'Поставщик (ЛК)', comment: '', oldValue: '', newValue: `Принята (редакция ${String(body.acceptOfferEdition).slice(0, 100)})` });
-    patch.history = hist.slice(-300);
+    const { error: upErr } = await client.from('suppliers').update({ service_access: sa, history: hist.slice(-300), updated_at: new Date().toISOString() }).eq('id', supplier.id);
+    if (upErr) return json({ error: 'Не удалось сохранить. Попробуйте позже.' }, 500);
+    return json({ ok: true });
   }
   if (body.edoOperator !== undefined || body.edoToken !== undefined) {
     if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
@@ -352,7 +353,7 @@ async function handlePost(req: Request) {
     date: new Date().toISOString(),
     userId: 'supplier-self',
     userName: 'Поставщик (самообслуживание)',
-    field: patch.service_search !== undefined ? 'serviceSearch' : 'warehouseLocations',
+    field: patch.service_search !== undefined ? 'serviceSearch' : patch.service_access !== undefined ? 'serviceAccess' : 'warehouseLocations',
     oldValue: '',
     newValue: JSON.stringify(patch),
     comment: 'Изменено через ссылку самообслуживания',
