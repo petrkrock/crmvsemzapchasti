@@ -212,6 +212,10 @@ export interface MediaRecord {
   responsibleId?: string;
   responsibleName?: string;
   expandedNotes?: string;    // подробные заметки (раскрытая карточка)
+  // v1.30.61: договор размещения + история изменений записи
+  contractNo?: string;
+  contractDate?: string;
+  history?: { at: string; by: string; action: string }[];
   // legacy
   tariffId?: string;
   tariffName?: string;

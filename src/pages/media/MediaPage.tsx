@@ -2,10 +2,10 @@ import { Fragment, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId, formatDate } from '@/lib/utils';
-import { isAdmin, canSeeMedia } from '@/lib/auth';
+import { isAdmin, canSeeMedia, getCurrentUser } from '@/lib/auth';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import type { MediaRecord, MediaDurationOption } from '@/types';
-import { Plus, Search, X, Edit2, Trash2, AlertTriangle, Clock, ChevronDown, ChevronUp, FileText, Save } from 'lucide-react';
+import { Plus, Search, X, Edit2, Trash2, AlertTriangle, Clock, ChevronDown, ChevronUp, FileText, Save, History } from 'lucide-react';
 import { toast } from 'sonner';
 
 function isEndingSoon(endDate: string): boolean {
@@ -43,6 +43,7 @@ const [deleteWord, setDeleteWord] = useState('');
 
   // Expandable rows state
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [historyRecordId, setHistoryRecordId] = useState<string | null>(null); // v1.30.61: просмотр истории записи
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [notesBuffer, setNotesBuffer] = useState('');
 
@@ -122,11 +123,13 @@ const [deleteWord, setDeleteWord] = useState('');
     if (form.status === 'Активен на платформе' && !form.endDate) { toast.error('Укажите дату окончания'); return; }
     const now = new Date().toISOString();
     const { _selectedAdTypeId: _unused, ...rest } = form;
+    // v1.30.61: фиксируем изменения в истории записи
+    const histEntry = { at: now, by: getCurrentUser()?.name || '—', action: editingId ? 'Размещение изменено' : 'Размещение создано' };
     if (editingId) {
-      updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === editingId ? { ...r, ...rest as MediaRecord, updatedAt: now } : r) }));
+      updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === editingId ? { ...r, ...rest as MediaRecord, updatedAt: now, history: [...(r.history || []), histEntry].slice(-200) } : r) }));
       toast.success('Размещение обновлено');
     } else {
-      const record: MediaRecord = { id: generateId(), ...rest as MediaRecord, ...(form.adTypeId ? {} : { adTypeId: '', adTypeName: '—' }), createdAt: now, updatedAt: now }; // v_1.9: без типа рекламы
+      const record: MediaRecord = { id: generateId(), ...rest as MediaRecord, ...(form.adTypeId ? {} : { adTypeId: '', adTypeName: '—' }), createdAt: now, updatedAt: now, history: [histEntry] }; // v_1.9: без типа рекламы
       updateStore(s => ({ ...s, mediaRecords: [...(s.mediaRecords || []), record] }));
       toast.success('Размещение добавлено');
     }
@@ -146,7 +149,7 @@ const [deleteWord, setDeleteWord] = useState('');
     if (deleteWord.trim() !== 'УДАЛИТЬ') { toast.error('Введите слово УДАЛИТЬ для подтверждения'); return; }
     const now = new Date().toISOString();
     // v_1.9: запись НЕ удаляется — ставится автостатус «Аннулирован»
-    updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === deleteId ? { ...r, status: 'Аннулирован', updatedAt: now } : r) }));
+    updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === deleteId ? { ...r, status: 'Аннулирован', updatedAt: now, history: [...(r.history || []), { at: now, by: getCurrentUser()?.name || '—', action: 'Размещение аннулировано' }].slice(-200) } : r) }));
     setDeleteId(null); setDeleteWord('');
     forceUpdate(n => n + 1);
     toast.success('Размещение аннулировано');
@@ -254,6 +257,8 @@ const [deleteWord, setDeleteWord] = useState('');
                 <th className="table-header">Статус</th>
                 <th className="table-header hidden sm:table-cell">Длит.</th>
                 <th className="table-header hidden sm:table-cell">Период</th>
+                {/* v1.30.61: дата создания записи */}
+                <th className="table-header hidden md:table-cell">Создан</th>
                 <th className="table-header w-20"></th>
               </tr>
             </thead>
@@ -293,11 +298,12 @@ const [deleteWord, setDeleteWord] = useState('');
 
                       <td className="table-cell hidden md:table-cell text-xs">{r.adTypeName}</td>
 
-                      <td className="table-cell hidden lg:table-cell text-xs text-gray-500">
+                      {/* v1.30.61: тариф одной строкой, итоговая сумма выделена */}
+                      <td className="table-cell hidden lg:table-cell text-xs text-gray-500 whitespace-nowrap">
                         {r.durationLabel && r.pricePerMonth ? (
                           <span>{r.durationLabel} · {r.pricePerMonth.toLocaleString('ru')} ₽/мес.</span>
                         ) : <span className="text-gray-300">—</span>}
-                        {r.totalPrice ? <div className="text-xs font-medium text-brand-black">{r.totalPrice.toLocaleString('ru')} ₽</div> : null}
+                        {r.totalPrice ? <b className="ml-1 bg-yellow-100 text-gray-900 rounded px-1.5 py-0.5 tabular-nums">{r.totalPrice.toLocaleString('ru')} ₽</b> : null}
                       </td>
 
                       <td className="table-cell">
@@ -317,8 +323,15 @@ const [deleteWord, setDeleteWord] = useState('');
                         </div>
                       </td>
 
+                      {/* v1.30.61: дата создания */}
+                      <td className="table-cell hidden md:table-cell text-[11px] text-gray-500 whitespace-nowrap">
+                        {r.createdAt ? String(r.createdAt).slice(0, 10).split('-').reverse().join('.') : '—'}
+                      </td>
+
                       <td className="table-cell" onClick={e => e.stopPropagation()}>
                         <div className="flex gap-1">
+                          {/* v1.30.61: история изменений записи */}
+                          <button onClick={() => setHistoryRecordId(r.id)} className="p-1 text-gray-400 hover:text-brand-red" title="История изменений"><History size={13} /></button>
                           <button onClick={() => openEdit(r)} className="p-1 text-gray-400 hover:text-brand-black" title="Редактировать"><Edit2 size={14} /></button>
                           {isAdmin() && !r.deletedAt && <button onClick={() => handleDelete(r.id)} className="p-1 text-gray-300 hover:text-brand-red" title="Удалить"><Trash2 size={14} /></button>}
                         </div>
@@ -336,7 +349,7 @@ const [deleteWord, setDeleteWord] = useState('');
                             </div>
 
                             {/* Summary info */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                               <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
                                 <p className="text-xs text-gray-500">Тип рекламы</p>
                                 <p className="text-xs font-medium">{r.adTypeName}</p>
@@ -352,6 +365,12 @@ const [deleteWord, setDeleteWord] = useState('');
                               <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
                                 <p className="text-xs text-gray-500">В месяц</p>
                                 <p className="text-xs font-medium">{r.pricePerMonth ? r.pricePerMonth.toLocaleString('ru') + ' ₽' : '—'}</p>
+                              </div>
+                              {/* v1.30.61: договор размещения в карточке */}
+                              <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
+                                <p className="text-xs text-gray-500">Договор</p>
+                                <p className="text-xs font-medium">№ {r.contractNo || '—'}</p>
+                                <p className="text-xs text-gray-500">{r.contractDate ? String(r.contractDate).split('-').reverse().join('.') : ''}</p>
                               </div>
                             </div>
 
@@ -459,6 +478,18 @@ const [deleteWord, setDeleteWord] = useState('');
                 </div>
               </div>
 
+              {/* v1.30.61: договор размещения */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="form-label">Договор размещения №</label>
+                  <input type="text" className="form-input" value={form.contractNo || ''} onChange={e => setForm(f => ({ ...f, contractNo: e.target.value }))} placeholder="напр. 15-А" />
+                </div>
+                <div>
+                  <label className="form-label">Дата договора</label>
+                  <input type="date" className="form-input" value={form.contractDate || ''} onChange={e => setForm(f => ({ ...f, contractDate: e.target.value }))} />
+                </div>
+              </div>
+
               <div>
                 <label className="form-label">Краткая заметка (отображается в списке)</label>
                 <input className="form-input" placeholder="Краткое примечание..." value={form.notes || ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
@@ -491,6 +522,34 @@ const [deleteWord, setDeleteWord] = useState('');
           </div>
         </div>
       )}
+
+      {/* v1.30.61: история изменений записи */}
+      {historyRecordId && (() => {
+        const rec = (records || []).find(r => r.id === historyRecordId);
+        const entries = [...((rec?.history) || [])].reverse();
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setHistoryRecordId(null)}>
+            <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 animate-fade-in" onClick={e => e.stopPropagation()}>
+              <h3 className="section-title mb-3">История изменений</h3>
+              {entries.length ? (
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {entries.map((h, i) => (
+                    <div key={i} className="text-xs border-b border-gray-100 pb-2">
+                      <p className="text-gray-800 font-medium">{h.action}</p>
+                      <p className="text-gray-400 mt-0.5">{(() => { const d = String(h.at || ''); return d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}, ${d.slice(11, 16)}` : ''; })()} · {h.by}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 py-4 text-center">Истории изменений нет.</p>
+              )}
+              <div className="flex justify-end pt-3">
+                <button type="button" onClick={() => setHistoryRecordId(null)} className="btn-secondary text-xs">Закрыть</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
