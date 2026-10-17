@@ -374,6 +374,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.lkOperators)) settings.lkOperators = [];
     // v1.30.55: договоры оферты
     if (!Array.isArray(settings.offerContracts)) settings.offerContracts = [];
+    // v1.30.62: договора размещений (медиа)
+    if (!Array.isArray(settings.mediaContracts)) settings.mediaContracts = [];
     if (!Array.isArray(settings.edoOperators)) settings.edoOperators = [];
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)

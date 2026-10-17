@@ -44,6 +44,22 @@ const [deleteWord, setDeleteWord] = useState('');
   // Expandable rows state
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [historyRecordId, setHistoryRecordId] = useState<string | null>(null); // v1.30.61: просмотр истории записи
+  // v1.30.62: раздел «Договора»
+  const [view, setView] = useState<'placements' | 'contracts'>('placements');
+  const [showContractForm, setShowContractForm] = useState(false);
+  const [editingContractId, setEditingContractId] = useState<string | null>(null);
+  const [mcSupplierId, setMcSupplierId] = useState('');
+  const [mcNo, setMcNo] = useState('');
+  const [mcDate, setMcDate] = useState('');
+  const [mcStatus, setMcStatus] = useState<'Новый' | 'Активный' | 'Не активный'>('Новый');
+  const [historyContractId, setHistoryContractId] = useState<string | null>(null);
+
+  // v1.30.62: активный (или последний) договор поставщика — подставляется в размещение автоматически
+  function autoContract(supplierId: string) {
+    const list = (store.settings.mediaContracts || []).filter(c => c.supplierId === supplierId);
+    if (!list.length) return null;
+    return list.find(c => c.status === 'Активный') || [...list].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
+  }
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [notesBuffer, setNotesBuffer] = useState('');
 
@@ -123,19 +139,51 @@ const [deleteWord, setDeleteWord] = useState('');
     if (form.status === 'Активен на платформе' && !form.endDate) { toast.error('Укажите дату окончания'); return; }
     const now = new Date().toISOString();
     const { _selectedAdTypeId: _unused, ...rest } = form;
+    // v1.30.62: договор поставщика подставляется автоматически
+    const ac = autoContract(form.supplierId || '');
+    const restWithContract = { ...rest, ...(ac ? { contractNo: ac.contractNo, contractDate: ac.contractDate } : {}) } as MediaRecord;
     // v1.30.61: фиксируем изменения в истории записи
     const histEntry = { at: now, by: getCurrentUser()?.name || '—', action: editingId ? 'Размещение изменено' : 'Размещение создано' };
     if (editingId) {
-      updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === editingId ? { ...r, ...rest as MediaRecord, updatedAt: now, history: [...(r.history || []), histEntry].slice(-200) } : r) }));
+      updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === editingId ? { ...r, ...restWithContract, updatedAt: now, history: [...(r.history || []), histEntry].slice(-200) } : r) }));
       toast.success('Размещение обновлено');
     } else {
-      const record: MediaRecord = { id: generateId(), ...rest as MediaRecord, ...(form.adTypeId ? {} : { adTypeId: '', adTypeName: '—' }), createdAt: now, updatedAt: now, history: [histEntry] }; // v_1.9: без типа рекламы
+      const record: MediaRecord = { id: generateId(), ...restWithContract, ...(form.adTypeId ? {} : { adTypeId: '', adTypeName: '—' }), createdAt: now, updatedAt: now, history: [histEntry] }; // v_1.9: без типа рекламы
       updateStore(s => ({ ...s, mediaRecords: [...(s.mediaRecords || []), record] }));
       toast.success('Размещение добавлено');
     }
     setShowForm(false); setEditingId(null); forceUpdate(n => n + 1);
   }
 
+  // v1.30.62: CRUD договоров размещений
+  function openContractForm(c?: MediaContract) {
+    if (c) {
+      setEditingContractId(c.id); setMcSupplierId(c.supplierId); setMcNo(c.contractNo); setMcDate(c.contractDate); setMcStatus(c.status);
+    } else {
+      setEditingContractId(null); setMcSupplierId(''); setMcNo(''); setMcDate(''); setMcStatus('Новый');
+    }
+    setShowContractForm(true);
+  }
+  function saveContract() {
+    if (!mcSupplierId) { toast.error('Выберите поставщика'); return; }
+    if (!mcNo.trim()) { toast.error('Введите номер договора'); return; }
+    if (!mcDate) { toast.error('Укажите дату договора'); return; }
+    const now = new Date().toISOString();
+    const by = getCurrentUser()?.name || '—';
+    if (editingContractId) {
+      updateStore(s => ({ ...s, settings: { ...s.settings, mediaContracts: (s.settings.mediaContracts || []).map(c => c.id === editingContractId ? { ...c, supplierId: mcSupplierId, contractNo: mcNo.trim(), contractDate: mcDate, status: mcStatus, updatedAt: now, history: [...(c.history || []), { at: now, by, action: 'Договор изменён' }].slice(-200) } : c) } }));
+      toast.success('Договор обновлён');
+    } else {
+      const nc: MediaContract = { id: generateId(), supplierId: mcSupplierId, contractNo: mcNo.trim(), contractDate: mcDate, status: mcStatus, createdAt: now, history: [{ at: now, by, action: 'Договор создан' }] };
+      updateStore(s => ({ ...s, settings: { ...s.settings, mediaContracts: [...(s.settings.mediaContracts || []), nc] } }));
+      toast.success('Договор добавлен');
+    }
+    setShowContractForm(false); setEditingContractId(null);
+  }
+  function deleteContract(id: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, mediaContracts: (s.settings.mediaContracts || []).filter(c => c.id !== id) } }));
+    toast.success('Договор удалён');
+  }
   function handleDelete(id: string) {
     if (!isAdmin()) { toast.error('Удаление доступно только администратору'); return; }
     // v_1.9: «Активен на платформе» — удаление невозможно
@@ -194,9 +242,14 @@ const [deleteWord, setDeleteWord] = useState('');
         <div className="flex gap-2">
           <button onClick={() => setShowArchived(v => !v)} className={`btn-secondary text-xs ${showArchived ? 'bg-gray-200' : ''}`}>{showArchived ? 'Скрыть архив' : 'Архив'}</button>
           <button onClick={openAdd} className="btn-primary"><Plus size={16} /> Добавить размещение</button>
+          {/* v1.30.62: раздел «Договора» */}
+          <button onClick={() => setView('placements')} className={`btn-secondary text-xs ${view === 'placements' ? '!border-red-600 !text-red-600' : ''}`}>Размещения</button>
+          <button onClick={() => setView('contracts')} className={`btn-secondary text-xs ${view === 'contracts' ? '!border-red-600 !text-red-600' : ''}`}>Договора</button>
         </div>
       </div>
 
+      {/* v1.30.62: переключение разделов */}
+      {view === 'placements' && (<>
       {endingSoonCount > 0 && (
         <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
           <AlertTriangle size={18} className="text-red-500 flex-shrink-0" />
@@ -478,17 +531,13 @@ const [deleteWord, setDeleteWord] = useState('');
                 </div>
               </div>
 
-              {/* v1.30.61: договор размещения */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="form-label">Договор размещения №</label>
-                  <input type="text" className="form-input" value={form.contractNo || ''} onChange={e => setForm(f => ({ ...f, contractNo: e.target.value }))} placeholder="напр. 15-А" />
-                </div>
-                <div>
-                  <label className="form-label">Дата договора</label>
-                  <input type="date" className="form-input" value={form.contractDate || ''} onChange={e => setForm(f => ({ ...f, contractDate: e.target.value }))} />
-                </div>
-              </div>
+              {/* v1.30.62: договор поставщика подставляется автоматически (из раздела «Договора») */}
+              {(() => {
+                const ac = autoContract(form.supplierId || '');
+                if (ac) return <p className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">Договор: № <b className="text-gray-900">{ac.contractNo}</b> от {String(ac.contractDate).split('-').reverse().join('.')} <span className="text-gray-400">({ac.status})</span></p>;
+                if (form.supplierId) return <p className="text-xs text-gray-400">Договор не найден — создайте в разделе «Договора».</p>;
+                return null;
+              })()}
 
               <div>
                 <label className="form-label">Краткая заметка (отображается в списке)</label>
@@ -522,6 +571,104 @@ const [deleteWord, setDeleteWord] = useState('');
           </div>
         </div>
       )}
+
+      </>)}
+
+      {/* ═══ ДОГОВОРА (v1.30.62) ═══ */}
+      {view === 'contracts' && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <button onClick={() => openContractForm()} className="btn-primary text-xs"><Plus size={14} /> Добавить договор</button>
+          </div>
+          {showContractForm && (
+            <div className="card-base p-4 space-y-3">
+              <h3 className="section-title">{editingContractId ? 'Редактирование договора' : 'Новый договор'}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="form-label text-xs">Поставщик *</label>
+                  <select className="form-input text-xs" value={mcSupplierId} onChange={e => setMcSupplierId(e.target.value)}>
+                    <option value="">Выберите...</option>
+                    {store.suppliers.filter(s => !s.deletedAt).map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
+                  </select>
+                </div>
+                <div><label className="form-label text-xs">№ договора *</label><input className="form-input text-xs" value={mcNo} onChange={e => setMcNo(e.target.value)} placeholder="напр. 15-А" /></div>
+                <div><label className="form-label text-xs">Дата *</label><input type="date" className="form-input text-xs" value={mcDate} onChange={e => setMcDate(e.target.value)} /></div>
+                <div>
+                  <label className="form-label text-xs">Статус *</label>
+                  <select className="form-input text-xs" value={mcStatus} onChange={e => setMcStatus(e.target.value as 'Новый' | 'Активный' | 'Не активный')}>
+                    {(['Новый', 'Активный', 'Не активный'] as const).map(st => <option key={st}>{st}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={saveContract} className="btn-primary text-xs"><Save size={13} /> {editingContractId ? 'Сохранить' : 'Добавить'}</button>
+                <button onClick={() => setShowContractForm(false)} className="btn-secondary text-xs">Отмена</button>
+              </div>
+            </div>
+          )}
+          <div className="card-base overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="table-header">Поставщик</th>
+                    <th className="table-header">№ договора</th>
+                    <th className="table-header">Дата</th>
+                    <th className="table-header">Статус</th>
+                    <th className="table-header w-24"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(store.settings.mediaContracts || []).map(c => (
+                    <tr key={c.id} className="border-t border-gray-100">
+                      <td className="table-cell font-medium">{store.suppliers.find(s => s.id === c.supplierId)?.tradeName || '—'}</td>
+                      <td className="table-cell">{c.contractNo}</td>
+                      <td className="table-cell whitespace-nowrap">{c.contractDate ? String(c.contractDate).split('-').reverse().join('.') : '—'}</td>
+                      <td className="table-cell">
+                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.status === 'Активный' ? 'bg-green-100 text-green-700' : c.status === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{c.status}</span>
+                      </td>
+                      <td className="table-cell">
+                        <div className="flex gap-1">
+                          <button onClick={() => setHistoryContractId(c.id)} className="p-1 text-gray-400 hover:text-brand-red" title="История"><History size={13} /></button>
+                          <button onClick={() => openContractForm(c)} className="p-1 text-gray-400 hover:text-brand-black" title="Редактировать"><Edit2 size={14} /></button>
+                          <button onClick={() => deleteContract(c.id)} className="p-1 text-gray-400 hover:text-red-600" title="Удалить"><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!(store.settings.mediaContracts || []).length && <p className="text-xs text-gray-400 text-center py-8">Договоры не созданы.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* v1.30.62: история изменений договора */}
+      {historyContractId && (() => {
+        const c = (store.settings.mediaContracts || []).find(x => x.id === historyContractId);
+        const entries = [...((c?.history) || [])].reverse();
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setHistoryContractId(null)}>
+            <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 animate-fade-in" onClick={e => e.stopPropagation()}>
+              <h3 className="section-title mb-3">История договора</h3>
+              {entries.length ? (
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {entries.map((h, i) => (
+                    <div key={i} className="text-xs border-b border-gray-100 pb-2">
+                      <p className="text-gray-800 font-medium">{h.action}</p>
+                      <p className="text-gray-400 mt-0.5">{(() => { const d = String(h.at || ''); return d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}, ${d.slice(11, 16)}` : ''; })()} · {h.by}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-xs text-gray-400 py-4 text-center">Истории изменений нет.</p>}
+              <div className="flex justify-end pt-3">
+                <button type="button" onClick={() => setHistoryContractId(null)} className="btn-secondary text-xs">Закрыть</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* v1.30.61: история изменений записи */}
       {historyRecordId && (() => {

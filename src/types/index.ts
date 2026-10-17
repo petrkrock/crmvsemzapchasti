@@ -649,6 +649,18 @@ export interface OfferContract {
   updatedAt?: string;
 }
 
+/** v1.30.62: Договор размещения (Медиа сервис → Договора) */
+export interface MediaContract {
+  id: string;
+  supplierId: string;
+  contractNo: string;
+  contractDate: string;
+  status: 'Новый' | 'Активный' | 'Не активный';
+  history?: { at: string; by: string; action: string }[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface AppSettings {
   statuses: StatusConfig[];
   buyerCategoryComment?: { A: string; B: string; C: string }; // этап 1.8 — комментарии оборота категорий покупателей
@@ -681,6 +693,8 @@ export interface AppSettings {
   lkOperators?: LkOperator[];
   /** v1.30.55: Договоры оферты (Настройки → Договора и оферты); включённым может быть только один */
   offerContracts?: OfferContract[];
+  /** v1.30.62: Договора размещений (Медиа сервис → Договора) */
+  mediaContracts?: MediaContract[];
   /** v1.29.33: Справочник операторов ЭДО (Настройки → Источники) */
   edoOperators?: string[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */
