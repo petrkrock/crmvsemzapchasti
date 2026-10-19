@@ -316,6 +316,30 @@ async function handlePost(req: Request) {
     return json({ ok: true });
   }
 
+  // v1.30.69: новость рынка из ЛК — добавляем в app_settings.marketNews (статус «Новая»)
+  if (body.marketNewsRequest !== undefined) {
+    const nr = body.marketNewsRequest as Record<string, unknown>;
+    const title = String(nr.title || '').trim().slice(0, 200);
+    if (!title) return json({ error: 'Введите заголовок новости' }, 400);
+    const stRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
+    const st = (stRow.data?.settings || {}) as Record<string, unknown>;
+    const news = [...((st.marketNews as Array<Record<string, unknown>>) || [])];
+    news.unshift({
+      id: `mn-${Date.now()}`,
+      supplierId: String(supplier.id),
+      title,
+      link: String(nr.link || '').slice(0, 500),
+      text: String(nr.text || '').slice(0, 5000),
+      imageUrl: String(nr.imageUrl || '').slice(0, 500),
+      status: 'Новая',
+      date: new Date().toISOString().slice(0, 10),
+      createdAt: new Date().toISOString(),
+    });
+    const { error: upErr } = await client.from('app_settings').update({ settings: { ...st, marketNews: news } }).eq('id', 'global');
+    if (upErr) return json({ error: 'Не удалось сохранить новость' }, 500);
+    return json({ ok: true });
+  }
+
   if (body.edoOperator !== undefined || body.edoToken !== undefined) {
     if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
     if (body.edoToken !== undefined) patch.edo_token = String(body.edoToken ?? '').slice(0, 300);
