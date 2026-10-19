@@ -808,10 +808,10 @@ export default function SupplierServicePage() {
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Договор</p>
-                    {/* v1.30.74: как «+ Добавить склад»; активация — зелёный фон */}
+                    {/* v1.30.75: стиль чипов ЛК (rounded-full, обводка); активация — зелёный фон */}
                     <div className="flex gap-2">
-                      {!promoContract && <button type="button" onClick={() => setActivateModalOpen(true)} className="btn-primary text-xs !bg-green-600 hover:!bg-green-700"><Plus size={14} /> Активировать договор</button>}
-                      <button type="button" onClick={() => setNewsModalOpen(true)} className="btn-primary text-xs"><Plus size={14} /> Добавить новость</button>
+                      {!promoContract && <button type="button" onClick={() => setActivateModalOpen(true)} className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-green-600 border-green-600 text-white hover:bg-green-700 inline-flex items-center gap-1"><Plus size={13} /> Активировать договор</button>}
+                      <button type="button" onClick={() => setNewsModalOpen(true)} className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300 inline-flex items-center gap-1"><Plus size={13} /> Добавить новость</button>
                     </div>
                   </div>
                   {promoContract ? (
