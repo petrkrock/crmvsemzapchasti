@@ -808,18 +808,20 @@ export default function SupplierServicePage() {
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Договор</p>
+                    {/* v1.30.74: как «+ Добавить склад»; активация — зелёный фон */}
                     <div className="flex gap-2">
-                      {/* v1.30.70: активация договора из ЛК; v1.30.71: скрыта, если договор найден */}
-                      {!promoContract && <button type="button" onClick={() => setActivateModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors">Активировать договор</button>}
-                      {/* v1.30.69: добавление новости рынка из ЛК */}
-                      <button type="button" onClick={() => setNewsModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors">Добавить новость</button>
+                      {!promoContract && <button type="button" onClick={() => setActivateModalOpen(true)} className="btn-primary text-xs !bg-green-600 hover:!bg-green-700"><Plus size={14} /> Активировать договор</button>}
+                      <button type="button" onClick={() => setNewsModalOpen(true)} className="btn-primary text-xs"><Plus size={14} /> Добавить новость</button>
                     </div>
                   </div>
                   {promoContract ? (
                     <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
                       <p className="text-gray-600">№ договора: <b className="text-gray-900">{String(promoContract.contractNo || '—')}</b></p>
                       <p className="text-gray-600">Дата: <b className="text-gray-900">{String(promoContract.contractDate || '').split('-').reverse().join('.') || '—'}</b></p>
-                      <p className="text-gray-600">Статус: <b className="text-gray-900">{String(promoContract.status || '—')}</b></p>
+                      {/* v1.30.74: статус — цветной фон, без обводки */}
+                      <p className="text-gray-600">Статус:{' '}
+                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(promoContract.status) === 'Активный' ? 'bg-green-100 text-green-700' : String(promoContract.status) === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{String(promoContract.status || '—')}</span>
+                      </p>
                     </div>
                   ) : (
                     <p className="text-xs text-gray-400">Договор не найден — Активируйте Договор на размещение рекламы.</p>
@@ -828,7 +830,7 @@ export default function SupplierServicePage() {
 
                 {/* Блок 2: Форматы — белая подложка, сдержанный стиль (v1.30.70) */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Форматы</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Медиа сервисы</p>
                   {adFormats.length ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {/* v1.30.71: описание с подложкой, hover — только тень */}
@@ -836,7 +838,7 @@ export default function SupplierServicePage() {
                         <button key={String(f.id)} type="button" onClick={() => { setPromoFormat(f); setPromoTariffId(''); }}
                           className="bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm transition-shadow hover:shadow-lg h-full flex flex-col">
                           <p className="text-sm font-semibold text-gray-900">{String(f.name || '')}</p>
-                          <p className="text-xs text-gray-600 mt-2 leading-relaxed line-clamp-3 flex-1 bg-gray-50 border border-gray-100 rounded-lg p-2.5">{String(f.description || '')}</p>
+                          {f.description ? <p className="text-xs text-gray-600 mt-2 leading-relaxed line-clamp-3 flex-1 bg-gray-50 border border-gray-100 rounded-lg p-2.5">{String(f.description)}</p> : null}
                           <p className="text-[11px] text-gray-400 mt-3 pt-2 border-t border-gray-100">от {Number(f.pricePerMonth || 0).toLocaleString('ru')} ₽/мес.</p>
                         </button>
                       ))}
@@ -928,13 +930,11 @@ export default function SupplierServicePage() {
                         </option>
                       ))}
                     </select>
-                    {/* v1.30.71: текст после выбора тарифа — в контуре с подложкой */}
-                    {promoTariffId && (
-                      <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-3 mt-2">
-                        Обращаем ваше внимание: количество мест на каждом рекламном формате ограничено.
-                        Чтобы забронировать размещение, пожалуйста, отправьте заявку.
-                      </p>
-                    )}
+                    {/* v1.30.74: блок внимания — всегда */}
+                    <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-3 mt-2">
+                      Обращаем ваше внимание: количество мест на каждом рекламном формате ограничено.
+                      Чтобы забронировать размещение, пожалуйста, отправьте заявку.
+                    </p>
                   </div>
                   <div className="flex gap-2 pt-1">
                     {/* v1.30.71: кнопки как в модалке активации договора */}
