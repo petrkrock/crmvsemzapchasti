@@ -132,6 +132,8 @@ const [deleteWord, setDeleteWord] = useState('');
       durationLabel: opt.periodLabel,
       pricePerMonth: at?.pricePerMonth || 0,
       totalPrice: opt.totalPrice,
+      // v1.30.67: скидка по тарифу — для показа в таблице
+      discount: opt.discount || 0,
       endDate: end.toISOString().split('T')[0],
     }));
   }
@@ -147,7 +149,9 @@ const [deleteWord, setDeleteWord] = useState('');
     const { _selectedAdTypeId: _unused, ...rest } = form;
     // v1.30.62: договор поставщика подставляется автоматически
     const ac = autoContract(form.supplierId || '');
-    const restWithContract = { ...rest, ...(ac ? { contractNo: ac.contractNo, contractDate: ac.contractDate } : {}) } as MediaRecord;
+    // v1.30.67: без договора размещение создать невозможно
+    if (!ac) { toast.error('У поставщика нет договора — создайте его в разделе «Договора»'); return; }
+    const restWithContract = { ...rest, contractNo: ac.contractNo, contractDate: ac.contractDate } as MediaRecord;
     // v1.30.61: фиксируем изменения в истории записи
     const histEntry = { at: now, by: getCurrentUser()?.name || '—', action: editingId ? 'Размещение изменено' : 'Размещение создано' };
     if (editingId) {
@@ -402,6 +406,8 @@ const [deleteWord, setDeleteWord] = useState('');
                         {r.durationLabel && r.pricePerMonth ? (
                           <span>{r.durationLabel} · {r.pricePerMonth.toLocaleString('ru')} ₽/мес.</span>
                         ) : <span className="text-gray-300">—</span>}
+                        {/* v1.30.67: скидка, если есть */}
+                        {r.discount ? <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 whitespace-nowrap">−{r.discount}%</span> : null}
                         {r.totalPrice ? <b className="ml-1 bg-yellow-100 text-gray-900 rounded px-1.5 py-0.5 tabular-nums">{r.totalPrice.toLocaleString('ru')} ₽</b> : null}
                       </td>
 

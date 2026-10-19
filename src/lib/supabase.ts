@@ -404,6 +404,7 @@ function mapMediaRecord(row: Record<string, unknown>): MediaRecord {
     contractDate: (row.contract_date as string) ?? undefined,
     history: (row.history as MediaRecord['history']) ?? undefined,
     material: (row.material as MediaRecord['material']) ?? undefined,
+    discount: (row.discount as number) ?? undefined,
     createdAt: row.created_at as string,
     responsibleId: (row.responsible_id as string) ?? undefined,
     responsibleName: (row.responsible_name as string) ?? undefined,
@@ -432,6 +433,7 @@ function mapMediaRecordToDb(r: Partial<MediaRecord>): Record<string, unknown> {
   if (r.contractDate !== undefined) db.contract_date = orNull(r.contractDate);
   db.history = r.history || [];
   db.material = r.material || null;
+  if (r.discount !== undefined) db.discount = r.discount;
   if (r.responsibleId !== undefined) db.responsible_id = orNull(r.responsibleId);
   if (r.responsibleName !== undefined) db.responsible_name = orNull(r.responsibleName);
   db.deleted_at = orNull(r.deletedAt);

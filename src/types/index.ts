@@ -217,6 +217,8 @@ export interface MediaRecord {
   // v1.30.61: договор размещения + история изменений записи
   contractNo?: string;
   contractDate?: string;
+  // v1.30.67: скидка по тарифу (%)
+  discount?: number;
   history?: { at: string; by: string; action: string }[];
   // v1.30.63: материал размещения (описание + файлы-картинки)
   material?: { description: string; files: string[] };
