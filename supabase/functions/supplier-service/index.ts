@@ -289,7 +289,7 @@ async function handlePost(req: Request) {
     const opt = ((at.durationOptions as Array<Record<string, unknown>>) || []).find(o2 => String(o2.id) === String(mr.durationOptionId));
     if (!opt) return json({ error: 'Тариф не найден' }, 400);
     const contracts = ((st.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
-    const mc = contracts.find(c => c.status === 'Активный') || [...contracts].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
+    const mc = contracts.find(c => c.status === 'Активный' && c.contractNo) || contracts.find(c => c.status === 'Активный') || [...contracts].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
     if (!mc) return json({ error: 'У вас нет договора — обратитесь к менеджеру' }, 400);
     const now = new Date();
     const months = Math.max(1, Number(opt.periodMonths) || 1);
@@ -340,6 +340,23 @@ async function handlePost(req: Request) {
     return json({ ok: true });
   }
 
+  // v1.30.70: активация договора из ЛК — договор без №/даты, статус «Активный» (№ и дата — позже в CRM)
+  if (body.activateMediaContract !== undefined) {
+    const stRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
+    const st = (stRow.data?.settings || {}) as Record<string, unknown>;
+    const contracts = ((st.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
+    const hasActive = contracts.some(c => c.status === 'Активный');
+    if (hasActive) return json({ ok: true });
+    const now = new Date().toISOString();
+    const next = [
+      ...contracts,
+      { id: `mc-${Date.now()}`, supplierId: String(supplier.id), contractNo: '', contractDate: '', status: 'Активный', createdAt: now, history: [{ at: now, by: 'Поставщик (ЛК)', action: 'Договор активирован в ЛК' }] },
+    ];
+    const { error: upErr } = await client.from('app_settings').update({ settings: { ...st, mediaContracts: next } }).eq('id', 'global');
+    if (upErr) return json({ error: 'Не удалось активировать договор' }, 500);
+    return json({ ok: true });
+  }
+
   if (body.edoOperator !== undefined || body.edoToken !== undefined) {
     if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
     if (body.edoToken !== undefined) patch.edo_token = String(body.edoToken ?? '').slice(0, 300);
@@ -357,7 +374,7 @@ async function handlePost(req: Request) {
       // v1.30.68: Продвижение (ЛК) — договор поставщика и форматы с тарифами
       mediaContract: (() => {
         const list = ((dset.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
-        const act = list.find(c => c.status === 'Активный') || [...list].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
+        const act = list.find(c => c.status === 'Активный' && c.contractNo) || list.find(c => c.status === 'Активный') || [...list].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
         return act ? { contractNo: (act.contractNo as string) || '', contractDate: (act.contractDate as string) || '', status: (act.status as string) || '' } : null;
       })(),
       adFormats: ((dset.mediaAdTypes as Array<Record<string, unknown>>) || []).filter(t => t.enabled !== false).map(t => ({
