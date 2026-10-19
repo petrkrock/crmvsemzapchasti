@@ -66,6 +66,12 @@ export default function SupplierServicePage() {
   const [offerTextOpen, setOfferTextOpen] = useState(false);
   const [lkOffer, setLkOffer] = useState<Record<string, unknown> | null>(null); // v1.30.58: включённая оферта (для чтения из кабинета)
   const [offerView, setOfferView] = useState(false); // v1.30.58: режим чтения из кабинета (без ДА/НЕТ)
+  // v1.30.68: Продвижение (ЛК) — договор поставщика, форматы, заявка
+  const [promoContract, setPromoContract] = useState<Record<string, unknown> | null>(null);
+  const [adFormats, setAdFormats] = useState<Array<Record<string, unknown>>>([]);
+  const [promoFormat, setPromoFormat] = useState<Record<string, unknown> | null>(null); // формат в модалке
+  const [promoTariffId, setPromoTariffId] = useState('');
+  const [promoBusy, setPromoBusy] = useState(false);
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [cabEdit, setCabEdit] = useState(false);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -167,6 +173,8 @@ export default function SupplierServicePage() {
         setLkOffer(oc);
         setOfferGate(oc && String(oc.edition || '') !== String(d.offerAcceptedEdition || '') ? oc : null);
       }
+      if (r.ok && d?.mediaContract !== undefined) setPromoContract(d.mediaContract);
+      if (r.ok && Array.isArray(d?.adFormats)) setAdFormats(d.adFormats);
       if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
@@ -190,6 +198,29 @@ export default function SupplierServicePage() {
     sessionStorage.removeItem('dbs_pin_ok');
     sessionStorage.removeItem('dbs_pin');
     setPinPassed(false); setOfferGate(null); setOfferTextOpen(false);
+  }
+
+  // v1.30.68: отправка заявки на продвижение из ЛК
+  async function sendPromoRequest() {
+    if (!promoFormat || !promoTariffId) return;
+    setPromoBusy(true);
+    try {
+      const pinCode = sessionStorage.getItem('dbs_pin') || '';
+      const r = await fetch(getFunctionsUrl('supplier-service'), {
+        method: 'POST',
+        headers: { ...getAnonKeyHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin: pinCode, mediaRequest: { adTypeId: promoFormat.id, durationOptionId: promoTariffId } }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast.success('Заявка отправлена');
+        setPromoFormat(null); setPromoTariffId('');
+      } else {
+        toast.error(String(d?.error || 'Не удалось отправить заявку'));
+      }
+    } catch {
+      toast.error('Не удалось отправить заявку');
+    } finally { setPromoBusy(false); }
   }
 
   async function post(payload: Record<string, unknown>, silent = false): Promise<string | null> {
@@ -702,10 +733,70 @@ export default function SupplierServicePage() {
               </div>
             )}
 
+            {/* v1.30.68: Продвижение (ЛК) — договор + форматы + заявка */}
             {lkTab === 'promo' && (
-              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
-                <p className="text-sm font-semibold text-gray-700">Продвижение</p>
-                <p className="text-xs text-gray-400">Раздел появится в следующих обновлениях.</p>
+              <div className="space-y-4">
+                {/* Блок 1: Договор */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Договор</p>
+                  {promoContract ? (
+                    <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+                      <p className="text-gray-600">№ договора: <b className="text-gray-900">{String(promoContract.contractNo || '—')}</b></p>
+                      <p className="text-gray-600">Дата: <b className="text-gray-900">{String(promoContract.contractDate || '').split('-').reverse().join('.') || '—'}</b></p>
+                      <p className="text-gray-600">Статус: <b className="text-gray-900">{String(promoContract.status || '—')}</b></p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400">Договор не найден — обратитесь к менеджеру.</p>
+                  )}
+                </div>
+
+                {/* Блок 2: Форматы — грид 3 в ряд */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Форматы</p>
+                  {adFormats.length ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {adFormats.map(f => (
+                        <button key={String(f.id)} type="button" onClick={() => { setPromoFormat(f); setPromoTariffId(''); }}
+                          className="bg-white border border-gray-200 rounded-2xl p-4 text-left transition-all hover:border-red-300 hover:shadow-md h-full flex flex-col">
+                          <p className="text-sm font-semibold text-gray-900">{String(f.name || '')}</p>
+                          <p className="text-xs text-gray-500 mt-1 leading-snug line-clamp-3 flex-1">{String(f.description || '')}</p>
+                          <p className="text-[11px] text-gray-400 mt-2">от {Number(f.pricePerMonth || 0).toLocaleString('ru')} ₽/мес.</p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400">Форматы не настроены.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* v1.30.68: модалка заявки на продвижение */}
+            {promoFormat && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/50" onClick={() => { if (!promoBusy) { setPromoFormat(null); setPromoTariffId(''); } }} />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 animate-fade-in">
+                  <h3 className="text-base font-bold text-gray-900">{String(promoFormat.name || 'Формат')}</h3>
+                  <div>
+                    <label className="form-label text-xs">Тариф</label>
+                    <select className="form-input text-xs" value={promoTariffId} onChange={e => setPromoTariffId(e.target.value)}>
+                      <option value="">Выберите тариф...</option>
+                      {((promoFormat.durations as Array<Record<string, unknown>>) || []).map(o => (
+                        <option key={String(o.id)} value={String(o.id)}>
+                          {String(o.periodLabel || '')} · {Number(o.totalPrice || 0).toLocaleString('ru')} ₽{Number(o.discount || 0) ? ` (−${Number(o.discount)}%)` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" disabled={!promoTariffId || promoBusy} onClick={sendPromoRequest}
+                      className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      {promoBusy ? 'Отправка...' : 'Отправить заявку'}
+                    </button>
+                    <button type="button" disabled={promoBusy} onClick={() => { setPromoFormat(null); setPromoTariffId(''); }}
+                      className="text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Отмена</button>
+                  </div>
+                </div>
               </div>
             )}
 
