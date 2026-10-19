@@ -157,6 +157,7 @@ CREATE TABLE public.media_records (
   contract_date       TEXT,
   history             JSONB NOT NULL DEFAULT '[]'::jsonb,
   material            JSONB,
+  discount            INTEGER,
   responsible_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   responsible_name    TEXT,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
