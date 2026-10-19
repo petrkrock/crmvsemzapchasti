@@ -276,14 +276,13 @@ const [deleteWord, setDeleteWord] = useState('');
           <h1 className="page-title">Медиа сервис</h1>
           <p className="text-xs text-gray-400 mt-0.5">Учёт рекламных размещений поставщиков</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowArchived(v => !v)} className={`btn-secondary text-xs ${showArchived ? 'bg-gray-200' : ''}`}>{showArchived ? 'Скрыть архив' : 'Архив'}</button>
-          <button onClick={openAdd} className="btn-primary"><Plus size={16} /> Добавить размещение</button>
-          {/* v1.30.65: добавление договора — сразу после «Добавить размещение» */}
-          <button onClick={() => { setView('contracts'); openContractForm(); }} className="btn-secondary text-xs"><Plus size={14} /> Добавить договор</button>
-          {/* v1.30.62: раздел «Договора» */}
-          <button onClick={() => setView('placements')} className={`btn-secondary text-xs ${view === 'placements' ? '!border-red-600 !text-red-600' : ''}`}>Размещения</button>
+        {/* v1.30.66: единый дизайн кнопок, порядок: Размещения / Договора / Добавить размещение / Добавить договор / Архив */}
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => { setView('placements'); setShowArchived(false); }} className={`btn-secondary text-xs ${view === 'placements' && !showArchived ? '!border-red-600 !text-red-600' : ''}`}>Размещения</button>
           <button onClick={() => setView('contracts')} className={`btn-secondary text-xs ${view === 'contracts' ? '!border-red-600 !text-red-600' : ''}`}>Договора</button>
+          <button onClick={openAdd} className="btn-secondary text-xs"><Plus size={14} /> Добавить размещение</button>
+          <button onClick={() => { setView('contracts'); openContractForm(); }} className="btn-secondary text-xs"><Plus size={14} /> Добавить договор</button>
+          <button onClick={() => setShowArchived(v => !v)} className={`btn-secondary text-xs ${showArchived ? '!border-red-600 !text-red-600' : ''}`}>Архив</button>
         </div>
       </div>
 
@@ -388,7 +387,15 @@ const [deleteWord, setDeleteWord] = useState('');
                         </div>
                       </td>
 
-                      <td className="table-cell hidden md:table-cell text-xs">{r.adTypeName}</td>
+                      {/* v1.30.66: договор второй строкой под типом рекламы */}
+                      <td className="table-cell hidden md:table-cell text-xs">
+                        <span className="font-medium text-brand-black">{r.adTypeName}</span>
+                        {(() => {
+                          const mc = (store.settings.mediaContracts || []).find(c => c.supplierId === r.supplierId && (!r.contractNo || c.contractNo === r.contractNo)) || autoContract(r.supplierId || '');
+                          if (!mc) return null;
+                          return <p className="text-[11px] text-gray-400 mt-0.5">Договор: № {mc.contractNo} от {String(mc.contractDate).split('-').reverse().join('.')}</p>;
+                        })()}
+                      </td>
 
                       {/* v1.30.61: тариф одной строкой, итоговая сумма выделена */}
                       <td className="table-cell hidden lg:table-cell text-xs text-gray-500 whitespace-nowrap">
@@ -438,39 +445,6 @@ const [deleteWord, setDeleteWord] = useState('');
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                             <div className="space-y-3">
                             {/* Summary info */}
-                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                              <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
-                                <p className="text-xs text-gray-500">Тип рекламы</p>
-                                <p className="text-xs font-medium">{r.adTypeName}</p>
-                              </div>
-                              {/* v1.30.65: блок «Тариф» */}
-                              <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
-                                <p className="text-xs text-gray-500">Тариф</p>
-                                <p className="text-xs font-medium">{r.durationLabel || getDurationText(r.startDate, r.endDate) || '—'}{r.pricePerMonth ? ` · ${r.pricePerMonth.toLocaleString('ru')} ₽/мес.` : ''}</p>
-                              </div>
-                              <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
-                                <p className="text-xs text-gray-500">Сумма</p>
-                                <p className="text-xs font-medium text-brand-red">{r.totalPrice ? r.totalPrice.toLocaleString('ru') + ' ₽' : '—'}</p>
-                              </div>
-                              <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
-                                <p className="text-xs text-gray-500">В месяц</p>
-                                <p className="text-xs font-medium">{r.pricePerMonth ? r.pricePerMonth.toLocaleString('ru') + ' ₽' : '—'}</p>
-                              </div>
-                              {/* v1.30.65: договор — живой поиск по договорам поставщика (не только сохранённое значение) */}
-                              <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
-                                <p className="text-xs text-gray-500">Договор</p>
-                                {(() => {
-                                  const mc = (store.settings.mediaContracts || []).find(c => c.supplierId === r.supplierId && (!r.contractNo || c.contractNo === r.contractNo)) || autoContract(r.supplierId || '');
-                                  if (!mc) return <p className="text-xs font-medium">№ {r.contractNo || '—'}</p>;
-                                  return (
-                                    <>
-                                      <p className="text-xs font-medium">№ {mc.contractNo}</p>
-                                      <p className="text-xs text-gray-500">{String(mc.contractDate).split('-').reverse().join('.')} · {mc.status}</p>
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            </div>
 
                             {/* Expanded notes */}
                             <div className="bg-white rounded-lg border border-brand-gray-mid p-3">
