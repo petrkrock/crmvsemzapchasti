@@ -279,6 +279,8 @@ const [deleteWord, setDeleteWord] = useState('');
         <div className="flex gap-2">
           <button onClick={() => setShowArchived(v => !v)} className={`btn-secondary text-xs ${showArchived ? 'bg-gray-200' : ''}`}>{showArchived ? 'Скрыть архив' : 'Архив'}</button>
           <button onClick={openAdd} className="btn-primary"><Plus size={16} /> Добавить размещение</button>
+          {/* v1.30.65: добавление договора — сразу после «Добавить размещение» */}
+          <button onClick={() => { setView('contracts'); openContractForm(); }} className="btn-secondary text-xs"><Plus size={14} /> Добавить договор</button>
           {/* v1.30.62: раздел «Договора» */}
           <button onClick={() => setView('placements')} className={`btn-secondary text-xs ${view === 'placements' ? '!border-red-600 !text-red-600' : ''}`}>Размещения</button>
           <button onClick={() => setView('contracts')} className={`btn-secondary text-xs ${view === 'contracts' ? '!border-red-600 !text-red-600' : ''}`}>Договора</button>
@@ -435,20 +437,16 @@ const [deleteWord, setDeleteWord] = useState('');
                           {/* v1.30.64: карточка двумя колонками — сводка слева, материал справа */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                             <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <FileText size={14} className="text-brand-red flex-shrink-0" />
-                              <h4 className="text-sm font-semibold text-brand-black">Карточка размещения: {r.supplierName}</h4>
-                            </div>
-
                             {/* Summary info */}
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                               <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
                                 <p className="text-xs text-gray-500">Тип рекламы</p>
                                 <p className="text-xs font-medium">{r.adTypeName}</p>
                               </div>
+                              {/* v1.30.65: блок «Тариф» */}
                               <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
-                                <p className="text-xs text-gray-500">Длительность</p>
-                                <p className="text-xs font-medium">{r.durationLabel || getDurationText(r.startDate, r.endDate)}</p>
+                                <p className="text-xs text-gray-500">Тариф</p>
+                                <p className="text-xs font-medium">{r.durationLabel || getDurationText(r.startDate, r.endDate) || '—'}{r.pricePerMonth ? ` · ${r.pricePerMonth.toLocaleString('ru')} ₽/мес.` : ''}</p>
                               </div>
                               <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
                                 <p className="text-xs text-gray-500">Сумма</p>
@@ -458,11 +456,19 @@ const [deleteWord, setDeleteWord] = useState('');
                                 <p className="text-xs text-gray-500">В месяц</p>
                                 <p className="text-xs font-medium">{r.pricePerMonth ? r.pricePerMonth.toLocaleString('ru') + ' ₽' : '—'}</p>
                               </div>
-                              {/* v1.30.61: договор размещения в карточке */}
+                              {/* v1.30.65: договор — живой поиск по договорам поставщика (не только сохранённое значение) */}
                               <div className="bg-white rounded-lg p-2 border border-brand-gray-mid">
                                 <p className="text-xs text-gray-500">Договор</p>
-                                <p className="text-xs font-medium">№ {r.contractNo || '—'}</p>
-                                <p className="text-xs text-gray-500">{r.contractDate ? String(r.contractDate).split('-').reverse().join('.') : ''}</p>
+                                {(() => {
+                                  const mc = (store.settings.mediaContracts || []).find(c => c.supplierId === r.supplierId && (!r.contractNo || c.contractNo === r.contractNo)) || autoContract(r.supplierId || '');
+                                  if (!mc) return <p className="text-xs font-medium">№ {r.contractNo || '—'}</p>;
+                                  return (
+                                    <>
+                                      <p className="text-xs font-medium">№ {mc.contractNo}</p>
+                                      <p className="text-xs text-gray-500">{String(mc.contractDate).split('-').reverse().join('.')} · {mc.status}</p>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             </div>
 
@@ -657,9 +663,6 @@ const [deleteWord, setDeleteWord] = useState('');
       {/* ═══ ДОГОВОРА (v1.30.62) ═══ */}
       {view === 'contracts' && (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <button onClick={() => openContractForm()} className="btn-primary text-xs"><Plus size={14} /> Добавить договор</button>
-          </div>
           {showContractForm && (
             <div className="card-base p-4 space-y-3">
               <h3 className="section-title">{editingContractId ? 'Редактирование договора' : 'Новый договор'}</h3>
