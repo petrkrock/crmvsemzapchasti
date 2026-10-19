@@ -667,6 +667,20 @@ export interface MediaContract {
   updatedAt?: string;
 }
 
+/** v1.30.69: Новость рынка */
+export interface MarketNewsItem {
+  id: string;
+  supplierId: string;
+  title: string;
+  link?: string;
+  text?: string;
+  imageUrl?: string;
+  status: 'Новая' | 'Опубликована' | 'Аннулирована';
+  /** Дата новости */
+  date: string;
+  createdAt: string;
+}
+
 export interface AppSettings {
   statuses: StatusConfig[];
   buyerCategoryComment?: { A: string; B: string; C: string }; // этап 1.8 — комментарии оборота категорий покупателей
@@ -701,6 +715,8 @@ export interface AppSettings {
   offerContracts?: OfferContract[];
   /** v1.30.62: Договора размещений (Медиа сервис → Договора) */
   mediaContracts?: MediaContract[];
+  /** v1.30.69: Новости рынка (Медиа сервис → Новости) */
+  marketNews?: MarketNewsItem[];
   /** v1.29.33: Справочник операторов ЭДО (Настройки → Источники) */
   edoOperators?: string[];
   /** Быстрые кнопки в шапке (иконки «Почта» и «Платформа»); пустая строка — кнопка скрыта */

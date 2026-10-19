@@ -5,7 +5,7 @@ import { generateId, formatDate } from '@/lib/utils';
 import { isAdmin, canSeeMedia, getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
-import type { MediaRecord, MediaDurationOption } from '@/types';
+import type { MediaRecord, MediaDurationOption, MarketNewsItem } from '@/types';
 import { Plus, Search, X, Edit2, Trash2, AlertTriangle, Clock, ChevronDown, ChevronUp, FileText, Save, History } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,7 +46,18 @@ const [deleteWord, setDeleteWord] = useState('');
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [historyRecordId, setHistoryRecordId] = useState<string | null>(null); // v1.30.61: просмотр истории записи
   // v1.30.62: раздел «Договора»
-  const [view, setView] = useState<'placements' | 'contracts'>('placements');
+  // v1.30.69: вид «Новости рынка»
+  const [view, setView] = useState<'placements' | 'contracts' | 'news'>('placements');
+  const [showNewsForm, setShowNewsForm] = useState(false);
+  const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
+  const [mnSupplierId, setMnSupplierId] = useState('');
+  const [mnTitle, setMnTitle] = useState('');
+  const [mnLink, setMnLink] = useState('');
+  const [mnText, setMnText] = useState('');
+  const [mnImage, setMnImage] = useState('');
+  const [mnStatus, setMnStatus] = useState<'Новая' | 'Опубликована' | 'Аннулирована'>('Новая');
+  const [mnDate, setMnDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [mnBusy, setMnBusy] = useState(false);
   const [showContractForm, setShowContractForm] = useState(false);
   const [editingContractId, setEditingContractId] = useState<string | null>(null);
   const [mcSupplierId, setMcSupplierId] = useState('');
@@ -195,6 +206,44 @@ const [deleteWord, setDeleteWord] = useState('');
     toast.success('Договор удалён');
   }
 
+  // v1.30.69: новости рынка
+  function openNewsForm(n?: MarketNewsItem) {
+    if (n) {
+      setEditingNewsId(n.id); setMnSupplierId(n.supplierId); setMnTitle(n.title); setMnLink(n.link || ''); setMnText(n.text || ''); setMnImage(n.imageUrl || ''); setMnStatus(n.status); setMnDate(n.date || new Date().toISOString().slice(0, 10));
+    } else {
+      setEditingNewsId(null); setMnSupplierId(''); setMnTitle(''); setMnLink(''); setMnText(''); setMnImage(''); setMnStatus('Новая'); setMnDate(new Date().toISOString().slice(0, 10));
+    }
+    setShowNewsForm(true);
+  }
+  async function uploadNewsImage(file: File) {
+    if (!supabase) { toast.error('Загрузка файлов недоступна'); return; }
+    setMnBusy(true);
+    try {
+      const path = `market-news/${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
+      const { error } = await supabase.storage.from('lk-assets').upload(path, file, { upsert: true });
+      if (error) { toast.error('Ошибка загрузки файла'); return; }
+      const { data } = supabase.storage.from('lk-assets').getPublicUrl(path);
+      setMnImage(data.publicUrl);
+    } finally { setMnBusy(false); }
+  }
+  function saveNews() {
+    if (!editingNewsId && !mnSupplierId) { toast.error('Выберите поставщика'); return; }
+    if (!mnTitle.trim()) { toast.error('Введите заголовок'); return; }
+    if (!mnDate) { toast.error('Укажите дату'); return; }
+    if (editingNewsId) {
+      updateStore(s => ({ ...s, settings: { ...s.settings, marketNews: (s.settings.marketNews || []).map(n => n.id === editingNewsId ? { ...n, title: mnTitle.trim(), link: mnLink.trim(), text: mnText, imageUrl: mnImage, status: mnStatus, date: mnDate } : n) } }));
+      toast.success('Новость обновлена');
+    } else {
+      const nn: MarketNewsItem = { id: generateId(), supplierId: mnSupplierId, title: mnTitle.trim(), link: mnLink.trim(), text: mnText, imageUrl: mnImage, status: mnStatus, date: mnDate, createdAt: new Date().toISOString() };
+      updateStore(s => ({ ...s, settings: { ...s.settings, marketNews: [nn, ...(s.settings.marketNews || [])] } }));
+      toast.success('Новость добавлена');
+    }
+    setShowNewsForm(false); setEditingNewsId(null);
+  }
+  function deleteNews(id: string) {
+    updateStore(s => ({ ...s, settings: { ...s.settings, marketNews: (s.settings.marketNews || []).filter(n => n.id !== id) } }));
+    toast.success('Новость удалена');
+  }
   // v1.30.63: материал размещения
   function startEditMaterial(r: MediaRecord) {
     setEditingMaterialId(r.id);
@@ -283,6 +332,8 @@ const [deleteWord, setDeleteWord] = useState('');
         {/* v1.30.66: единый дизайн кнопок, порядок: Размещения / Договора / Добавить размещение / Добавить договор / Архив */}
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => { setView('placements'); setShowArchived(false); }} className={`btn-secondary text-xs ${view === 'placements' && !showArchived ? '!border-red-600 !text-red-600' : ''}`}>Размещения</button>
+          {/* v1.30.69: Новости рынка */}
+          <button onClick={() => setView('news')} className={`btn-secondary text-xs ${view === 'news' ? '!border-red-600 !text-red-600' : ''}`}>Новости</button>
           <button onClick={() => setView('contracts')} className={`btn-secondary text-xs ${view === 'contracts' ? '!border-red-600 !text-red-600' : ''}`}>Договора</button>
           <button onClick={openAdd} className="btn-secondary text-xs"><Plus size={14} /> Добавить размещение</button>
           <button onClick={() => { setView('contracts'); openContractForm(); }} className="btn-secondary text-xs"><Plus size={14} /> Добавить договор</button>
@@ -639,6 +690,96 @@ const [deleteWord, setDeleteWord] = useState('');
       )}
 
       </>)}
+
+      {/* ═══ НОВОСТИ РЫНКА (v1.30.69) ═══ */}
+      {view === 'news' && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <button onClick={() => openNewsForm()} className="btn-secondary text-xs"><Plus size={14} /> Добавить новость</button>
+          </div>
+          {showNewsForm && (
+            <div className="card-base p-4 space-y-3">
+              <h3 className="section-title">{editingNewsId ? 'Редактирование новости' : 'Новая новость'}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {!editingNewsId && (
+                  <div>
+                    <label className="form-label text-xs">Поставщик *</label>
+                    <select className="form-input text-xs" value={mnSupplierId} onChange={e => setMnSupplierId(e.target.value)}>
+                      <option value="">Выберите...</option>
+                      {store.suppliers.filter(s => !s.deletedAt).map(s => <option key={s.id} value={s.id}>{s.tradeName}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div><label className="form-label text-xs">Заголовок *</label><input className="form-input text-xs" value={mnTitle} onChange={e => setMnTitle(e.target.value)} /></div>
+                <div><label className="form-label text-xs">Ссылка</label><input className="form-input text-xs" value={mnLink} onChange={e => setMnLink(e.target.value)} placeholder="https://" /></div>
+                <div><label className="form-label text-xs">Дата</label><input type="date" className="form-input text-xs" value={mnDate} onChange={e => setMnDate(e.target.value)} /></div>
+                <div>
+                  <label className="form-label text-xs">Статус</label>
+                  <select className="form-input text-xs" value={mnStatus} onChange={e => setMnStatus(e.target.value as 'Новая' | 'Опубликована' | 'Аннулирована')}>
+                    {(['Новая', 'Опубликована', 'Аннулирована'] as const).map(st => <option key={st}>{st}</option>)}
+                  </select>
+                </div>
+                <div className="sm:col-span-2"><label className="form-label text-xs">Текст</label><textarea className="form-input text-xs" rows={2} value={mnText} onChange={e => setMnText(e.target.value)} /></div>
+                <div>
+                  <label className="form-label text-xs">Материал (картинка)</label>
+                  <div className="flex items-center gap-2">
+                    {mnImage ? <img src={mnImage} alt="" className="h-10 w-10 object-cover rounded-lg border border-gray-200" /> : null}
+                    <label className={`text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 cursor-pointer ${mnBusy ? 'opacity-50' : 'hover:bg-gray-200'}`}>
+                      {mnBusy ? 'Загрузка…' : mnImage ? 'Заменить' : 'Загрузить'}
+                      <input type="file" accept="image/*" className="hidden" disabled={mnBusy} onChange={e => { const f = e.target.files?.[0]; if (f) uploadNewsImage(f); e.target.value = ''; }} />
+                    </label>
+                    {mnImage && <button type="button" onClick={() => setMnImage('')} className="text-xs text-gray-400 hover:text-red-600">Убрать</button>}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={saveNews} className="btn-primary text-xs"><Save size={13} /> {editingNewsId ? 'Сохранить' : 'Добавить'}</button>
+                <button onClick={() => setShowNewsForm(false)} className="btn-secondary text-xs">Отмена</button>
+              </div>
+            </div>
+          )}
+          <div className="card-base overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="table-header">Поставщик</th>
+                    <th className="table-header">Заголовок</th>
+                    <th className="table-header">Ссылка</th>
+                    <th className="table-header">Текст</th>
+                    <th className="table-header">Материал</th>
+                    <th className="table-header">Статус</th>
+                    <th className="table-header">Дата</th>
+                    <th className="table-header w-20"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(store.settings.marketNews || []).map(n => (
+                    <tr key={n.id} className="border-t border-gray-100">
+                      <td className="table-cell font-medium">{store.suppliers.find(s => s.id === n.supplierId)?.tradeName || '—'}</td>
+                      <td className="table-cell">{n.title}</td>
+                      <td className="table-cell">{n.link ? <a href={n.link} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs break-all">{n.link}</a> : '—'}</td>
+                      <td className="table-cell text-xs text-gray-500 max-w-[200px]"><p className="line-clamp-2 whitespace-pre-wrap">{n.text || '—'}</p></td>
+                      <td className="table-cell">{n.imageUrl ? <a href={n.imageUrl} target="_blank" rel="noreferrer"><img src={n.imageUrl} alt="" className="h-10 w-10 object-cover rounded-lg border border-gray-200" /></a> : '—'}</td>
+                      <td className="table-cell">
+                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${n.status === 'Опубликована' ? 'bg-green-100 text-green-700' : n.status === 'Новая' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{n.status}</span>
+                      </td>
+                      <td className="table-cell whitespace-nowrap">{n.date ? String(n.date).split('-').reverse().join('.') : '—'}</td>
+                      <td className="table-cell">
+                        <div className="flex gap-1">
+                          <button onClick={() => openNewsForm(n)} className="p-1 text-gray-400 hover:text-brand-black" title="Редактировать"><Edit2 size={14} /></button>
+                          <button onClick={() => deleteNews(n.id)} className="p-1 text-gray-400 hover:text-red-600" title="Удалить"><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!(store.settings.marketNews || []).length && <p className="text-xs text-gray-400 text-center py-8">Новостей нет.</p>}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ ДОГОВОРА (v1.30.62) ═══ */}
       {view === 'contracts' && (

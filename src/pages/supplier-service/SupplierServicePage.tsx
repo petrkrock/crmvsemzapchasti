@@ -72,6 +72,13 @@ export default function SupplierServicePage() {
   const [promoFormat, setPromoFormat] = useState<Record<string, unknown> | null>(null); // формат в модалке
   const [promoTariffId, setPromoTariffId] = useState('');
   const [promoBusy, setPromoBusy] = useState(false);
+  // v1.30.69: добавление новости рынка из ЛК
+  const [newsModalOpen, setNewsModalOpen] = useState(false);
+  const [nnTitle, setNnTitle] = useState('');
+  const [nnLink, setNnLink] = useState('');
+  const [nnText, setNnText] = useState('');
+  const [nnImage, setNnImage] = useState('');
+  const [nnBusy, setNnBusy] = useState(false);
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [cabEdit, setCabEdit] = useState(false);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -221,6 +228,41 @@ export default function SupplierServicePage() {
     } catch {
       toast.error('Не удалось отправить заявку');
     } finally { setPromoBusy(false); }
+  }
+
+  // v1.30.69: загрузка картинки новости (тот же бакет lk-assets)
+  async function uploadNewsImageLk(file: File) {
+    if (!supabase) { toast.error('Загрузка файлов недоступна'); return; }
+    setNnBusy(true);
+    try {
+      const path = `market-news/${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
+      const { error } = await supabase.storage.from('lk-assets').upload(path, file, { upsert: true });
+      if (error) { toast.error('Ошибка загрузки файла'); return; }
+      const { data } = supabase.storage.from('lk-assets').getPublicUrl(path);
+      setNnImage(data.publicUrl);
+    } finally { setNnBusy(false); }
+  }
+  // Отправка новости в раздел «Новости рынка»
+  async function sendMarketNews() {
+    if (!nnTitle.trim()) { toast.error('Введите заголовок новости'); return; }
+    setNnBusy(true);
+    try {
+      const pinCode = sessionStorage.getItem('dbs_pin') || '';
+      const r = await fetch(getFunctionsUrl('supplier-service'), {
+        method: 'POST',
+        headers: { ...getAnonKeyHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin: pinCode, marketNewsRequest: { title: nnTitle.trim(), link: nnLink.trim(), text: nnText, imageUrl: nnImage } }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast.success('Новость отправлена');
+        setNewsModalOpen(false); setNnTitle(''); setNnLink(''); setNnText(''); setNnImage('');
+      } else {
+        toast.error(String(d?.error || 'Не удалось отправить новость'));
+      }
+    } catch {
+      toast.error('Не удалось отправить новость');
+    } finally { setNnBusy(false); }
   }
 
   async function post(payload: Record<string, unknown>, silent = false): Promise<string | null> {
@@ -738,7 +780,11 @@ export default function SupplierServicePage() {
               <div className="space-y-4">
                 {/* Блок 1: Договор */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Договор</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Договор</p>
+                    {/* v1.30.69: добавление новости рынка из ЛК */}
+                    <button type="button" onClick={() => setNewsModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors">Добавить новость</button>
+                  </div>
                   {promoContract ? (
                     <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
                       <p className="text-gray-600">№ договора: <b className="text-gray-900">{String(promoContract.contractNo || '—')}</b></p>
@@ -772,6 +818,47 @@ export default function SupplierServicePage() {
             )}
 
             {/* v1.30.68: модалка заявки на продвижение */}
+            {/* v1.30.69: модалка «Добавить новость» */}
+            {newsModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/50" onClick={() => { if (!nnBusy) setNewsModalOpen(false); }} />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-3 animate-fade-in">
+                  <h3 className="text-base font-bold text-gray-900">Добавить новость</h3>
+                  <div>
+                    <label className="form-label text-xs">Заголовок *</label>
+                    <input className="form-input text-xs" value={nnTitle} onChange={e => setNnTitle(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label text-xs">Ссылка</label>
+                    <input className="form-input text-xs" value={nnLink} onChange={e => setNnLink(e.target.value)} placeholder="https://" />
+                  </div>
+                  <div>
+                    <label className="form-label text-xs">Текст</label>
+                    <textarea className="form-input text-xs" rows={3} value={nnText} onChange={e => setNnText(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label text-xs">Материал (картинка)</label>
+                    <div className="flex items-center gap-2">
+                      {nnImage ? <img src={nnImage} alt="" className="h-10 w-10 object-cover rounded-lg border border-gray-200" /> : null}
+                      <label className={`text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 cursor-pointer ${nnBusy ? 'opacity-50' : 'hover:bg-gray-200'}`}>
+                        {nnBusy ? 'Загрузка…' : nnImage ? 'Заменить' : 'Загрузить'}
+                        <input type="file" accept="image/*" className="hidden" disabled={nnBusy} onChange={e => { const f = e.target.files?.[0]; if (f) uploadNewsImageLk(f); e.target.value = ''; }} />
+                      </label>
+                      {nnImage && <button type="button" onClick={() => setNnImage('')} className="text-xs text-gray-400 hover:text-red-600">Убрать</button>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" disabled={!nnTitle.trim() || nnBusy} onClick={sendMarketNews}
+                      className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      {nnBusy ? 'Отправка...' : 'Отправить'}
+                    </button>
+                    <button type="button" disabled={nnBusy} onClick={() => setNewsModalOpen(false)}
+                      className="text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Отмена</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {promoFormat && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/50" onClick={() => { if (!promoBusy) { setPromoFormat(null); setPromoTariffId(''); } }} />
