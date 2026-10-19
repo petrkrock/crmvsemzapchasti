@@ -279,6 +279,43 @@ async function handlePost(req: Request) {
     if (upErr) return json({ error: 'Не удалось сохранить. Попробуйте позже.' }, 500);
     return json({ ok: true });
   }
+  // v1.30.68: заявка на продвижение из ЛК — создаём размещение (media_records) со статусом «Новый заказ»
+  if (body.mediaRequest !== undefined) {
+    const mr = body.mediaRequest as Record<string, unknown>;
+    const stRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
+    const st = (stRow.data?.settings || {}) as Record<string, unknown>;
+    const at = ((st.mediaAdTypes as Array<Record<string, unknown>>) || []).find(t => String(t.id) === String(mr.adTypeId));
+    if (!at) return json({ error: 'Формат не найден' }, 400);
+    const opt = ((at.durationOptions as Array<Record<string, unknown>>) || []).find(o2 => String(o2.id) === String(mr.durationOptionId));
+    if (!opt) return json({ error: 'Тариф не найден' }, 400);
+    const contracts = ((st.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
+    const mc = contracts.find(c => c.status === 'Активный') || [...contracts].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
+    if (!mc) return json({ error: 'У вас нет договора — обратитесь к менеджеру' }, 400);
+    const now = new Date();
+    const months = Math.max(1, Number(opt.periodMonths) || 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + months, now.getDate());
+    const { error: insErr } = await client.from('media_records').insert({
+      supplier_id: supplier.id,
+      supplier_name: supplier.trade_name || '',
+      ad_type_id: String(at.id),
+      ad_type_name: String(at.name || ''),
+      duration_option_id: String(opt.id),
+      duration_label: String(opt.periodLabel || ''),
+      price_per_month: Number(at.pricePerMonth) || 0,
+      total_price: Number(opt.totalPrice) || 0,
+      discount: Number(opt.discount) || 0,
+      contract_no: (mc.contractNo as string) || null,
+      contract_date: (mc.contractDate as string) || null,
+      start_date: now.toISOString().slice(0, 10),
+      end_date: end.toISOString().slice(0, 10),
+      status: 'Новый заказ',
+      notes: 'Заявка из ЛК (Продвижение)',
+      history: [{ id: `h-${Date.now()}-lk`, date: new Date().toISOString(), field: 'created', userId: 'supplier-self', userName: 'Поставщик (ЛК)', comment: '', oldValue: '', newValue: 'Заявка на продвижение из ЛК' }],
+    });
+    if (insErr) return json({ error: 'Не удалось отправить заявку' }, 500);
+    return json({ ok: true });
+  }
+
   if (body.edoOperator !== undefined || body.edoToken !== undefined) {
     if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
     if (body.edoToken !== undefined) patch.edo_token = String(body.edoToken ?? '').slice(0, 300);
@@ -293,6 +330,19 @@ async function handlePost(req: Request) {
       ok: true,
       pinVerified: true,
       phone: supplier.phone || '',
+      // v1.30.68: Продвижение (ЛК) — договор поставщика и форматы с тарифами
+      mediaContract: (() => {
+        const list = ((dset.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
+        const act = list.find(c => c.status === 'Активный') || [...list].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
+        return act ? { contractNo: (act.contractNo as string) || '', contractDate: (act.contractDate as string) || '', status: (act.status as string) || '' } : null;
+      })(),
+      adFormats: ((dset.mediaAdTypes as Array<Record<string, unknown>>) || []).filter(t => t.enabled !== false).map(t => ({
+        id: String(t.id),
+        name: String(t.name || ''),
+        description: String(t.description || ''),
+        pricePerMonth: Number(t.pricePerMonth) || 0,
+        durations: ((t.durationOptions as Array<Record<string, unknown>>) || []).map(o3 => ({ id: String(o3.id), periodLabel: String(o3.periodLabel || ''), periodMonths: Number(o3.periodMonths) || 1, discount: Number(o3.discount) || 0, totalPrice: Number(o3.totalPrice) || 0 })),
+      })),
       // v1.30.56: включённая оферта + принятая редакция (ЛК показывает окно согласия при новой редакции)
       offer: (() => {
         const oc = ((dset.offerContracts as Array<Record<string, unknown>>) || []).find(c => c.enabled);
