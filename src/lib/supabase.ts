@@ -399,6 +399,11 @@ function mapMediaRecord(row: Record<string, unknown>): MediaRecord {
     endDate: row.end_date as string,
     notes: (row.notes as string) ?? undefined,
     expandedNotes: (row.expanded_notes as string) ?? undefined,
+    // v1.30.64: договор/история/материал (без этого sync затирал данные)
+    contractNo: (row.contract_no as string) ?? undefined,
+    contractDate: (row.contract_date as string) ?? undefined,
+    history: (row.history as MediaRecord['history']) ?? undefined,
+    material: (row.material as MediaRecord['material']) ?? undefined,
     createdAt: row.created_at as string,
     responsibleId: (row.responsible_id as string) ?? undefined,
     responsibleName: (row.responsible_name as string) ?? undefined,
@@ -422,6 +427,11 @@ function mapMediaRecordToDb(r: Partial<MediaRecord>): Record<string, unknown> {
   if (r.endDate !== undefined) db.end_date = r.endDate;
   if (r.notes !== undefined) db.notes = orNull(r.notes);
   if (r.expandedNotes !== undefined) db.expanded_notes = orNull(r.expandedNotes);
+  // v1.30.64
+  if (r.contractNo !== undefined) db.contract_no = orNull(r.contractNo);
+  if (r.contractDate !== undefined) db.contract_date = orNull(r.contractDate);
+  db.history = r.history || [];
+  db.material = r.material || null;
   if (r.responsibleId !== undefined) db.responsible_id = orNull(r.responsibleId);
   if (r.responsibleName !== undefined) db.responsible_name = orNull(r.responsibleName);
   db.deleted_at = orNull(r.deletedAt);

@@ -1463,6 +1463,8 @@ const [tab, setTab] = useState('Статусы');
                               <div><label className="form-label">Мест</label><input type="number" min="1" className="form-input" value={adTypeForm.spotsCount || 1} onChange={e => setAdTypeForm(f => ({ ...f, spotsCount: parseInt(e.target.value) || 1 }))} /></div>
                               <div><label className="form-label">Цена/мес. (₽)</label><input type="number" min="0" className="form-input" value={adTypeForm.pricePerMonth || 0} onChange={e => setAdTypeForm(f => ({ ...f, pricePerMonth: parseInt(e.target.value) || 0 }))} /></div>
                             </div>
+                            {/* v1.30.64: описание формата в редактировании */}
+                            <label className="block mt-3"><span className="form-label">Описание</span><textarea className="form-input" rows={2} value={adTypeForm.description || ''} onChange={e => setAdTypeForm(f => ({ ...f, description: e.target.value }))} /></label>
                             <div className="flex gap-2 justify-end"><button type="button" onClick={() => { setEditingAdTypeId(null); setShowAdTypeForm(false); }} className="btn-secondary text-xs">Отмена</button><button type="submit" className="btn-primary text-xs"><Save size={12} /></button></div>
                           </form>
                         ) : (

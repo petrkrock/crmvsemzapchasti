@@ -432,7 +432,9 @@ const [deleteWord, setDeleteWord] = useState('');
                     {isExpanded && (
                       <tr key={`${r.id}-expanded`} className="border-b border-brand-gray-mid bg-gray-50">
                         <td colSpan={8} className="px-4 py-4">
-                          <div className="space-y-3 max-w-2xl">
+                          {/* v1.30.64: карточка двумя колонками — сводка слева, материал справа */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                            <div className="space-y-3">
                             <div className="flex items-center gap-2">
                               <FileText size={14} className="text-brand-red flex-shrink-0" />
                               <h4 className="text-sm font-semibold text-brand-black">Карточка размещения: {r.supplierName}</h4>
@@ -491,8 +493,10 @@ const [deleteWord, setDeleteWord] = useState('');
                               )}
                             </div>
 
+                            </div>
+                            <div>
                             {/* v1.30.63: материал размещения */}
-                            <div className="mt-3">
+                            <div className="bg-white rounded-lg border border-brand-gray-mid p-3">
                               <p className="text-xs font-semibold text-gray-500 mb-1">Материал</p>
                               {editingMaterialId === r.id ? (
                                 <div className="space-y-2">
@@ -525,6 +529,7 @@ const [deleteWord, setDeleteWord] = useState('');
                                   <button onClick={() => startEditMaterial(r)} className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1.5"><Edit2 size={11} /> {r.material ? 'Изменить' : 'Добавить'}</button>
                                 </div>
                               )}
+                            </div>
                             </div>
                           </div>
                         </td>
