@@ -152,6 +152,11 @@ CREATE TABLE public.media_records (
   end_date            DATE NOT NULL CHECK (end_date >= start_date),
   notes               TEXT,
   expanded_notes      TEXT,
+  -- v1.30.64: договор размещения, история и материал (Медиа сервис)
+  contract_no         TEXT,
+  contract_date       TEXT,
+  history             JSONB NOT NULL DEFAULT '[]'::jsonb,
+  material            JSONB,
   responsible_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   responsible_name    TEXT,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),

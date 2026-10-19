@@ -1,3 +1,23 @@
+## v1.30.64 — Медиа: material/история/договор теперь сохраняются (мапперы), описание в правке, карточка грид-2
+
+- Исправлено «материал не сохраняется»: mapMediaRecord/mapMediaRecordToDb не знали
+  поля contractNo/contractDate/history/material — синхронизация перезаписывала
+  локальные данные серверными. Маппинг обе стороны + колонки media_records.
+- Настройки → Медиа → Форматы: поле «Описание» добавлено и в форму редактирования
+  формата (раньше — только в создание).
+- Карточка размещения: две колонки (грид 2) — сводка слева, блок «Материал»
+  справа, по горизонтали.
+
+SQL для боевой базы (ПЕРЕД выкладкой фронта — иначе upsert медиа упадёт целиком):
+```sql
+ALTER TABLE media_records ADD COLUMN IF NOT EXISTS contract_no TEXT;
+ALTER TABLE media_records ADD COLUMN IF NOT EXISTS contract_date TEXT;
+ALTER TABLE media_records ADD COLUMN IF NOT EXISTS history JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE media_records ADD COLUMN IF NOT EXISTS material JSONB;
+```
+
+Файлы: supabase.ts, schema.sql, SettingsPage, MediaPage. Деплой: SQL → сборка фронта.
+
 ## v1.30.63 — Медиа: материал размещения, описание формата
 
 - Карточка размещения: блок «Материал» — описание + файлы-картинки. Добавление/
