@@ -831,8 +831,8 @@ export default function SupplierServicePage() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Форматы</p>
                   {adFormats.length ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {/* v1.30.71: описание с подложкой, hover — только тень */}
                       {adFormats.map(f => (
-                        {/* v1.30.71: описание с подложкой, hover — только тень */}
                         <button key={String(f.id)} type="button" onClick={() => { setPromoFormat(f); setPromoTariffId(''); }}
                           className="bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm transition-shadow hover:shadow-lg h-full flex flex-col">
                           <p className="text-sm font-semibold text-gray-900">{String(f.name || '')}</p>
