@@ -79,6 +79,9 @@ export default function SupplierServicePage() {
   const [nnText, setNnText] = useState('');
   const [nnImage, setNnImage] = useState('');
   const [nnBusy, setNnBusy] = useState(false);
+  // v1.30.70: активация договора из ЛК
+  const [activateModalOpen, setActivateModalOpen] = useState(false);
+  const [activateBusy, setActivateBusy] = useState(false);
   const [cabinet, setCabinet] = useState<Record<string, unknown> | null>(null); // v1.30.1: данные страницы «Кабинет»
   const [cabEdit, setCabEdit] = useState(false);
   const [dash, setDash] = useState<Record<string, unknown> | null>(null); // v1.30.0: данные дашборда (баннер/новости/счётчики)
@@ -263,6 +266,29 @@ export default function SupplierServicePage() {
     } catch {
       toast.error('Не удалось отправить новость');
     } finally { setNnBusy(false); }
+  }
+
+  // v1.30.70: активация договора (без № и даты — статус «Активный»)
+  async function activateMediaContract() {
+    setActivateBusy(true);
+    try {
+      const pinCode = sessionStorage.getItem('dbs_pin') || '';
+      const r = await fetch(getFunctionsUrl('supplier-service'), {
+        method: 'POST',
+        headers: { ...getAnonKeyHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin: pinCode, activateMediaContract: true }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast.success('Договор активирован');
+        setActivateModalOpen(false);
+        loadLkInfo();
+      } else {
+        toast.error(String(d?.error || 'Не удалось активировать договор'));
+      }
+    } catch {
+      toast.error('Не удалось активировать договор');
+    } finally { setActivateBusy(false); }
   }
 
   async function post(payload: Record<string, unknown>, silent = false): Promise<string | null> {
@@ -780,10 +806,14 @@ export default function SupplierServicePage() {
               <div className="space-y-4">
                 {/* Блок 1: Договор */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Договор</p>
-                    {/* v1.30.69: добавление новости рынка из ЛК */}
-                    <button type="button" onClick={() => setNewsModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors">Добавить новость</button>
+                    <div className="flex gap-2">
+                      {/* v1.30.70: активация договора из ЛК */}
+                      <button type="button" onClick={() => setActivateModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors">Активировать договор</button>
+                      {/* v1.30.69: добавление новости рынка из ЛК */}
+                      <button type="button" onClick={() => setNewsModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors">Добавить новость</button>
+                    </div>
                   </div>
                   {promoContract ? (
                     <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
@@ -796,17 +826,17 @@ export default function SupplierServicePage() {
                   )}
                 </div>
 
-                {/* Блок 2: Форматы — грид 3 в ряд */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Форматы</p>
+                {/* Блок 2: Форматы — белая подложка, сдержанный стиль (v1.30.70) */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Форматы</p>
                   {adFormats.length ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {adFormats.map(f => (
                         <button key={String(f.id)} type="button" onClick={() => { setPromoFormat(f); setPromoTariffId(''); }}
-                          className="bg-white border border-gray-200 rounded-2xl p-4 text-left transition-all hover:border-red-300 hover:shadow-md h-full flex flex-col">
+                          className="bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm transition-all hover:border-red-300 hover:shadow-md h-full flex flex-col">
                           <p className="text-sm font-semibold text-gray-900">{String(f.name || '')}</p>
-                          <p className="text-xs text-gray-500 mt-1 leading-snug line-clamp-3 flex-1">{String(f.description || '')}</p>
-                          <p className="text-[11px] text-gray-400 mt-2">от {Number(f.pricePerMonth || 0).toLocaleString('ru')} ₽/мес.</p>
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-3 flex-1">{String(f.description || '')}</p>
+                          <p className="text-[11px] text-gray-400 mt-3 pt-2 border-t border-gray-100">от {Number(f.pricePerMonth || 0).toLocaleString('ru')} ₽/мес.</p>
                         </button>
                       ))}
                     </div>
@@ -818,6 +848,28 @@ export default function SupplierServicePage() {
             )}
 
             {/* v1.30.68: модалка заявки на продвижение */}
+            {/* v1.30.70: модалка активации договора */}
+            {activateModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/50" onClick={() => { if (!activateBusy) setActivateModalOpen(false); }} />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 animate-fade-in">
+                  <h3 className="text-base font-bold text-gray-900">Активация договора</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Активация договора на размещение материала на платформе ни к чему вас не обязывает.
+                    Подписание договора происходит посредством ЭДО. Добавьте свой идентификатор ЭДО в личном кабинете.
+                  </p>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" disabled={activateBusy} onClick={activateMediaContract}
+                      className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      {activateBusy ? 'Активация...' : 'Активировать'}
+                    </button>
+                    <button type="button" disabled={activateBusy} onClick={() => setActivateModalOpen(false)}
+                      className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Отменить</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* v1.30.69: модалка «Добавить новость» */}
             {newsModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

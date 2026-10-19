@@ -75,7 +75,7 @@ const [deleteWord, setDeleteWord] = useState('');
   function autoContract(supplierId: string) {
     const list = (store.settings.mediaContracts || []).filter(c => c.supplierId === supplierId);
     if (!list.length) return null;
-    return list.find(c => c.status === 'Активный') || [...list].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
+    return list.find(c => c.status === 'Активный' && c.contractNo) || list.find(c => c.status === 'Активный') || [...list].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
   }
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [notesBuffer, setNotesBuffer] = useState('');
@@ -446,7 +446,7 @@ const [deleteWord, setDeleteWord] = useState('');
                       <td className="table-cell hidden md:table-cell text-xs">
                         <span className="font-medium text-brand-black">{r.adTypeName}</span>
                         {(() => {
-                          const mc = (store.settings.mediaContracts || []).find(c => c.supplierId === r.supplierId && (!r.contractNo || c.contractNo === r.contractNo)) || autoContract(r.supplierId || '');
+                          const mc = (store.settings.mediaContracts || []).find(c => c.supplierId === r.supplierId && c.contractNo && (!r.contractNo || c.contractNo === r.contractNo)) || autoContract(r.supplierId || '');
                           if (!mc) return null;
                           return <p className="text-[11px] text-gray-400 mt-0.5">Договор: № {mc.contractNo} от {String(mc.contractDate).split('-').reverse().join('.')}</p>;
                         })()}
