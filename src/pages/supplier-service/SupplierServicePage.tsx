@@ -809,8 +809,8 @@ export default function SupplierServicePage() {
                   <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Договор</p>
                     <div className="flex gap-2">
-                      {/* v1.30.70: активация договора из ЛК */}
-                      <button type="button" onClick={() => setActivateModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors">Активировать договор</button>
+                      {/* v1.30.70: активация договора из ЛК; v1.30.71: скрыта, если договор найден */}
+                      {!promoContract && <button type="button" onClick={() => setActivateModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors">Активировать договор</button>}
                       {/* v1.30.69: добавление новости рынка из ЛК */}
                       <button type="button" onClick={() => setNewsModalOpen(true)} className="text-xs font-semibold px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors">Добавить новость</button>
                     </div>
@@ -822,7 +822,7 @@ export default function SupplierServicePage() {
                       <p className="text-gray-600">Статус: <b className="text-gray-900">{String(promoContract.status || '—')}</b></p>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-400">Договор не найден — обратитесь к менеджеру.</p>
+                    <p className="text-xs text-gray-400">Договор не найден — Активируйте Договор на размещение рекламы.</p>
                   )}
                 </div>
 
@@ -833,9 +833,10 @@ export default function SupplierServicePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {adFormats.map(f => (
                         <button key={String(f.id)} type="button" onClick={() => { setPromoFormat(f); setPromoTariffId(''); }}
-                          className="bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm transition-all hover:border-red-300 hover:shadow-md h-full flex flex-col">
+                          {/* v1.30.71: описание с подложкой, hover — только тень */}
+                          className="bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm transition-shadow hover:shadow-lg h-full flex flex-col">
                           <p className="text-sm font-semibold text-gray-900">{String(f.name || '')}</p>
-                          <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-3 flex-1">{String(f.description || '')}</p>
+                          <p className="text-xs text-gray-600 mt-2 leading-relaxed line-clamp-3 flex-1 bg-gray-50 border border-gray-100 rounded-lg p-2.5">{String(f.description || '')}</p>
                           <p className="text-[11px] text-gray-400 mt-3 pt-2 border-t border-gray-100">от {Number(f.pricePerMonth || 0).toLocaleString('ru')} ₽/мес.</p>
                         </button>
                       ))}
@@ -854,7 +855,8 @@ export default function SupplierServicePage() {
                 <div className="absolute inset-0 bg-black/50" onClick={() => { if (!activateBusy) setActivateModalOpen(false); }} />
                 <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 animate-fade-in">
                   <h3 className="text-base font-bold text-gray-900">Активация договора</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                  {/* v1.30.71: текст в контуре с подложкой */}
+                  <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-3">
                     Активация договора на размещение материала на платформе ни к чему вас не обязывает.
                     Подписание договора происходит посредством ЭДО. Добавьте свой идентификатор ЭДО в личном кабинете.
                   </p>
@@ -926,10 +928,18 @@ export default function SupplierServicePage() {
                         </option>
                       ))}
                     </select>
+                    {/* v1.30.71: текст после выбора тарифа — в контуре с подложкой */}
+                    {promoTariffId && (
+                      <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-3 mt-2">
+                        Обращаем ваше внимание: количество мест на каждом рекламном формате ограничено.
+                        Чтобы забронировать размещение, пожалуйста, отправьте заявку.
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2 pt-1">
+                    {/* v1.30.71: кнопки как в модалке активации договора */}
                     <button type="button" disabled={!promoTariffId || promoBusy} onClick={sendPromoRequest}
-                      className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                       {promoBusy ? 'Отправка...' : 'Отправить заявку'}
                     </button>
                     <button type="button" disabled={promoBusy} onClick={() => { setPromoFormat(null); setPromoTariffId(''); }}
