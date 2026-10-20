@@ -73,6 +73,23 @@ export default function SupplierServicePage() {
   const [placements, setPlacements] = useState<Array<Record<string, unknown>>>([]); // v1.30.77: рекламные размещения
   const [myNews, setMyNews] = useState<Array<Record<string, unknown>>>([]); // v1.30.80: мои новости
   const [showMyNews, setShowMyNews] = useState(false); // v1.30.80: тумблер «Мои»
+  // v1.30.81: материал к размещению + подсказка статуса
+  const [materialModalId, setMaterialModalId] = useState<string | null>(null);
+  const [matDesc, setMatDesc] = useState('');
+  const [matImage, setMatImage] = useState('');
+  const [matBusy, setMatBusy] = useState(false);
+  const [statusHint, setStatusHint] = useState<string | null>(null);
+
+  // v1.30.81: расшифровки статусов размещений (иконка-? в строке)
+  const STATUS_HINTS: Record<string, string> = {
+    'Заявка создана': 'Заявка оформлена, ожидает обработки менеджером',
+    'Счёт отправлен': 'Счёт выставлен клиенту, ожидается оплата',
+    'Опубликовано': 'Размещение активно и видно на платформе',
+    'Запланировано': 'Размещение согласовано, старт в указанную дату',
+    'Отменено': 'Заявка аннулирована, размещение не состоится',
+    'Завершается': 'Срок размещения подходит к концу, продлите или место освободится',
+    'Выполнено': 'Заказ полностью оказан, размещение закрыто',
+  };
   const [promoContract, setPromoContract] = useState<Record<string, unknown> | null>(null);
   const [adFormats, setAdFormats] = useState<Array<Record<string, unknown>>>([]);
   const [promoFormat, setPromoFormat] = useState<Record<string, unknown> | null>(null); // формат в модалке
@@ -275,6 +292,40 @@ export default function SupplierServicePage() {
     } catch {
       toast.error('Не удалось отправить новость');
     } finally { setNnBusy(false); }
+  }
+
+  // v1.30.81: загрузка картинки материала
+  async function uploadMaterialImage(file: File) {
+    if (!supabase) { toast.error('Загрузка файлов недоступна'); return; }
+    setMatBusy(true);
+    try {
+      const path = `media-materials/${Date.now()}-${file.name.replace(/[^\w.]/g, '_')}`;
+      const { error } = await supabase.storage.from('lk-assets').upload(path, file, { upsert: true });
+      if (error) { toast.error('Ошибка загрузки файла'); return; }
+      const { data } = supabase.storage.from('lk-assets').getPublicUrl(path);
+      setMatImage(data.publicUrl);
+    } finally { setMatBusy(false); }
+  }
+  async function sendMaterial() {
+    if (!materialModalId) return;
+    setMatBusy(true);
+    try {
+      const pinCode = sessionStorage.getItem('dbs_pin') || '';
+      const r = await fetch(getFunctionsUrl('supplier-service'), {
+        method: 'POST',
+        headers: { ...getAnonKeyHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin: pinCode, materialRequest: { recordId: materialModalId, description: matDesc, imageUrl: matImage } }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast.success('Материал отправлен');
+        setMaterialModalId(null); setMatDesc(''); setMatImage('');
+      } else {
+        toast.error(String(d?.error || 'Не удалось сохранить материал'));
+      }
+    } catch {
+      toast.error('Не удалось сохранить материал');
+    } finally { setMatBusy(false); }
   }
 
   // v1.30.70: активация договора (без № и даты — статус «Активный»)
@@ -833,7 +884,7 @@ export default function SupplierServicePage() {
                       {!promoContract && <button type="button" onClick={() => setActivateModalOpen(true)} className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-green-600 border-green-600 text-white hover:bg-green-700 inline-flex items-center gap-1"><Plus size={13} /> Активировать договор</button>}
                       <button type="button" disabled={!promoContract} onClick={() => setNewsModalOpen(true)} title={promoContract ? '' : 'Активируйте договор'} className={`text-xs px-3 py-1.5 rounded-full border transition-colors inline-flex items-center gap-1 ${promoContract ? 'bg-white border-gray-200 text-gray-600 hover:border-red-300' : 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'}`}><Plus size={13} /> Добавить новость</button>
                       {/* v1.30.80: тумблер «Мои» — мои новости вместо сервисов и размещений */}
-                      <button type="button" disabled={!promoContract} onClick={() => setShowMyNews(v => !v)} title={promoContract ? '' : 'Активируйте договор'} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${!promoContract ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed' : showMyNews ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>Мои</button>
+                      <button type="button" disabled={!promoContract} onClick={() => setShowMyNews(v => !v)} title={promoContract ? '' : 'Активируйте договор'} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${!promoContract ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed' : showMyNews ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>Мои новости</button>
                     </div>
                   </div>
                 </div>
@@ -873,12 +924,22 @@ export default function SupplierServicePage() {
                   {placements.length ? (
                     <div className="space-y-2">
                       {/* v1.30.80: пропорции — тариф шире, статус уже; тариф в стиле CRM */}
+                      {/* v1.30.81: тонкий шрифт text-xs, «дата не назначена», материал, хинт статуса */}
                       {placements.map((p, i2) => (
-                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-[1.1fr_1.9fr_0.7fr_1fr] gap-2 text-sm items-center">
-                          <b className="text-gray-900">{String(p.ad_type_name || '—')}</b>
-                          <p className="text-gray-600 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">−{Number(p.discount)}%</span> : null}{p.total_price ? <b className="ml-1 text-gray-900">{Number(p.total_price).toLocaleString('ru')} ₽</b> : null}</p>
-                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${String(p.status) === 'Активен на платформе' ? 'bg-green-100 text-green-700' : String(p.status) === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
-                          <b className="text-gray-900 whitespace-nowrap">{String(p.start_date || '').split('-').reverse().join('.') || '—'} — {String(p.end_date || '').split('-').reverse().join('.') || '—'}</b>
+                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-[1.1fr_1.9fr_0.7fr_1fr_auto] gap-2 text-xs items-center">
+                          <span className="text-gray-800 font-normal">{String(p.ad_type_name || '—')}</span>
+                          <span className="text-gray-500 whitespace-nowrap font-normal">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">−{Number(p.discount)}%</span> : null}{p.total_price ? <b className="ml-1 text-gray-800">{Number(p.total_price).toLocaleString('ru')} ₽</b> : null}</span>
+                          <span className="relative">
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(p.status) === 'Опубликовано' ? 'bg-green-100 text-green-700' : String(p.status) === 'Отменено' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
+                          </span>
+                          <span className="text-gray-500 whitespace-nowrap font-normal">{p.start_date && p.end_date ? `${String(p.start_date).split('-').reverse().join('.')} — ${String(p.end_date).split('-').reverse().join('.')}` : 'дата не назначена'}</span>
+                          <button type="button" onClick={() => { setMaterialModalId(String(p.id)); setMatDesc(''); setMatImage(''); }} className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:border-red-300 transition-colors whitespace-nowrap">Материал</button>
+                          <button type="button" onClick={() => setStatusHint(statusHint === String(p.id) ? null : String(p.id))} title="Что означает статус" className="p-1 text-gray-400 hover:text-red-600">?</button>
+                          {statusHint === String(p.id) && (
+                            <div className="col-span-full text-[11px] text-gray-500 bg-white border border-gray-100 rounded-lg px-2.5 py-1.5 mt-1">
+                              {STATUS_HINTS[String(p.status)] || 'Статус размещения.'}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -912,6 +973,37 @@ export default function SupplierServicePage() {
             )}
 
             {/* v1.30.68: модалка заявки на продвижение */}
+            {/* v1.30.81: модалка материала размещения */}
+            {materialModalId && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/50" onClick={() => { if (!matBusy) setMaterialModalId(null); }} />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-3 animate-fade-in">
+                  <h3 className="text-base font-bold text-gray-900">Материал размещения</h3>
+                  <div>
+                    <label className="form-label text-xs">Описание</label>
+                    <textarea className="form-input text-xs" rows={3} value={matDesc} onChange={e => setMatDesc(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label text-xs">Картинка</label>
+                    <div className="flex items-center gap-2">
+                      {matImage ? <img src={matImage} alt="" className="h-10 w-10 object-cover rounded-lg border border-gray-200" /> : null}
+                      <label className={`text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 cursor-pointer ${matBusy ? 'opacity-50' : 'hover:bg-gray-200'}`}>
+                        {matBusy ? 'Загрузка…' : matImage ? 'Заменить' : 'Загрузить'}
+                        <input type="file" accept="image/*" className="hidden" disabled={matBusy} onChange={e => { const f = e.target.files?.[0]; if (f) uploadMaterialImage(f); e.target.value = ''; }} />
+                      </label>
+                      {matImage && <button type="button" onClick={() => setMatImage('')} className="text-xs text-gray-400 hover:text-red-600">Убрать</button>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" disabled={matBusy} onClick={sendMaterial} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      {matBusy ? 'Отправка...' : 'Отправить'}
+                    </button>
+                    <button type="button" disabled={matBusy} onClick={() => setMaterialModalId(null)} className="text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Отмена</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* v1.30.70: модалка активации договора */}
             {activateModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

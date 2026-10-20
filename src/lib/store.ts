@@ -140,13 +140,13 @@ const DEFAULT_MEDIA_AD_TYPES: MediaAdType[] = [];
 // удалены, «Ожидает места (предоплата)»→«Ожидает размещения», добавлен «Заказ выполнен»;
 // у «Заканчивается срок» — автоматическое действие (описание).
 const DEFAULT_MEDIA_STATUSES: MediaStatus[] = [
-  { id: 'mst-1', name: 'Новый заказ',          bgColor: '#FEF3C7', textColor: '#B45309', createdAt: new Date().toISOString() },
-  { id: 'mst-4', name: 'Отправлен счет',       bgColor: '#FFF7ED', textColor: '#C2410C', createdAt: new Date().toISOString() },
-  { id: 'mst-5', name: 'Активен на платформе', bgColor: '#D1FAE5', textColor: '#065F46', createdAt: new Date().toISOString() },
-  { id: 'mst-6', name: 'Ожидает размещения',   bgColor: '#FCE7F3', textColor: '#9D174D', createdAt: new Date().toISOString() },
-  { id: 'mst-7', name: 'Аннулирован',          bgColor: '#FEE2E2', textColor: '#B91C1C', createdAt: new Date().toISOString() },
-  { id: 'mst-8', name: 'Заканчивается срок',   bgColor: '#F3F4F6', textColor: '#6B7280', description: 'Автоматический статус: выставляется системой при приближении даты окончания размещения.', createdAt: new Date().toISOString() },
-  { id: 'mst-9', name: 'Заказ выполнен',       bgColor: '#DCFCE7', textColor: '#15803D', createdAt: new Date().toISOString() },
+  { id: 'mst-1', name: 'Заявка создана',          bgColor: '#FEF3C7', textColor: '#B45309', createdAt: new Date().toISOString() },
+  { id: 'mst-4', name: 'Счёт отправлен',       bgColor: '#FFF7ED', textColor: '#C2410C', createdAt: new Date().toISOString() },
+  { id: 'mst-5', name: 'Опубликовано', bgColor: '#D1FAE5', textColor: '#065F46', createdAt: new Date().toISOString() },
+  { id: 'mst-6', name: 'Запланировано',   bgColor: '#FCE7F3', textColor: '#9D174D', createdAt: new Date().toISOString() },
+  { id: 'mst-7', name: 'Отменено',          bgColor: '#FEE2E2', textColor: '#B91C1C', createdAt: new Date().toISOString() },
+  { id: 'mst-8', name: 'Завершается',   bgColor: '#F3F4F6', textColor: '#6B7280', description: 'Автоматический статус: выставляется системой при приближении даты окончания размещения.', createdAt: new Date().toISOString() },
+  { id: 'mst-9', name: 'Выполнено',       bgColor: '#DCFCE7', textColor: '#15803D', createdAt: new Date().toISOString() },
 ];
 
 // База знаний — пустой список для продакшена. Реальный контент
@@ -236,7 +236,7 @@ export function getStore(): CRMStore {
     if (!settings.taskEntityTypes) settings.taskEntityTypes = DEFAULT_TASK_ENTITY_TYPES;
     // v1.30.49: реорганизация системных статусов медиа (вне гейта) — переименование, удаление, новый статус
     {
-      const MEDIA_RENAME: Record<string, string> = { 'Запрос МК': 'Новый заказ', 'Ожидает места (предоплата)': 'Ожидает размещения' };
+      const MEDIA_RENAME: Record<string, string> = { 'Запрос МК': 'Новый заказ', 'Ожидает места (предоплата)': 'Ожидает размещения', 'Новый заказ': 'Заявка создана', 'Отправлен счет': 'Счёт отправлен', 'Отправлен счёт': 'Счёт отправлен', 'Активен на платформе': 'Опубликовано', 'Ожидает размещения': 'Запланировано', 'Аннулирован': 'Отменено', 'Заканчивается срок': 'Завершается', 'Заказ выполнен': 'Выполнено' };
       const MEDIA_REMOVE = ['Отправлен МК', 'Переговоры'];
       settings.mediaStatuses = (settings.mediaStatuses || [])
         .filter(st => !MEDIA_REMOVE.includes(st.name))

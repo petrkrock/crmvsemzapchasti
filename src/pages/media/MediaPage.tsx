@@ -153,9 +153,9 @@ const [deleteWord, setDeleteWord] = useState('');
     e.preventDefault();
     if (!form.supplierId) { toast.error('Выберите рекламодателя'); return; }
     // v_1.9: тип рекламы необязателен — пустой допустим
-    // v1.30.49: даты обязательны только при статусе «Активен на платформе»
-    if (form.status === 'Активен на платформе' && !form.startDate) { toast.error('Укажите дату начала'); return; }
-    if (form.status === 'Активен на платформе' && !form.endDate) { toast.error('Укажите дату окончания'); return; }
+    // v1.30.49: даты обязательны только при статусе «Опубликовано»
+    if (form.status === 'Опубликовано' && !form.startDate) { toast.error('Укажите дату начала'); return; }
+    if (form.status === 'Опубликовано' && !form.endDate) { toast.error('Укажите дату окончания'); return; }
     const now = new Date().toISOString();
     const { _selectedAdTypeId: _unused, ...rest } = form;
     // v1.30.62: договор поставщика подставляется автоматически
@@ -276,9 +276,9 @@ const [deleteWord, setDeleteWord] = useState('');
     toast.success('Материал сохранён');
   }  function handleDelete(id: string) {
     if (!isAdmin()) { toast.error('Удаление доступно только администратору'); return; }
-    // v_1.9: «Активен на платформе» — удаление невозможно
+    // v_1.9: «Опубликовано» — удаление невозможно
     const rec = (store.mediaRecords || []).find(r => r.id === id);
-    if (rec && rec.status === 'Активен на платформе') { toast.error('В статусе «Активен на платформе» удаление невозможно'); return; }
+    if (rec && rec.status === 'Опубликовано') { toast.error('В статусе «Опубликовано» удаление невозможно'); return; }
     setDeleteId(id); setDeleteWord('');
   }
 
@@ -287,7 +287,7 @@ const [deleteWord, setDeleteWord] = useState('');
     if (deleteWord.trim() !== 'УДАЛИТЬ') { toast.error('Введите слово УДАЛИТЬ для подтверждения'); return; }
     const now = new Date().toISOString();
     // v_1.9: запись НЕ удаляется — ставится автостатус «Аннулирован»
-    updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === deleteId ? { ...r, status: 'Аннулирован', updatedAt: now, history: [...(r.history || []), { at: now, by: getCurrentUser()?.name || '—', action: 'Размещение аннулировано' }].slice(-200) } : r) }));
+    updateStore(s => ({ ...s, mediaRecords: (s.mediaRecords || []).map(r => r.id === deleteId ? { ...r, status: 'Отменено', updatedAt: now, history: [...(r.history || []), { at: now, by: getCurrentUser()?.name || '—', action: 'Размещение аннулировано' }].slice(-200) } : r) }));
     setDeleteId(null); setDeleteWord('');
     forceUpdate(n => n + 1);
     toast.success('Размещение аннулировано');
@@ -637,14 +637,14 @@ const [deleteWord, setDeleteWord] = useState('');
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* v1.30.49: даты обязательны только при статусе «Активен на платформе» */}
+                {/* v1.30.49: даты обязательны только при статусе «Опубликовано» */}
                 <div>
-                  <label className="form-label">Дата начала{form.status === 'Активен на платформе' ? ' *' : ''}</label>
-                  <input type="date" required={form.status === 'Активен на платформе'} className="form-input" value={form.startDate || ''} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+                  <label className="form-label">Дата начала{form.status === 'Опубликовано' ? ' *' : ''}</label>
+                  <input type="date" required={form.status === 'Опубликовано'} className="form-input" value={form.startDate || ''} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="form-label">Дата окончания{form.status === 'Активен на платформе' ? ' *' : ''}</label>
-                  <input type="date" required={form.status === 'Активен на платформе'} className="form-input" value={form.endDate || ''} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
+                  <label className="form-label">Дата окончания{form.status === 'Опубликовано' ? ' *' : ''}</label>
+                  <input type="date" required={form.status === 'Опубликовано'} className="form-input" value={form.endDate || ''} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
                 </div>
               </div>
 
