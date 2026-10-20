@@ -371,6 +371,8 @@ async function handlePost(req: Request) {
       ok: true,
       pinVerified: true,
       phone: supplier.phone || '',
+      // v1.30.77: рекламные размещения поставщика (ЛК)
+      placements: ((await client.from('media_records').select('ad_type_name, duration_label, status, start_date, end_date').eq('supplier_id', supplier.id).order('created_at', { ascending: false }).limit(50)).data || []),
       // v1.30.68: Продвижение (ЛК) — договор поставщика и форматы с тарифами
       mediaContract: (() => {
         const list = ((dset.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
