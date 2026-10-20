@@ -78,7 +78,7 @@ export default function SupplierServicePage() {
   const [matDesc, setMatDesc] = useState('');
   const [matImage, setMatImage] = useState('');
   const [matBusy, setMatBusy] = useState(false);
-  const [placeHint, setPlaceHint] = useState<string | null>(null);
+  const [showStatusInfo, setShowStatusInfo] = useState(false); // v1.30.84: справка по статусам в шапке блока
 
   // v1.30.81: расшифровки статусов размещений (иконка-? в строке)
   const STATUS_HINTS: Record<string, string> = {
@@ -919,7 +919,21 @@ export default function SupplierServicePage() {
 
                 {/* v1.30.78: Рекламные размещения — отдельная подложка, фон как у условий DBS */}
                 <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Рекламные размещения</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Рекламные размещения</p>
+                    {/* v1.30.84: справка по статусам — кнопка в шапке блока */}
+                    <button type="button" onClick={() => setShowStatusInfo(v => !v)} title="Статусы размещений"
+                      className={`w-7 h-7 rounded-full border flex items-center justify-center transition-colors ${showStatusInfo ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                      <Info size={14} />
+                    </button>
+                  </div>
+                  {showStatusInfo && (
+                    <div className="mb-3 bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-1.5">
+                      {Object.entries(STATUS_HINTS).map(([k2, v2]) => (
+                        <p key={k2} className="text-[11px] text-gray-600 leading-snug"><b className="text-gray-800">{k2}</b> — {v2}</p>
+                      ))}
+                    </div>
+                  )}
                   {/* v1.30.79: без подписей, строки — bg-gray-50 rounded-xl как в DBS */}
                   {placements.length ? (
                     <div className="space-y-2">
@@ -927,7 +941,7 @@ export default function SupplierServicePage() {
                       {/* v1.30.81: тонкий шрифт text-xs, «дата не назначена», материал, хинт статуса */}
                       {/* v1.30.83: тип и тариф — шрифт как в 1.30.80; дата — мелкая тонкая */}
                       {placements.map((p, i2) => (
-                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-[1.1fr_1.9fr_0.7fr_1fr_auto_auto] gap-2 text-xs items-center">
+                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-[1.1fr_1.9fr_0.7fr_1fr_auto] gap-2 text-sm items-center">
                           <b className="text-gray-900">{String(p.ad_type_name || '—')}</b>
                           <p className="text-gray-600 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">−{Number(p.discount)}%</span> : null}{p.total_price ? <b className="ml-1 text-gray-900">{Number(p.total_price).toLocaleString('ru')} ₽</b> : null}</p>
                           <span className="relative">
@@ -935,21 +949,12 @@ export default function SupplierServicePage() {
                           </span>
                           <span className="text-[11px] text-gray-400 whitespace-nowrap font-normal">{p.start_date && p.end_date ? `${String(p.start_date).split('-').reverse().join('.')} — ${String(p.end_date).split('-').reverse().join('.')}` : 'дата не назначена'}</span>
                           {/* v1.30.83: hover — фон темнее; если материал есть — видно по кнопке */}
+                          {/* v1.30.84: добавлен — просто зелёный фон, без галочки и выделения */}
                           <button type="button" onClick={() => { setMaterialModalId(String(p.id)); setMatDesc(''); setMatImage(''); }}
                             title={p.material && ((p.material as { description?: string; files?: string[] }).description || (p.material as { files?: string[] }).files?.length) ? 'Материал добавлен — можно обновить' : 'Добавить материал'}
-                            className={`text-xs px-2.5 py-1 rounded-md border transition-colors whitespace-nowrap ${p.material && ((p.material as { description?: string; files?: string[] }).description || (p.material as { files?: string[] }).files?.length) ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'}`}>
-                            {(p.material as { description?: string; files?: string[] })?.description || (p.material as { files?: string[] })?.files?.length ? 'Материал ✓' : 'Материал'}
+                            className={`text-xs px-2.5 py-1 rounded-md transition-colors whitespace-nowrap ${p.material && ((p.material as { description?: string; files?: string[] }).description || (p.material as { files?: string[] }).files?.length) ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            Материал
                           </button>
-                          {/* v1.30.83: иконка как «Статусы условий» в проценке */}
-                          <button type="button" onClick={() => setPlaceHint(placeHint === String(p.id) ? null : String(p.id))} title="Статусы размещений"
-                            className={`w-7 h-7 rounded-full border flex items-center justify-center transition-colors ${placeHint === String(p.id) ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
-                            <Info size={14} />
-                          </button>
-                          {placeHint === String(p.id) && (
-                            <div className="col-span-full text-[11px] text-gray-500 bg-white border border-gray-100 rounded-lg px-2.5 py-1.5 mt-1">
-                              {STATUS_HINTS[String(p.status)] || 'Статус размещения.'}
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
