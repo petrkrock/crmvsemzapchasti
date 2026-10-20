@@ -345,12 +345,12 @@ async function handlePost(req: Request) {
     const stRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
     const st = (stRow.data?.settings || {}) as Record<string, unknown>;
     const contracts = ((st.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
-    const hasActive = contracts.some(c => c.status === 'Активный');
-    if (hasActive) return json({ ok: true });
+    // v1.30.76: статус «Новый»; повтор — только если уже есть заявка без номера (не дублируем)
+    if (contracts.some(c => !c.contractNo)) return json({ ok: true });
     const now = new Date().toISOString();
     const next = [
       ...contracts,
-      { id: `mc-${Date.now()}`, supplierId: String(supplier.id), contractNo: '', contractDate: '', status: 'Активный', createdAt: now, history: [{ at: now, by: 'Поставщик (ЛК)', action: 'Договор активирован в ЛК' }] },
+      { id: `mc-${Date.now()}`, supplierId: String(supplier.id), contractNo: '', contractDate: '', status: 'Новый', createdAt: now, history: [{ at: now, by: 'Поставщик (ЛК)', action: 'Договор отправлен из ЛК (статус «Новый»)' }] },
     ];
     const { error: upErr } = await client.from('app_settings').update({ settings: { ...st, mediaContracts: next } }).eq('id', 'global');
     if (upErr) return json({ error: 'Не удалось активировать договор' }, 500);
