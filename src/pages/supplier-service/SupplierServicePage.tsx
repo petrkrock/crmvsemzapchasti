@@ -184,6 +184,7 @@ export default function SupplierServicePage() {
       sessionStorage.setItem('dbs_pin_ok', '1');
       if (pin) sessionStorage.setItem('dbs_pin', pin);
       setPinPassed(true);
+      loadLkInfo(); // v1.30.87: данные ЛК (менеджер, новости, форматы) — сразу, без ожидания эффекта
     });
   }, [data, pinPassed]);
 
@@ -262,6 +263,7 @@ export default function SupplierServicePage() {
       if (r.ok) {
         toast.success('Заявка отправлена');
         setPromoFormat(null); setPromoTariffId('');
+        loadLkInfo(); // v1.30.87: размещение сразу в списке
       } else {
         toast.error(String(d?.error || 'Не удалось отправить заявку'));
       }
@@ -297,6 +299,7 @@ export default function SupplierServicePage() {
       if (r.ok) {
         toast.success('Новость отправлена');
         setNewsModalOpen(false); setNnTitle(''); setNnLink(''); setNnText(''); setNnImage('');
+        loadLkInfo(); // v1.30.87: новость сразу в «Мои новости»
       } else {
         toast.error(String(d?.error || 'Не удалось отправить новость'));
       }
@@ -331,6 +334,7 @@ export default function SupplierServicePage() {
       if (r.ok) {
         toast.success('Материал отправлен');
         setMaterialModalId(null); setMatDesc(''); setMatImage('');
+        loadLkInfo(); // v1.30.87: статус материала обновится на кнопке
       } else {
         toast.error(String(d?.error || 'Не удалось сохранить материал'));
       }
@@ -430,6 +434,7 @@ export default function SupplierServicePage() {
       sessionStorage.setItem('dbs_pin_ok','1');
       sessionStorage.setItem('dbs_pin', pin);
       setPinPassed(true);
+      loadLkInfo(); // v1.30.87: сразу после входа
     }
   }
 
@@ -1450,7 +1455,7 @@ export default function SupplierServicePage() {
                     {faqHint && (
                       <span className="absolute right-0 top-full mt-2 z-30 w-96 max-w-[calc(100vw-4rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2 block" onClick={e => e.stopPropagation()}>
                         <p><b className="text-red-700">Шаг 1.</b> Добавьте свой склад в систему и настройте условия доставки для доступных городов.</p>
-                        <p><b className="text-red-700">Шаг 2.</b> Настройте автоматическую рассылку вашего прайс-листа на адрес: <span className="font-semibold text-gray-800">price@vsemzapchasti.ru</span></p>
+                        <p><b className="text-red-700">Шаг 2.</b> Настройте автоматическую рассылку вашего прайс-листа на адрес: <span className="font-semibold text-gray-400">price@vsemzapchasti.ru</span></p>
                         <p><b className="text-red-700">Шаг 3.</b> После прохождения модерации ваш склад станет доступен на платформе.</p>
                       </span>
                     )}
@@ -1588,15 +1593,15 @@ export default function SupplierServicePage() {
                   <div className="flex flex-col gap-2 max-w-[260px]">
                     <div>
                       <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Склад</label>
-                      <div className="text-sm rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-gray-800 mt-0.5">{condForm.warehouseName || 'Склад не выбран'}</div>
+                      <div className="text-sm rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-gray-400 mt-0.5">{condForm.warehouseName || 'Склад не выбран'}</div>
                     </div>
                     <div>
                       <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Город</label>
-                      <div className="text-sm rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-gray-800 mt-0.5">{condForm.city || 'Город не выбран'}</div>
+                      <div className="text-sm rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-gray-400 mt-0.5">{condForm.city || 'Город не выбран'}</div>
                     </div>
                     {/* ТЗ v1.23.14: подсказка под ячейками склада/города */}
                     <div className="mt-2 rounded-xl border border-yellow-200 bg-yellow-50 p-3.5 text-xs text-gray-600 leading-relaxed">
-                      <p className="font-semibold text-gray-800">Нет своей доставки в этот город?</p>
+                      <p className="font-semibold text-gray-400">Нет своей доставки в этот город?</p>
                       <p className="mt-1">Нажмите кнопку «ТК».</p>
                       <p className="mt-2">Не забудьте указать время приёма заказов.</p>
                       <p className="mt-1">Если оставить поле пустым, по умолчанию установится 23:59.</p>
@@ -1772,7 +1777,7 @@ export default function SupplierServicePage() {
                   const cell = (label: string, value: React.ReactNode) => (
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">{label}</p>
-                      <div className="text-sm font-medium text-gray-800">{value || '—'}</div>
+                      <div className="text-sm font-medium text-gray-400">{value || '—'}</div>
                     </div>
                   );
                   const TK = 'Условия доставки по согласованию!';
@@ -1837,9 +1842,9 @@ export default function SupplierServicePage() {
                       className="text-red-600 font-semibold hover:underline">{String(oc.name || 'Договор оферты')}</button>
                   </p>
                   <div className="bg-gray-50 rounded-xl p-3 space-y-1">
-                    <p className="text-xs text-gray-500">Редакция: <b className="text-gray-800">{String(oc.edition || '—')}</b></p>
-                    <p className="text-xs text-gray-500">Дата публикации: <b className="text-gray-800">{String(oc.publishedAt || '').split('-').reverse().join('.') || '—'}</b></p>
-                    <p className="text-xs text-gray-500">Дата вступления в силу: <b className="text-gray-800">{String(oc.effectiveAt || '').split('-').reverse().join('.') || '—'}</b></p>
+                    <p className="text-xs text-gray-500">Редакция: <b className="text-gray-400">{String(oc.edition || '—')}</b></p>
+                    <p className="text-xs text-gray-500">Дата публикации: <b className="text-gray-400">{String(oc.publishedAt || '').split('-').reverse().join('.') || '—'}</b></p>
+                    <p className="text-xs text-gray-500">Дата вступления в силу: <b className="text-gray-400">{String(oc.effectiveAt || '').split('-').reverse().join('.') || '—'}</b></p>
                   </div>
                 </div>
                 {offerTextOpen && (
