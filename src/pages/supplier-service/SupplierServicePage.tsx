@@ -925,16 +925,26 @@ export default function SupplierServicePage() {
                     <div className="space-y-2">
                       {/* v1.30.80: пропорции — тариф шире, статус уже; тариф в стиле CRM */}
                       {/* v1.30.81: тонкий шрифт text-xs, «дата не назначена», материал, хинт статуса */}
+                      {/* v1.30.83: тип и тариф — шрифт как в 1.30.80; дата — мелкая тонкая */}
                       {placements.map((p, i2) => (
-                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-[1.1fr_1.9fr_0.7fr_1fr_auto] gap-2 text-xs items-center">
-                          <span className="text-gray-800 font-normal">{String(p.ad_type_name || '—')}</span>
-                          <span className="text-gray-500 whitespace-nowrap font-normal">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">−{Number(p.discount)}%</span> : null}{p.total_price ? <b className="ml-1 text-gray-800">{Number(p.total_price).toLocaleString('ru')} ₽</b> : null}</span>
+                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-[1.1fr_1.9fr_0.7fr_1fr_auto_auto] gap-2 text-xs items-center">
+                          <b className="text-gray-900">{String(p.ad_type_name || '—')}</b>
+                          <p className="text-gray-600 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">−{Number(p.discount)}%</span> : null}{p.total_price ? <b className="ml-1 text-gray-900">{Number(p.total_price).toLocaleString('ru')} ₽</b> : null}</p>
                           <span className="relative">
                             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(p.status) === 'Опубликовано' ? 'bg-green-100 text-green-700' : String(p.status) === 'Отменено' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
                           </span>
-                          <span className="text-gray-500 whitespace-nowrap font-normal">{p.start_date && p.end_date ? `${String(p.start_date).split('-').reverse().join('.')} — ${String(p.end_date).split('-').reverse().join('.')}` : 'дата не назначена'}</span>
-                          <button type="button" onClick={() => { setMaterialModalId(String(p.id)); setMatDesc(''); setMatImage(''); }} className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:border-red-300 transition-colors whitespace-nowrap">Материал</button>
-                          <button type="button" onClick={() => setPlaceHint(placeHint === String(p.id) ? null : String(p.id))} title="Что означает статус" className="p-1 text-gray-400 hover:text-red-600">?</button>
+                          <span className="text-[11px] text-gray-400 whitespace-nowrap font-normal">{p.start_date && p.end_date ? `${String(p.start_date).split('-').reverse().join('.')} — ${String(p.end_date).split('-').reverse().join('.')}` : 'дата не назначена'}</span>
+                          {/* v1.30.83: hover — фон темнее; если материал есть — видно по кнопке */}
+                          <button type="button" onClick={() => { setMaterialModalId(String(p.id)); setMatDesc(''); setMatImage(''); }}
+                            title={p.material && ((p.material as { description?: string; files?: string[] }).description || (p.material as { files?: string[] }).files?.length) ? 'Материал добавлен — можно обновить' : 'Добавить материал'}
+                            className={`text-xs px-2.5 py-1 rounded-md border transition-colors whitespace-nowrap ${p.material && ((p.material as { description?: string; files?: string[] }).description || (p.material as { files?: string[] }).files?.length) ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'}`}>
+                            {(p.material as { description?: string; files?: string[] })?.description || (p.material as { files?: string[] })?.files?.length ? 'Материал ✓' : 'Материал'}
+                          </button>
+                          {/* v1.30.83: иконка как «Статусы условий» в проценке */}
+                          <button type="button" onClick={() => setPlaceHint(placeHint === String(p.id) ? null : String(p.id))} title="Статусы размещений"
+                            className={`w-7 h-7 rounded-full border flex items-center justify-center transition-colors ${placeHint === String(p.id) ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                            <Info size={14} />
+                          </button>
                           {placeHint === String(p.id) && (
                             <div className="col-span-full text-[11px] text-gray-500 bg-white border border-gray-100 rounded-lg px-2.5 py-1.5 mt-1">
                               {STATUS_HINTS[String(p.status)] || 'Статус размещения.'}
