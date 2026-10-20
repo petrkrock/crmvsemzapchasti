@@ -148,8 +148,9 @@ CREATE TABLE public.media_records (
   price_per_month     INTEGER NOT NULL DEFAULT 0 CHECK (price_per_month >= 0),
   total_price         INTEGER NOT NULL DEFAULT 0 CHECK (total_price >= 0),
   status              TEXT NOT NULL,
-  start_date          DATE NOT NULL,
-  end_date            DATE NOT NULL CHECK (end_date >= start_date),
+  -- v1.30.84: даты назначает CRM (из ЛК — null, CHECK с NULL проходит)
+  start_date          DATE,
+  end_date            DATE CHECK (end_date >= start_date),
   notes               TEXT,
   expanded_notes      TEXT,
   -- v1.30.64: договор размещения, история и материал (Медиа сервис)
