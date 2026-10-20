@@ -308,7 +308,7 @@ async function handlePost(req: Request) {
       contract_date: (mc.contractDate as string) || null,
       start_date: now.toISOString().slice(0, 10),
       end_date: end.toISOString().slice(0, 10),
-      status: 'Новый заказ',
+      status: 'Заявка создана',
       notes: 'Заявка из ЛК (Продвижение)',
       history: [{ id: `h-${Date.now()}-lk`, date: new Date().toISOString(), field: 'created', userId: 'supplier-self', userName: 'Поставщик (ЛК)', comment: '', oldValue: '', newValue: 'Заявка на продвижение из ЛК' }],
     });
@@ -357,6 +357,24 @@ async function handlePost(req: Request) {
     return json({ ok: true });
   }
 
+  // v1.30.81: материал к размещению из ЛК
+  if (body.materialRequest !== undefined) {
+    const mr = body.materialRequest as Record<string, unknown>;
+    const recId = String(mr.recordId || '');
+    if (!recId) return json({ error: 'Размещение не указано' }, 400);
+    const { data: rec } = await client.from('media_records').select('material, history').eq('id', recId).eq('supplier_id', supplier.id).maybeSingle();
+    if (!rec) return json({ error: 'Размещение не найдено' }, 404);
+    const hist = Array.isArray(rec.history) ? [...rec.history] : [];
+    hist.push({ id: `h-${Date.now()}-mat`, date: new Date().toISOString(), field: 'material', userId: 'supplier-self', userName: 'Поставщик (ЛК)', comment: '', oldValue: '', newValue: 'Материал обновлён из ЛК' });
+    const { error: upErr } = await client.from('media_records').update({
+      material: { description: String(mr.description || '').slice(0, 2000), files: mr.imageUrl ? [String(mr.imageUrl).slice(0, 500)] : [] },
+      history: hist.slice(-200),
+      updated_at: new Date().toISOString(),
+    }).eq('id', recId);
+    if (upErr) return json({ error: 'Не удалось сохранить материал' }, 500);
+    return json({ ok: true });
+  }
+
   if (body.edoOperator !== undefined || body.edoToken !== undefined) {
     if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
     if (body.edoToken !== undefined) patch.edo_token = String(body.edoToken ?? '').slice(0, 300);
@@ -374,7 +392,7 @@ async function handlePost(req: Request) {
       // v1.30.80: новости рынка поставщика (ЛК)
       myNews: ((dset.marketNews as Array<Record<string, unknown>>) || []).filter(n => String(n.supplierId) === String(supplier.id)),
       // v1.30.77: рекламные размещения поставщика (ЛК)
-      placements: ((await client.from('media_records').select('ad_type_name, duration_label, price_per_month, discount, total_price, status, start_date, end_date').eq('supplier_id', supplier.id).order('created_at', { ascending: false }).limit(50)).data || []),
+      placements: ((await client.from('media_records').select('id, ad_type_name, duration_label, price_per_month, discount, total_price, status, start_date, end_date').eq('supplier_id', supplier.id).order('created_at', { ascending: false }).limit(50)).data || []),
       // v1.30.68: Продвижение (ЛК) — договор поставщика и форматы с тарифами
       mediaContract: (() => {
         const list = ((dset.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
