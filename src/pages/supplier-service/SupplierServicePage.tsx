@@ -70,6 +70,7 @@ export default function SupplierServicePage() {
   const [offerView, setOfferView] = useState(false); // v1.30.58: режим чтения из кабинета (без ДА/НЕТ)
   // v1.30.68: Продвижение (ЛК) — договор поставщика, форматы, заявка
   const [lkLinksMap, setLkLinksMap] = useState<Record<string, string>>({}); // v1.30.76: ссылки офер («Подробнее про форматы»)
+  const [placements, setPlacements] = useState<Array<Record<string, unknown>>>([]); // v1.30.77: рекламные размещения
   const [promoContract, setPromoContract] = useState<Record<string, unknown> | null>(null);
   const [adFormats, setAdFormats] = useState<Array<Record<string, unknown>>>([]);
   const [promoFormat, setPromoFormat] = useState<Record<string, unknown> | null>(null); // формат в модалке
@@ -188,6 +189,7 @@ export default function SupplierServicePage() {
       }
       if (r.ok && d?.mediaContract !== undefined) setPromoContract(d.mediaContract);
       if (r.ok && Array.isArray(d?.adFormats)) setAdFormats(d.adFormats);
+      if (r.ok && Array.isArray(d?.placements)) setPlacements(d.placements);
       if (r.ok && d?.dashboard?.lkLinks) setLkLinksMap(d.dashboard.lkLinks as Record<string, string>);
       if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
@@ -856,6 +858,27 @@ export default function SupplierServicePage() {
                   ) : (
                     <p className="text-xs text-gray-400">Форматы не настроены.</p>
                   )}
+
+                  {/* v1.30.77: Рекламные размещения (дизайн — как условия DBS) */}
+                  <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Рекламные размещения</p>
+                    {placements.length ? (
+                      <div className="divide-y divide-gray-100">
+                        {placements.map((p, i) => (
+                          <div key={i} className="py-2.5 flex flex-wrap gap-x-8 gap-y-1 text-sm">
+                            <p className="text-gray-600 min-w-[140px]">Тип рекламы: <b className="text-gray-900">{String(p.ad_type_name || '—')}</b></p>
+                            <p className="text-gray-600">Тариф: <b className="text-gray-900">{String(p.duration_label || '—')}</b></p>
+                            <p className="text-gray-600">Статус:{' '}
+                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(p.status) === 'Активен на платформе' ? 'bg-green-100 text-green-700' : String(p.status) === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
+                            </p>
+                            <p className="text-gray-600">Период: <b className="text-gray-900">{String(p.start_date || '').split('-').reverse().join('.') || '—'} — {String(p.end_date || '').split('-').reverse().join('.') || '—'}</b></p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">Размещений нет.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -941,7 +964,7 @@ export default function SupplierServicePage() {
                       ))}
                     </select>
                     {/* v1.30.76: все цены с НДС — на выделенном фоне после тарифа */}
-                    <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 mt-2">Все цены указаны с НДС.</p>
+                    <p className="text-xs font-semibold text-green-800 bg-green-100 border border-green-100 rounded-lg px-2.5 py-1.5 mt-2">Все цены указаны с НДС.</p>
                     {/* v1.30.74: блок внимания — всегда */}
                     <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-3 mt-2">
                       Обращаем ваше внимание: количество мест на каждом рекламном формате ограничено.
