@@ -78,7 +78,7 @@ export default function SupplierServicePage() {
   const [matDesc, setMatDesc] = useState('');
   const [matImage, setMatImage] = useState('');
   const [matBusy, setMatBusy] = useState(false);
-  const [statusHint, setStatusHint] = useState<string | null>(null);
+  const [placeHint, setPlaceHint] = useState<string | null>(null);
 
   // v1.30.81: расшифровки статусов размещений (иконка-? в строке)
   const STATUS_HINTS: Record<string, string> = {
@@ -934,8 +934,8 @@ export default function SupplierServicePage() {
                           </span>
                           <span className="text-gray-500 whitespace-nowrap font-normal">{p.start_date && p.end_date ? `${String(p.start_date).split('-').reverse().join('.')} — ${String(p.end_date).split('-').reverse().join('.')}` : 'дата не назначена'}</span>
                           <button type="button" onClick={() => { setMaterialModalId(String(p.id)); setMatDesc(''); setMatImage(''); }} className="text-xs px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:border-red-300 transition-colors whitespace-nowrap">Материал</button>
-                          <button type="button" onClick={() => setStatusHint(statusHint === String(p.id) ? null : String(p.id))} title="Что означает статус" className="p-1 text-gray-400 hover:text-red-600">?</button>
-                          {statusHint === String(p.id) && (
+                          <button type="button" onClick={() => setPlaceHint(placeHint === String(p.id) ? null : String(p.id))} title="Что означает статус" className="p-1 text-gray-400 hover:text-red-600">?</button>
+                          {placeHint === String(p.id) && (
                             <div className="col-span-full text-[11px] text-gray-500 bg-white border border-gray-100 rounded-lg px-2.5 py-1.5 mt-1">
                               {STATUS_HINTS[String(p.status)] || 'Статус размещения.'}
                             </div>
