@@ -79,16 +79,27 @@ export default function SupplierServicePage() {
   const [matImage, setMatImage] = useState('');
   const [matBusy, setMatBusy] = useState(false);
   const [showStatusInfo, setShowStatusInfo] = useState(false); // v1.30.84: справка по статусам в шапке блока
+  const [newsEditId, setNewsEditId] = useState<string | null>(null); // v1.30.86: просмотр/редактирование новости из ЛК
 
   // v1.30.81: расшифровки статусов размещений (иконка-? в строке)
+  // v1.30.86: короткие формулировки + карта цветов статусов
   const STATUS_HINTS: Record<string, string> = {
-    'Заявка создана': 'Заявка оформлена, ожидает обработки менеджером',
-    'Счёт отправлен': 'Счёт выставлен клиенту, ожидается оплата',
-    'Опубликовано': 'Размещение активно и видно на платформе',
-    'Запланировано': 'Размещение согласовано, старт в указанную дату',
+    'Заявка создана': 'Ожидает обработки менеджером',
+    'Счёт отправлен': 'Счёт выставлен, ожидается оплата',
+    'Опубликовано': 'Размещение активно на платформе',
+    'Запланировано': 'Размещение стартует в указанную дату',
     'Отменено': 'Заявка аннулирована, размещение не состоится',
-    'Завершается': 'Срок размещения подходит к концу, продлите или место освободится',
+    'Завершается': 'Срок подходит, продлите или место освободится',
     'Выполнено': 'Заказ полностью оказан, размещение закрыто',
+  };
+  const STATUS_STYLE: Record<string, string> = {
+    'Заявка создана': 'bg-amber-100 text-amber-700',
+    'Счёт отправлен': 'bg-orange-100 text-orange-700',
+    'Опубликовано': 'bg-green-100 text-green-700',
+    'Запланировано': 'bg-blue-100 text-blue-700',
+    'Отменено': 'bg-gray-100 text-gray-500',
+    'Завершается': 'bg-red-100 text-red-600',
+    'Выполнено': 'bg-emerald-100 text-emerald-700',
   };
   const [promoContract, setPromoContract] = useState<Record<string, unknown> | null>(null);
   const [adFormats, setAdFormats] = useState<Array<Record<string, unknown>>>([]);
@@ -326,6 +337,31 @@ export default function SupplierServicePage() {
     } catch {
       toast.error('Не удалось сохранить материал');
     } finally { setMatBusy(false); }
+  }
+
+  // v1.30.86: сохранение отредактированной новости
+  async function sendNewsUpdate() {
+    if (!newsEditId) return;
+    if (!nnTitle.trim()) { toast.error('Введите заголовок новости'); return; }
+    setNnBusy(true);
+    try {
+      const pinCode = sessionStorage.getItem('dbs_pin') || '';
+      const r = await fetch(getFunctionsUrl('supplier-service'), {
+        method: 'POST',
+        headers: { ...getAnonKeyHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, pin: pinCode, newsUpdate: { id: newsEditId, title: nnTitle.trim(), link: nnLink.trim(), text: nnText, imageUrl: nnImage } }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast.success('Новость обновлена');
+        setNewsEditId(null);
+        loadLkInfo();
+      } else {
+        toast.error(String(d?.error || 'Не удалось сохранить новость'));
+      }
+    } catch {
+      toast.error('Не удалось сохранить новость');
+    } finally { setNnBusy(false); }
   }
 
   // v1.30.70: активация договора (без № и даты — статус «Активный»)
@@ -950,7 +986,7 @@ export default function SupplierServicePage() {
                           <b className="text-gray-900">{String(p.ad_type_name || '—')}</b>
                           <p className="text-gray-600 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">−{Number(p.discount)}%</span> : null}{p.total_price ? <b className="ml-1 text-gray-900">{Number(p.total_price).toLocaleString('ru')} ₽</b> : null}</p>
                           <span className="relative">
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(p.status) === 'Опубликовано' ? 'bg-green-100 text-green-700' : String(p.status) === 'Отменено' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[String(p.status)] || 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
                           </span>
                           <span className="text-[11px] text-gray-400 whitespace-nowrap font-normal">{p.start_date && p.end_date ? `${String(p.start_date).split('-').reverse().join('.')} — ${String(p.end_date).split('-').reverse().join('.')}` : 'дата не назначена'}</span>
                           {/* v1.30.83: hover — фон темнее; если материал есть — видно по кнопке */}
@@ -975,10 +1011,12 @@ export default function SupplierServicePage() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Мои новости</p>
                     {myNews.length ? (
                       <div className="space-y-2">
+                        {/* v1.30.86: клик по строке — просмотр/редактирование; заголовок + текст одной строкой */}
                         {myNews.map((n2, i2) => (
-                          <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-[1.4fr_1fr_0.7fr_0.7fr] gap-2 text-sm items-center">
-                            <b className="text-gray-900 truncate">{String(n2.title || '—')}</b>
-                            {n2.link ? <a href={String(n2.link)} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs truncate">{String(n2.link)}</a> : <span className="text-gray-300 text-xs">—</span>}
+                          <div key={i2} onClick={() => { setNewsEditId(String(n2.id)); setNnTitle(String(n2.title || '')); setNnLink(String(n2.link || '')); setNnText(String(n2.text || '')); setNnImage(String(n2.imageUrl || '')); }}
+                            className="bg-gray-50 hover:bg-gray-100 rounded-xl px-3 py-2.5 grid grid-cols-[1.6fr_1fr_0.7fr_0.7fr] gap-2 text-sm items-center cursor-pointer">
+                            <p className="truncate text-gray-900"><b>{String(n2.title || '—')}</b>{n2.text ? <span className="text-gray-500 font-normal"> — {String(n2.text)}</span> : null}</p>
+                            {n2.link ? <a href={String(n2.link)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-blue-600 hover:underline text-xs truncate">{String(n2.link)}</a> : <span className="text-gray-300 text-xs">—</span>}
                             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${String(n2.status) === 'Опубликована' ? 'bg-green-100 text-green-700' : String(n2.status) === 'Аннулирована' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(n2.status || '—')}</span>
                             <b className="text-gray-900 whitespace-nowrap">{String(n2.date || '').split('-').reverse().join('.') || '—'}</b>
                           </div>
@@ -1019,6 +1057,47 @@ export default function SupplierServicePage() {
                       {matBusy ? 'Отправка...' : 'Отправить'}
                     </button>
                     <button type="button" disabled={matBusy} onClick={() => setMaterialModalId(null)} className="text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Отмена</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* v1.30.86: модалка просмотра/редактирования новости */}
+            {newsEditId && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/50" onClick={() => { if (!nnBusy) setNewsEditId(null); }} />
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-3 animate-fade-in">
+                  <h3 className="text-base font-bold text-gray-900">Редактирование новости</h3>
+                  <div>
+                    <label className="form-label text-xs">Заголовок *</label>
+                    <input className="form-input text-xs" value={nnTitle} onChange={e => setNnTitle(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label text-xs">Ссылка</label>
+                    <input className="form-input text-xs" value={nnLink} onChange={e => setNnLink(e.target.value)} placeholder="https://" />
+                  </div>
+                  <div>
+                    <label className="form-label text-xs">Текст</label>
+                    <textarea className="form-input text-xs" rows={3} value={nnText} onChange={e => setNnText(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="form-label text-xs">Материал (картинка)</label>
+                    <div className="flex items-center gap-2">
+                      {nnImage ? <img src={nnImage} alt="" className="h-10 w-10 object-cover rounded-lg border border-gray-200" /> : null}
+                      <label className={`text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 cursor-pointer ${nnBusy ? 'opacity-50' : 'hover:bg-gray-200'}`}>
+                        {nnBusy ? 'Загрузка…' : nnImage ? 'Заменить' : 'Загрузить'}
+                        <input type="file" accept="image/*" className="hidden" disabled={nnBusy} onChange={e => { const f = e.target.files?.[0]; if (f) uploadNewsImageLk(f); e.target.value = ''; }} />
+                      </label>
+                      {nnImage && <button type="button" onClick={() => setNnImage('')} className="text-xs text-gray-400 hover:text-red-600">Убрать</button>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" disabled={nnBusy} onClick={sendNewsUpdate}
+                      className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                      {nnBusy ? 'Сохранение...' : 'Сохранить'}
+                    </button>
+                    <button type="button" disabled={nnBusy} onClick={() => setNewsEditId(null)}
+                      className="text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Отмена</button>
                   </div>
                 </div>
               </div>
@@ -1357,7 +1436,7 @@ export default function SupplierServicePage() {
                         {/* МОИ СКЛАДЫ */}
             <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-base font-semibold text-gray-900 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
+                <h2 className="text-base font-semibold text-gray-400 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button type="button" onClick={() => setLkTab('wh')}
                     className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300">
@@ -1391,7 +1470,7 @@ export default function SupplierServicePage() {
                     return (
                   <button key={w.id} type="button" onClick={() => setSelectedWh(prev => prev === w.city ? '' : w.city)}
                     className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors ${borderCls}`}>
-                    <span className="font-semibold text-gray-900">{w.city}</span>
+                    <span className="font-semibold text-gray-400">{w.city}</span>
                     <span className="text-gray-400 text-xs">{Number(w.skuCount).toLocaleString('ru-RU')} SKU</span>
                     <span className={`text-xs ${st === 'Проверен' ? 'text-green-600 font-medium' : st === 'Заморожен' ? 'text-gray-400' : 'text-gray-400'}`}>{st}</span>
                     <span onClick={e => e.stopPropagation()} title={w.address ? `Адрес: ${w.address}` : 'Адрес не указан'} className="text-gray-300 hover:text-gray-500 cursor-help inline-flex"><Warehouse size={12} /></span>
@@ -1404,7 +1483,7 @@ export default function SupplierServicePage() {
             {/* ДОСТУПНЫЕ ГОРОДА — список показываем всегда; условия требуют склад */}
             <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3 flex-wrap">
-                <h2 className="text-base font-semibold text-gray-900">Доступные города</h2>
+                <h2 className="text-base font-semibold text-gray-400">Доступные города</h2>
                 <div className="flex items-center gap-2">
                   {(['covered', 'empty'] as const).map(f => (
                     <button key={f} type="button" onClick={() => setCityFilter(prev => prev === f ? 'all' : f)}
@@ -1500,7 +1579,7 @@ export default function SupplierServicePage() {
                 <div className="w-full max-w-[1080px] max-h-[92vh] overflow-y-auto rounded-2xl shadow-2xl ring-1 ring-white/40 border border-white/30" onClick={e => e.stopPropagation()}>
               <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-bold text-gray-900">{editingIdx !== null ? 'Условия сервиса проценки (редактирование)' : 'Условия сервиса проценки'}</h2>
+                  <h2 className="text-base font-bold text-gray-400">{editingIdx !== null ? 'Условия сервиса проценки (редактирование)' : 'Условия сервиса проценки'}</h2>
                   <button onClick={() => { setEditorOpen(false); setEditingIdx(null); setCondForm(EMPTY_COND); setTkOn(false); }} className="text-gray-400 hover:text-gray-700" title="Закрыть"><X size={18} /></button>
                 </div>
 
@@ -1553,7 +1632,7 @@ export default function SupplierServicePage() {
                           setCondForm(f => ({ ...f, orderUnloadSchedule: next }));
                           setTkOn(!has);
                         }}
-                          className={`w-9 h-9 text-xs font-bold rounded-lg border transition-colors ${tkOn || String(condForm.orderUnloadSchedule || '').includes('Условия доставки по согласованию!') ? 'bg-yellow-300 border-yellow-400 text-gray-900' : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-400'}`}>
+                          className={`w-9 h-9 text-xs font-bold rounded-lg border transition-colors ${tkOn || String(condForm.orderUnloadSchedule || '').includes('Условия доставки по согласованию!') ? 'bg-yellow-300 border-yellow-400 text-gray-400' : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-400'}`}>
                           ТК
                         </button>
                         {['Сегодня', 'Завтра'].map(v => (
@@ -1663,7 +1742,7 @@ export default function SupplierServicePage() {
             {(data.serviceSearch || []).length > 0 && (
               <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-                  <h2 className="text-base font-semibold text-gray-900">Условия сервиса проценки (DBS)</h2>
+                  <h2 className="text-base font-semibold text-gray-400">Условия сервиса проценки (DBS)</h2>
                   <div className="flex items-center gap-2">
                     {(['Новое', 'Загружено', 'Есть изменения'] as const).map(st => (
                       <button key={st} type="button" onClick={() => setStatusFilter(p => p === st ? 'all' : st)}
@@ -1716,12 +1795,12 @@ export default function SupplierServicePage() {
                         <div>
                           <p className="text-[10px] uppercase tracking-wide text-gray-400 lg:hidden">Условия доставки</p>
                           <div className="flex items-center gap-1.5 max-w-[300px]">
-                            {tkOn && <span className="w-7 h-7 text-[10px] font-bold flex items-center justify-center rounded-lg bg-yellow-300 border border-yellow-400 text-gray-900">ТК</span>}
+                            {tkOn && <span className="w-7 h-7 text-[10px] font-bold flex items-center justify-center rounded-lg bg-yellow-300 border border-yellow-400 text-gray-400">ТК</span>}
                             <span className="text-xs text-gray-600 truncate" title={delivText}>{delivText || '—'}</span>
                           </div>
                         </div>
                         {cell('Представитель', c.representative)}
-                        <span className={`self-center justify-self-center text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700 border border-green-200' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700 border border-amber-200' : (c.status || 'Новое') === 'Удаление' ? 'bg-gray-200 text-gray-600 border border-gray-300' : 'bg-red-50 text-red-700 border border-red-200'}`}>{c.status || 'Новое'}</span>
+                        <span className={`self-center justify-self-center text-[11px] font-medium px-2 py-0.5 rounded-full ${(c.status || 'Новое') === 'Загружено' ? 'bg-green-50 text-green-700' : (c.status || 'Новое') === 'Есть изменения' ? 'bg-amber-50 text-amber-700' : (c.status || 'Новое') === 'Удаление' ? 'bg-gray-200 text-gray-600' : 'bg-red-50 text-red-700'}`}>{c.status || 'Новое'}</span>
                         <button
                           onClick={e => { e.stopPropagation(); markDeleted(realIdx); }}
                           disabled={(c.status || 'Новое') === 'Удаление'}
@@ -1750,7 +1829,7 @@ export default function SupplierServicePage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/50" onClick={closeOffer} />
               <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-fade-in">
-                <h3 className="text-base font-bold text-gray-900">Согласие с публичной офертой</h3>
+                <h3 className="text-base font-bold text-gray-400">Согласие с публичной офертой</h3>
                 <div className="space-y-3">
                   <p className="text-xs text-gray-500">
                     Прочитать оферту:{' '}
