@@ -859,26 +859,28 @@ export default function SupplierServicePage() {
                     <p className="text-xs text-gray-400">Форматы не настроены.</p>
                   )}
 
-                  {/* v1.30.77: Рекламные размещения (дизайн — как условия DBS) */}
-                  <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Рекламные размещения</p>
-                    {placements.length ? (
-                      <div className="divide-y divide-gray-100">
-                        {placements.map((p, i) => (
-                          <div key={i} className="py-2.5 flex flex-wrap gap-x-8 gap-y-1 text-sm">
-                            <p className="text-gray-600 min-w-[140px]">Тип рекламы: <b className="text-gray-900">{String(p.ad_type_name || '—')}</b></p>
-                            <p className="text-gray-600">Тариф: <b className="text-gray-900">{String(p.duration_label || '—')}</b></p>
-                            <p className="text-gray-600">Статус:{' '}
-                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(p.status) === 'Активен на платформе' ? 'bg-green-100 text-green-700' : String(p.status) === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
-                            </p>
-                            <p className="text-gray-600">Период: <b className="text-gray-900">{String(p.start_date || '').split('-').reverse().join('.') || '—'} — {String(p.end_date || '').split('-').reverse().join('.') || '—'}</b></p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400">Размещений нет.</p>
-                    )}
-                  </div>
+  </div>
+
+                {/* v1.30.78: Рекламные размещения — отдельная подложка, фон как у условий DBS */}
+                <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Рекламные размещения</p>
+                  {placements.length ? (
+                    <div className="divide-y divide-gray-100">
+                      {placements.map((p, i2) => (
+                        <div key={i2} className="py-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm items-center">
+                          <p className="text-gray-600">Тип рекламы: <b className="block text-gray-900">{String(p.ad_type_name || '—')}</b></p>
+                          <p className="text-gray-600">Тариф: <b className="block text-gray-900 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? ` · −${Number(p.discount)}%` : ''}{p.total_price ? ` · ${Number(p.total_price).toLocaleString('ru')} ₽` : ''}</b></p>
+                          <p className="text-gray-600">Статус:{' '}
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(p.status) === 'Активен на платформе' ? 'bg-green-100 text-green-700' : String(p.status) === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
+                          </p>
+                          <p className="text-gray-600">Период: <b className="block text-gray-900 whitespace-nowrap">{String(p.start_date || '').split('-').reverse().join('.') || '—'} — {String(p.end_date || '').split('-').reverse().join('.') || '—'}</b></p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400">Размещений нет.</p>
+                  )}
+
                 </div>
               </div>
             )}
