@@ -923,15 +923,20 @@ export default function SupplierServicePage() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Рекламные размещения</p>
                     {/* v1.30.84: справка по статусам — кнопка в шапке блока */}
                     <button type="button" onClick={() => setShowStatusInfo(v => !v)} title="Статусы размещений"
-                      className={`w-7 h-7 rounded-full border flex items-center justify-center transition-colors ${showStatusInfo ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
-                      <Info size={14} />
+                      className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${showStatusInfo ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-600'}`}>
+                      <Info size={16} />
                     </button>
                   </div>
+                  {/* v1.30.85: попап — как «Статусы условий» в проценке (absolute-карточка) */}
                   {showStatusInfo && (
-                    <div className="mb-3 bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-1.5">
-                      {Object.entries(STATUS_HINTS).map(([k2, v2]) => (
-                        <p key={k2} className="text-[11px] text-gray-600 leading-snug"><b className="text-gray-800">{k2}</b> — {v2}</p>
-                      ))}
+                    <div className="absolute right-4 top-12 z-30 w-96 max-w-[calc(100%-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 text-xs text-gray-600 leading-relaxed space-y-2" onClick={e => e.stopPropagation()}>
+                      <p><b className="text-amber-700">Заявка создана</b> — {STATUS_HINTS['Заявка создана']}.</p>
+                      <p><b className="text-orange-700">Счёт отправлен</b> — {STATUS_HINTS['Счёт отправлен']}.</p>
+                      <p><b className="text-green-700">Опубликовано</b> — {STATUS_HINTS['Опубликовано']}.</p>
+                      <p><b className="text-blue-700">Запланировано</b> — {STATUS_HINTS['Запланировано']}.</p>
+                      <p><b className="text-gray-600">Отменено</b> — {STATUS_HINTS['Отменено']}.</p>
+                      <p><b className="text-red-600">Завершается</b> — {STATUS_HINTS['Завершается']}.</p>
+                      <p><b className="text-emerald-700">Выполнено</b> — {STATUS_HINTS['Выполнено']}.</p>
                     </div>
                   )}
                   {/* v1.30.79: без подписей, строки — bg-gray-50 rounded-xl как в DBS */}
