@@ -810,31 +810,28 @@ export default function SupplierServicePage() {
             {/* v1.30.68: Продвижение (ЛК) — договор + форматы + заявка */}
             {lkTab === 'promo' && (
               <div className="space-y-4">
-                {/* Блок 1: Договор */}
+                {/* Блок 1: Договор — v1.30.79: без заголовка, «не найден» в одну строку с кнопками */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Договор</p>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    {promoContract ? (
+                      <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+                        <p className="text-gray-600">№ договора: <b className="text-gray-900">{String(promoContract.contractNo || '—')}</b></p>
+                        <p className="text-gray-600">Дата: <b className="text-gray-900">{String(promoContract.contractDate || '').split('-').reverse().join('.') || '—'}</b></p>
+                        {/* v1.30.74: статус — цветной фон, без обводки */}
+                        <p className="text-gray-600">Статус:{' '}
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(promoContract.status) === 'Активный' ? 'bg-green-100 text-green-700' : String(promoContract.status) === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{String(promoContract.status || '—')}</span>
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">Договор не найден — Активируйте Договор на размещение рекламы.</p>
+                    )}
                     {/* v1.30.75: стиль чипов ЛК (rounded-full, обводка); активация — зелёный фон */}
                     <div className="flex gap-2">
                       {!promoContract && <button type="button" onClick={() => setActivateModalOpen(true)} className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-green-600 border-green-600 text-white hover:bg-green-700 inline-flex items-center gap-1"><Plus size={13} /> Активировать договор</button>}
                       <button type="button" onClick={() => setNewsModalOpen(true)} className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300 inline-flex items-center gap-1"><Plus size={13} /> Добавить новость</button>
                     </div>
                   </div>
-                  {promoContract ? (
-                    <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
-                      <p className="text-gray-600">№ договора: <b className="text-gray-900">{String(promoContract.contractNo || '—')}</b></p>
-                      <p className="text-gray-600">Дата: <b className="text-gray-900">{String(promoContract.contractDate || '').split('-').reverse().join('.') || '—'}</b></p>
-                      {/* v1.30.74: статус — цветной фон, без обводки */}
-                      <p className="text-gray-600">Статус:{' '}
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(promoContract.status) === 'Активный' ? 'bg-green-100 text-green-700' : String(promoContract.status) === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{String(promoContract.status || '—')}</span>
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400">Договор не найден — Активируйте Договор на размещение рекламы.</p>
-                  )}
-                </div>
-
-                {/* Блок 2: Форматы — белая подложка, сдержанный стиль (v1.30.70) */}
+                </div>{/* Блок 2: Форматы — белая подложка, сдержанный стиль (v1.30.70) */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Медиа сервисы</p>
@@ -864,16 +861,15 @@ export default function SupplierServicePage() {
                 {/* v1.30.78: Рекламные размещения — отдельная подложка, фон как у условий DBS */}
                 <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Рекламные размещения</p>
+                  {/* v1.30.79: без подписей, строки — bg-gray-50 rounded-xl как в DBS */}
                   {placements.length ? (
-                    <div className="divide-y divide-gray-100">
+                    <div className="space-y-2">
                       {placements.map((p, i2) => (
-                        <div key={i2} className="py-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm items-center">
-                          <p className="text-gray-600">Тип рекламы: <b className="block text-gray-900">{String(p.ad_type_name || '—')}</b></p>
-                          <p className="text-gray-600">Тариф: <b className="block text-gray-900 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? ` · −${Number(p.discount)}%` : ''}{p.total_price ? ` · ${Number(p.total_price).toLocaleString('ru')} ₽` : ''}</b></p>
-                          <p className="text-gray-600">Статус:{' '}
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(p.status) === 'Активен на платформе' ? 'bg-green-100 text-green-700' : String(p.status) === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
-                          </p>
-                          <p className="text-gray-600">Период: <b className="block text-gray-900 whitespace-nowrap">{String(p.start_date || '').split('-').reverse().join('.') || '—'} — {String(p.end_date || '').split('-').reverse().join('.') || '—'}</b></p>
+                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm items-center">
+                          <b className="text-gray-900">{String(p.ad_type_name || '—')}</b>
+                          <b className="text-gray-900 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? ` · −${Number(p.discount)}%` : ''}{p.total_price ? ` · ${Number(p.total_price).toLocaleString('ru')} ₽` : ''}</b>
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${String(p.status) === 'Активен на платформе' ? 'bg-green-100 text-green-700' : String(p.status) === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
+                          <b className="text-gray-900 whitespace-nowrap">{String(p.start_date || '').split('-').reverse().join('.') || '—'} — {String(p.end_date || '').split('-').reverse().join('.') || '—'}</b>
                         </div>
                       ))}
                     </div>
