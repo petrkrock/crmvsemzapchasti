@@ -374,6 +374,20 @@ async function handlePost(req: Request) {
     return json({ ok: true });
   }
 
+  // v1.30.86: редактирование новости из ЛК (только свои)
+  if (body.newsUpdate !== undefined) {
+    const nu = body.newsUpdate as Record<string, unknown>;
+    const stRow = await client.from('app_settings').select('settings').eq('id', 'global').maybeSingle();
+    const st = (stRow.data?.settings || {}) as Record<string, unknown>;
+    const news = ((st.marketNews as Array<Record<string, unknown>>) || []).map(n =>
+      String(n.id) === String(nu.id) && String(n.supplierId) === String(supplier.id)
+        ? { ...n, title: String(nu.title || '').trim().slice(0, 200), link: String(nu.link || '').slice(0, 500), text: String(nu.text || '').slice(0, 5000), imageUrl: String(nu.imageUrl || '').slice(0, 500) }
+        : n);
+    const { error: upErr } = await client.from('app_settings').update({ settings: { ...st, marketNews: news } }).eq('id', 'global');
+    if (upErr) return json({ error: 'Не удалось сохранить новость' }, 500);
+    return json({ ok: true });
+  }
+
   if (body.edoOperator !== undefined || body.edoToken !== undefined) {
     if (body.edoOperator !== undefined) patch.edo_operator = String(body.edoOperator ?? '').slice(0, 100);
     if (body.edoToken !== undefined) patch.edo_token = String(body.edoToken ?? '').slice(0, 300);
