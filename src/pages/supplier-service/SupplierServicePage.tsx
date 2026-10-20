@@ -2,6 +2,8 @@ import { APP_VERSION } from '@/constants';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFunctionsUrl, getAnonKeyHeaders, isSupabaseConfigured } from '@/lib/functions-api';
+import { supabase } from '@/lib/supabase'; // v1.30.76: загрузка картинок (импорт отсутствовал)
+import { toast } from 'sonner'; // v1.30.76: toast был не определён — модалки не закрывались
 import { AlertCircle, Boxes, Check, ChevronDown, Copy, Headset, Info, LayoutDashboard, LogOut, Megaphone, Pencil, Plus, Search, Trash2, Truck, Warehouse, X } from 'lucide-react';
 
 interface Wh { id: string; city: string; skuCount: number; verified?: boolean; address?: string; status?: 'Новый' | 'Проверен' | 'Заморожен'; } // ТЗ v1.25.0: +адрес, +статус
@@ -67,6 +69,7 @@ export default function SupplierServicePage() {
   const [lkOffer, setLkOffer] = useState<Record<string, unknown> | null>(null); // v1.30.58: включённая оферта (для чтения из кабинета)
   const [offerView, setOfferView] = useState(false); // v1.30.58: режим чтения из кабинета (без ДА/НЕТ)
   // v1.30.68: Продвижение (ЛК) — договор поставщика, форматы, заявка
+  const [lkLinksMap, setLkLinksMap] = useState<Record<string, string>>({}); // v1.30.76: ссылки офер («Подробнее про форматы»)
   const [promoContract, setPromoContract] = useState<Record<string, unknown> | null>(null);
   const [adFormats, setAdFormats] = useState<Array<Record<string, unknown>>>([]);
   const [promoFormat, setPromoFormat] = useState<Record<string, unknown> | null>(null); // формат в модалке
@@ -185,6 +188,7 @@ export default function SupplierServicePage() {
       }
       if (r.ok && d?.mediaContract !== undefined) setPromoContract(d.mediaContract);
       if (r.ok && Array.isArray(d?.adFormats)) setAdFormats(d.adFormats);
+      if (r.ok && d?.dashboard?.lkLinks) setLkLinksMap(d.dashboard.lkLinks as Record<string, string>);
       if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
       if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
@@ -830,7 +834,13 @@ export default function SupplierServicePage() {
 
                 {/* Блок 2: Форматы — белая подложка, сдержанный стиль (v1.30.70) */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Медиа сервисы</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Медиа сервисы</p>
+                    {/* v1.30.76: ссылка «Подробнее про форматы» из Ссылки офер */}
+                    {lkLinksMap.formats ? (
+                      <a href={lkLinksMap.formats} target="_blank" rel="noreferrer" className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300 inline-flex items-center gap-1">Подробнее про форматы</a>
+                    ) : null}
+                  </div>
                   {adFormats.length ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {/* v1.30.71: описание с подложкой, hover — только тень */}
@@ -930,6 +940,8 @@ export default function SupplierServicePage() {
                         </option>
                       ))}
                     </select>
+                    {/* v1.30.76: все цены с НДС — на выделенном фоне после тарифа */}
+                    <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 mt-2">Все цены указаны с НДС.</p>
                     {/* v1.30.74: блок внимания — всегда */}
                     <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 border border-gray-100 rounded-xl p-3 mt-2">
                       Обращаем ваше внимание: количество мест на каждом рекламном формате ограничено.

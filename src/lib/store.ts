@@ -369,7 +369,7 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!settings.lkBanner) settings.lkBanner = { image: '', link: '' };
     if (!Array.isArray(settings.lkNews)) settings.lkNews = [];
     if (!Array.isArray(settings.lkVendorNews)) settings.lkVendorNews = [];
-    if (!settings.lkLinks) settings.lkLinks = { crossdock: '', promo: '' };
+    if (!settings.lkLinks) settings.lkLinks = { crossdock: '', promo: '', formats: '' };
     // v1.30.43: операторы (персональные менеджеры) ЛК поставщика
     if (!Array.isArray(settings.lkOperators)) settings.lkOperators = [];
     // v1.30.55: договоры оферты

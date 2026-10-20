@@ -1771,12 +1771,12 @@ const [tab, setTab] = useState('Статусы');
                 <div className="card-base p-4 space-y-3">
                   <div>
                     <h3 className="section-title">Ссылки офер</h3>
-                    <p className="text-xs text-gray-400">Ссылки для кнопок «Маркет Подробнее» и «Продвижение Подробнее» в ЛК поставщика.</p>
+                    <p className="text-xs text-gray-400">Ссылки для кнопок «Маркет Подробнее», «Продвижение Подробнее» и «Подробнее про форматы» в ЛК поставщика.</p>
                   </div>
-                  {([['crossdock', 'Маркет Подробнее'], ['promo', 'Продвижение Подробнее']] as const).map(([k, label]) => (
+                  {([['crossdock', 'Маркет Подробнее'], ['promo', 'Продвижение Подробнее'], ['formats', 'Подробнее про форматы']] as const).map(([k, label]) => (
                     <label key={k} className="block">
                       <span className="form-label">{label}</span>
-                      <input className="form-input" value={freshStore.settings.lkLinks?.[k] || ''} onChange={e => updateStore(s => ({ ...s, settings: { ...s.settings, lkLinks: { crossdock: '', promo: '', ...s.settings.lkLinks, [k]: e.target.value } } }))} placeholder="https://" />
+                      <input className="form-input" value={freshStore.settings.lkLinks?.[k] || ''} onChange={e => updateStore(s => ({ ...s, settings: { ...s.settings, lkLinks: { crossdock: '', promo: '', formats: '', ...s.settings.lkLinks, [k]: e.target.value } } }))} placeholder="https://" />
                     </label>
                   ))}
                 </div>
