@@ -71,6 +71,8 @@ export default function SupplierServicePage() {
   // v1.30.68: Продвижение (ЛК) — договор поставщика, форматы, заявка
   const [lkLinksMap, setLkLinksMap] = useState<Record<string, string>>({}); // v1.30.76: ссылки офер («Подробнее про форматы»)
   const [placements, setPlacements] = useState<Array<Record<string, unknown>>>([]); // v1.30.77: рекламные размещения
+  const [myNews, setMyNews] = useState<Array<Record<string, unknown>>>([]); // v1.30.80: мои новости
+  const [showMyNews, setShowMyNews] = useState(false); // v1.30.80: тумблер «Мои»
   const [promoContract, setPromoContract] = useState<Record<string, unknown> | null>(null);
   const [adFormats, setAdFormats] = useState<Array<Record<string, unknown>>>([]);
   const [promoFormat, setPromoFormat] = useState<Record<string, unknown> | null>(null); // формат в модалке
@@ -189,6 +191,7 @@ export default function SupplierServicePage() {
       }
       if (r.ok && d?.mediaContract !== undefined) setPromoContract(d.mediaContract);
       if (r.ok && Array.isArray(d?.adFormats)) setAdFormats(d.adFormats);
+      if (r.ok && Array.isArray(d?.myNews)) setMyNews(d.myNews);
       if (r.ok && Array.isArray(d?.placements)) setPlacements(d.placements);
       if (r.ok && d?.dashboard?.lkLinks) setLkLinksMap(d.dashboard.lkLinks as Record<string, string>);
       if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
@@ -828,10 +831,14 @@ export default function SupplierServicePage() {
                     {/* v1.30.75: стиль чипов ЛК (rounded-full, обводка); активация — зелёный фон */}
                     <div className="flex gap-2">
                       {!promoContract && <button type="button" onClick={() => setActivateModalOpen(true)} className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-green-600 border-green-600 text-white hover:bg-green-700 inline-flex items-center gap-1"><Plus size={13} /> Активировать договор</button>}
-                      <button type="button" onClick={() => setNewsModalOpen(true)} className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300 inline-flex items-center gap-1"><Plus size={13} /> Добавить новость</button>
+                      <button type="button" disabled={!promoContract} onClick={() => setNewsModalOpen(true)} title={promoContract ? '' : 'Активируйте договор'} className={`text-xs px-3 py-1.5 rounded-full border transition-colors inline-flex items-center gap-1 ${promoContract ? 'bg-white border-gray-200 text-gray-600 hover:border-red-300' : 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'}`}><Plus size={13} /> Добавить новость</button>
+                      {/* v1.30.80: тумблер «Мои» — мои новости вместо сервисов и размещений */}
+                      <button type="button" disabled={!promoContract} onClick={() => setShowMyNews(v => !v)} title={promoContract ? '' : 'Активируйте договор'} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${!promoContract ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed' : showMyNews ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'}`}>Мои</button>
                     </div>
                   </div>
-                </div>{/* Блок 2: Форматы — белая подложка, сдержанный стиль (v1.30.70) */}
+                </div>
+                {/* Блок 2: Форматы — белая подложка, сдержанный стиль (v1.30.70); v1.30.80: тумблер «Мои» */}
+                {!showMyNews && (<>
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Медиа сервисы</p>
@@ -843,9 +850,10 @@ export default function SupplierServicePage() {
                   {adFormats.length ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {/* v1.30.71: описание с подложкой, hover — только тень */}
+                      {/* v1.30.80: выбор формата недоступен без договора */}
                       {adFormats.map(f => (
-                        <button key={String(f.id)} type="button" onClick={() => { setPromoFormat(f); setPromoTariffId(''); }}
-                          className="bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm transition-shadow hover:shadow-lg h-full flex flex-col">
+                        <button key={String(f.id)} type="button" disabled={!promoContract} onClick={() => { setPromoFormat(f); setPromoTariffId(''); }}
+                          className={`bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm transition-shadow h-full flex flex-col ${promoContract ? 'hover:shadow-lg' : 'opacity-50 cursor-not-allowed'}`}>
                           <p className="text-sm font-semibold text-gray-900">{String(f.name || '')}</p>
                           {f.description ? <p className="text-xs text-gray-600 mt-2 leading-relaxed line-clamp-3 flex-1 bg-gray-50 border border-gray-100 rounded-lg p-2.5">{String(f.description)}</p> : null}
                           <p className="text-[11px] text-gray-400 mt-3 pt-2 border-t border-gray-100">от {Number(f.pricePerMonth || 0).toLocaleString('ru')} ₽/мес.</p>
@@ -864,10 +872,11 @@ export default function SupplierServicePage() {
                   {/* v1.30.79: без подписей, строки — bg-gray-50 rounded-xl как в DBS */}
                   {placements.length ? (
                     <div className="space-y-2">
+                      {/* v1.30.80: пропорции — тариф шире, статус уже; тариф в стиле CRM */}
                       {placements.map((p, i2) => (
-                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm items-center">
+                        <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-2 sm:grid-cols-[1.1fr_1.9fr_0.7fr_1fr] gap-2 text-sm items-center">
                           <b className="text-gray-900">{String(p.ad_type_name || '—')}</b>
-                          <b className="text-gray-900 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? ` · −${Number(p.discount)}%` : ''}{p.total_price ? ` · ${Number(p.total_price).toLocaleString('ru')} ₽` : ''}</b>
+                          <p className="text-gray-600 whitespace-nowrap">{String(p.duration_label || '—')}{p.price_per_month ? ` · ${Number(p.price_per_month).toLocaleString('ru')} ₽/мес.` : ''}{p.discount ? <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600">−{Number(p.discount)}%</span> : null}{p.total_price ? <b className="ml-1 text-gray-900">{Number(p.total_price).toLocaleString('ru')} ₽</b> : null}</p>
                           <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${String(p.status) === 'Активен на платформе' ? 'bg-green-100 text-green-700' : String(p.status) === 'Аннулирован' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(p.status || '—')}</span>
                           <b className="text-gray-900 whitespace-nowrap">{String(p.start_date || '').split('-').reverse().join('.') || '—'} — {String(p.end_date || '').split('-').reverse().join('.') || '—'}</b>
                         </div>
@@ -876,8 +885,29 @@ export default function SupplierServicePage() {
                   ) : (
                     <p className="text-xs text-gray-400">Размещений нет.</p>
                   )}
-
                 </div>
+                </>)}
+
+                {/* v1.30.80: Мои новости — дизайн как «Рекламные размещения» */}
+                {showMyNews && (
+                  <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Мои новости</p>
+                    {myNews.length ? (
+                      <div className="space-y-2">
+                        {myNews.map((n2, i2) => (
+                          <div key={i2} className="bg-gray-50 rounded-xl px-3 py-2.5 grid grid-cols-[1.4fr_1fr_0.7fr_0.7fr] gap-2 text-sm items-center">
+                            <b className="text-gray-900 truncate">{String(n2.title || '—')}</b>
+                            {n2.link ? <a href={String(n2.link)} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs truncate">{String(n2.link)}</a> : <span className="text-gray-300 text-xs">—</span>}
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${String(n2.status) === 'Опубликована' ? 'bg-green-100 text-green-700' : String(n2.status) === 'Аннулирована' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>{String(n2.status || '—')}</span>
+                            <b className="text-gray-900 whitespace-nowrap">{String(n2.date || '').split('-').reverse().join('.') || '—'}</b>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">Новостей нет.</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
