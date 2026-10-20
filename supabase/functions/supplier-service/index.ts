@@ -292,8 +292,6 @@ async function handlePost(req: Request) {
     const mc = contracts.find(c => c.status === 'Активный' && c.contractNo) || contracts.find(c => c.status === 'Активный') || [...contracts].sort((a, b) => String(b.contractDate).localeCompare(String(a.contractDate)))[0];
     if (!mc) return json({ error: 'У вас нет договора — обратитесь к менеджеру' }, 400);
     const now = new Date();
-    const months = Math.max(1, Number(opt.periodMonths) || 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + months, now.getDate());
     const { error: insErr } = await client.from('media_records').insert({
       supplier_id: supplier.id,
       supplier_name: supplier.trade_name || '',
@@ -306,8 +304,9 @@ async function handlePost(req: Request) {
       discount: Number(opt.discount) || 0,
       contract_no: (mc.contractNo as string) || null,
       contract_date: (mc.contractDate as string) || null,
-      start_date: now.toISOString().slice(0, 10),
-      end_date: end.toISOString().slice(0, 10),
+      // v1.30.83: даты НЕ назначаются из ЛК — менеджер ставит в CRM (в ЛК «дата не назначена»)
+      start_date: null,
+      end_date: null,
       status: 'Заявка создана',
       notes: 'Заявка из ЛК (Продвижение)',
       history: [{ id: `h-${Date.now()}-lk`, date: new Date().toISOString(), field: 'created', userId: 'supplier-self', userName: 'Поставщик (ЛК)', comment: '', oldValue: '', newValue: 'Заявка на продвижение из ЛК' }],
@@ -392,7 +391,7 @@ async function handlePost(req: Request) {
       // v1.30.80: новости рынка поставщика (ЛК)
       myNews: ((dset.marketNews as Array<Record<string, unknown>>) || []).filter(n => String(n.supplierId) === String(supplier.id)),
       // v1.30.77: рекламные размещения поставщика (ЛК)
-      placements: ((await client.from('media_records').select('id, ad_type_name, duration_label, price_per_month, discount, total_price, status, start_date, end_date').eq('supplier_id', supplier.id).order('created_at', { ascending: false }).limit(50)).data || []),
+      placements: ((await client.from('media_records').select('id, ad_type_name, duration_label, price_per_month, discount, total_price, material, status, start_date, end_date').eq('supplier_id', supplier.id).order('created_at', { ascending: false }).limit(50)).data || []),
       // v1.30.68: Продвижение (ЛК) — договор поставщика и форматы с тарифами
       mediaContract: (() => {
         const list = ((dset.mediaContracts as Array<Record<string, unknown>>) || []).filter(c => String(c.supplierId) === String(supplier.id));
