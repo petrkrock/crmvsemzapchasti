@@ -224,7 +224,7 @@ export default function SupplierServicePage() {
       if (r.ok && Array.isArray(d?.placements)) setPlacements(d.placements);
       if (r.ok && d?.dashboard?.lkLinks) setLkLinksMap(d.dashboard.lkLinks as Record<string, string>);
       if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
-      if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev ? { ...prev, phone: d.phone } : prev); }
+      if (r.ok && d?.dashboard) { setDash(d.dashboard); setData((prev: Record<string, unknown> | null) => prev && prev.phone !== d.phone ? { ...prev, phone: d.phone } : prev); } // v1.30.94: стабильная ссылка — без петли эффектов
       if (r.ok && d?.cabinet) setCabinet(d.cabinet);
     } catch { /* останется null — покажем «—» */ }
   }

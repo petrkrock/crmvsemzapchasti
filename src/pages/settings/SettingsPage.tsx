@@ -1660,7 +1660,8 @@ const [tab, setTab] = useState('Статусы');
               </div>
               <div className="flex items-center gap-3">
                 {opAvatar.trim() && <img src={opAvatar.trim()} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200" onError={e => (e.currentTarget.style.display = 'none')} />}
-                <button onClick={addOperator} className="btn-primary text-xs">Создать оператора</button>
+                {editingOpId && <button type="button" onClick={() => { setEditingOpId(null); setOpName(''); setOpPhone(''); setOpEmail(''); setOpAvatar(''); setOpUserId(''); setOpMaxLink(''); }} className="btn-secondary text-xs">Отмена</button>}
+                  <button onClick={addOperator} className="btn-primary text-xs">{editingOpId ? 'Сохранить изменения' : 'Создать оператора'}</button>
               </div>
               <div className="space-y-2">
                 {(store.settings.lkOperators || []).map(op => {
