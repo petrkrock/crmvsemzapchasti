@@ -526,10 +526,12 @@ const [tab, setTab] = useState('Статусы');
     const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, avatar: opAvatar.trim() || undefined, userId: opUserId, maxLink: opMaxLink.trim() || undefined, createdAt: new Date().toISOString() };
     if (editingOpId) {
       updateStore(s => ({ ...s, settings: { ...s.settings, lkOperators: (s.settings.lkOperators || []).map(x2 => x2.id === editingOpId ? { ...x2, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, avatar: opAvatar || undefined, userId: opUserId, maxLink: opMaxLink.trim() || undefined } : x2) } }));
+      setTimeout(() => updateStore(s => ({ ...s })), 300); // v1.30.95: гарантированный push
       setEditingOpId(null); setOpName(''); setOpPhone(''); setOpEmail(''); setOpAvatar(''); setOpUserId(''); setOpMaxLink('');
       forceUpdate(n2 => n2 + 1); toast.success('Оператор обновлён'); return;
     }
     updateStore(s => ({ ...s, settings: { ...s.settings, lkOperators: [...(s.settings.lkOperators || []), op] } }));
+    setTimeout(() => updateStore(s => ({ ...s })), 300); // v1.30.95: повторный тик — гарантированный push до F5
     setOpName(''); setOpPhone(''); setOpEmail(''); setOpAvatar(''); setOpUserId(''); setOpMaxLink('');
     forceUpdate(n => n + 1); toast.success('Оператор создан');
   }

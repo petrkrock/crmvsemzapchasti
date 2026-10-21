@@ -175,7 +175,7 @@ export default function SupplierServicePage() {
     if (initialLoadDone.current) return;
     // ТЗ v1.23.55: при живой сессии грузим данные НЕМЕДЛЕННО, не дожидаясь GET-метаданных —
     // убирает видимую задержку «условия появляются не сразу».
-    if (pinPassed) { initialLoadDone.current = true; post({}).then(err => { if (err) { initialLoadDone.current = false; setNotice(err); sessionStorage.removeItem('dbs_pin_ok'); sessionStorage.removeItem('dbs_pin'); setPinPassed(false); } }); return; }
+    if (pinPassed) { initialLoadDone.current = true; post({}).then(err => { if (err) { if (/пин|pin|недейств|токен|token/i.test(String(err))) { initialLoadDone.current = false; setNotice(err); sessionStorage.removeItem('dbs_pin_ok'); sessionStorage.removeItem('dbs_pin'); setPinPassed(false); } else { setTimeout(() => post({}).catch(() => {}), 2000); } } }); return; } // v1.30.95: сетевые сбои не выкидывают из ЛК
     if (!data) return;                    // hasPin ещё неизвестен — ждём GET
     if (data.hasPin) return;              // ждём ввод PIN
     initialLoadDone.current = true;
@@ -772,7 +772,7 @@ export default function SupplierServicePage() {
                             <p className="flex items-center gap-1.5">
                               {promoContract ? (
                                 /* v1.30.91: договор найден — только статус-кнопка (дизайн как «Подробнее», цвет по статусу); v1.30.92: единый цвет */
-                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${String(promoContract.status) === 'Активный' ? 'bg-green-600 text-white' : String(promoContract.status) === 'Новый' ? 'bg-amber-500 text-white' : 'bg-gray-400 text-white'}`}>{String(promoContract.status) === 'Новый' ? 'в работе' : String(promoContract.status || '—')}</span>
+                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(promoContract.status) === 'Активный' ? 'bg-green-100 text-green-700' : String(promoContract.status) === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{String(promoContract.status) === 'Новый' ? 'в работе' : String(promoContract.status || '—')}</span>
                               ) : (
                                 <>
                                   <button type="button" onClick={() => lkLinks['promo'] && window.open(lkLinks['promo'], '_blank', 'noreferrer')} title={lkLinks['promo'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
@@ -923,8 +923,9 @@ export default function SupplierServicePage() {
                         <p className="text-gray-600">№ договора: <b className="text-gray-900">{String(promoContract.contractNo || '—')}</b></p>
                         <p className="text-gray-600">Дата: <b className="text-gray-900">{String(promoContract.contractDate || '').split('-').reverse().join('.') || '—'}</b></p>
                         {/* v1.30.74: статус — цветной фон, без обводки */}
+                        {/* v1.30.95: «в работе» + мягкий цвет (единый везде) */}
                         <p className="text-gray-600">Статус:{' '}
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${String(promoContract.status) === 'Активный' ? 'bg-green-600 text-white' : String(promoContract.status) === 'Новый' ? 'bg-amber-500 text-white' : 'bg-gray-400 text-white'}`}>{String(promoContract.status || '—')}</span>
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(promoContract.status) === 'Активный' ? 'bg-green-100 text-green-700' : String(promoContract.status) === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{String(promoContract.status) === 'Новый' ? 'в работе' : String(promoContract.status || '—')}</span>
                         </p>
                       </div>
                     ) : (
