@@ -460,8 +460,9 @@ async function handlePost(req: Request) {
         banner: (dset.lkBanner as Record<string, string>) || { image: '', link: '' },
         lkLinks: (dset.lkLinks as Record<string, string>) || {},
         // v1.30.92: в ЛК — только опубликованные
-        news: (((dset.lkNews as Array<Record<string, unknown>>) || []).filter(x2 => x2.published).slice(-3)).reverse(),
-        vendorNews: (((dset.lkVendorNews as Array<Record<string, unknown>>) || []).filter(x2 => x2.published).slice(-8)).reverse(),
+        // v1.30.94: легаси-новости (без поля) = опубликованные; скрыты только со снятой публикацией
+        news: (((dset.lkNews as Array<Record<string, unknown>>) || []).filter(x2 => x2.published !== false).slice(-3)).reverse(),
+        vendorNews: (((dset.lkVendorNews as Array<Record<string, unknown>>) || []).filter(x2 => x2.published !== false).slice(-8)).reverse(),
         counters: (dset.lkDashboard as Record<string, unknown>) || { countersMode: 'manual', buyersCount: 500, suppliersCount: 500, skuCount: 350000 },
         dbBuyers: (await client.from('buyers').select('id', { count: 'exact', head: true })).count ?? 0,
         dbSuppliers: (await client.from('suppliers').select('id', { count: 'exact', head: true })).count ?? 0,
