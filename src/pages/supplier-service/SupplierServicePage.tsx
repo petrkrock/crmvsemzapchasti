@@ -767,10 +767,16 @@ export default function SupplierServicePage() {
                                 className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
                           </div>
                           <div className="py-2 flex gap-3">
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Продвижение</span>
+                            {/* v1.30.90: «Продвижение» → «Медиа сервис»; + — модалка активации; при договоре — статус */}
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Медиа сервис</span>
                             <p className="flex items-center gap-1.5"><button type="button" onClick={() => lkLinks['promo'] && window.open(lkLinks['promo'], '_blank', 'noreferrer')} title={lkLinks['promo'] ? 'Открыть' : 'Ссылка не задана (Настройки → ЛК Поставщик → Ссылки офер)'}
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button><button type="button" title="Активировать"
-                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button></p>
+                                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">Подробнее</button>
+                              {promoContract ? (
+                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(promoContract.status) === 'Активный' ? 'bg-green-100 text-green-700' : String(promoContract.status) === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{String(promoContract.status) === 'Новый' ? 'в работе' : String(promoContract.status || '—')}</span>
+                              ) : (
+                                <button type="button" onClick={() => setActivateModalOpen(true)} title="Активировать договор на размещение рекламы"
+                                  className="text-xs font-semibold px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">+</button>
+                              )}</p>
                           </div>
                         </div>
                         </div>
