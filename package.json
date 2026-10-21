@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=18.18.0"
   },
-  "version": "1.30.91",
+  "version": "1.30.92",
   "type": "module",
   "scripts": {
     "dev": "vite",
