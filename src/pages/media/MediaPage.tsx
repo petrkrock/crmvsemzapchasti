@@ -829,7 +829,8 @@ const [deleteWord, setDeleteWord] = useState('');
                       <td className="table-cell">{c.contractNo}</td>
                       <td className="table-cell whitespace-nowrap">{c.contractDate ? String(c.contractDate).split('-').reverse().join('.') : '—'}</td>
                       <td className="table-cell">
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.status === 'Активный' ? 'bg-green-100 text-green-700' : c.status === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{c.status}</span>
+                        {/* v1.30.91: «Новый» отображается как «в работе» */}
+                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.status === 'Активный' ? 'bg-green-100 text-green-700' : c.status === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{c.status === 'Новый' ? 'в работе' : c.status}</span>
                       </td>
                       <td className="table-cell">
                         <div className="flex gap-1">
