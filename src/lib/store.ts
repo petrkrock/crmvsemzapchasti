@@ -378,6 +378,9 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
     if (!Array.isArray(settings.mediaContracts)) settings.mediaContracts = [];
     // v1.30.69: новости рынка (медиа)
     if (!Array.isArray(settings.marketNews)) settings.marketNews = [];
+    // v1.30.92: существующие новости ЛК помечаем опубликованными (фильтр published)
+    if (Array.isArray(settings.lkNews)) settings.lkNews = settings.lkNews.map(n2 => n2.published === undefined ? { ...n2, published: true } : n2);
+    if (Array.isArray(settings.lkVendorNews)) settings.lkVendorNews = settings.lkVendorNews.map(n2 => n2.published === undefined ? { ...n2, published: true } : n2);
     if (!Array.isArray(settings.edoOperators)) settings.edoOperators = [];
 
     // Быстрые кнопки шапки (у старых сохранений может не быть)

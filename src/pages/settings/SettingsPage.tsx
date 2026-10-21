@@ -459,6 +459,9 @@ const [tab, setTab] = useState('Статусы');
   const [ocEffectiveAt, setOcEffectiveAt] = useState('');
   const [ocText, setOcText] = useState('');
   const [editingOcId, setEditingOcId] = useState<string | null>(null);
+  const [editingOpId, setEditingOpId] = useState<string | null>(null); // v1.30.92: правка оператора
+  // v1.30.92: новости — редактирование и удаление (модалка)
+  const [editingNews, setEditingNews] = useState<{ list: 'p' | 'v'; id: string } | null>(null);
   useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('dashboard');
   const [lkBannerImg, setLkBannerImg] = useState('');
   const [lkBannerLink, setLkBannerLink] = useState('');
@@ -467,19 +470,35 @@ const [tab, setTab] = useState('Статусы');
   const [lkNewsTag, setLkNewsTag] = useState('');
   const [lkNewsLink, setLkNewsLink] = useState('');
   const [lkNewsFull, setLkNewsFull] = useState('');
+  // v1.30.92: создание/редактирование новости платформы; новые — без публикации
   function addLkNews() {
     if (!lkNewsTitle.trim() || !lkNewsText.trim()) { toast.error('Заполните заголовок и текст новости'); return; }
-    const item = { id: `ln-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined, fullText: lkNewsFull.trim() || undefined };
+    if (editingNews && editingNews.list === 'p') {
+      updateStore(s => ({ ...s, settings: { ...s.settings, lkNews: (s.settings.lkNews || []).map(x2 => x2.id === editingNews.id ? { ...x2, title: lkNewsTitle.trim(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined, text: lkNewsText.trim(), fullText: lkNewsFull.trim() || undefined } : x2) } }));
+      setEditingNews(null); clearNewsForm(); forceUpdate(n2 => n2 + 1); toast.success('Новость обновлена'); return;
+    }
+    const item = { id: `ln-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined, fullText: lkNewsFull.trim() || undefined, published: false };
     updateStore(s => ({ ...s, settings: { ...s.settings, lkNews: [...(s.settings.lkNews || []), item] } }));
-    setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink(''); setLkNewsFull('');
-    forceUpdate(n => n + 1); toast.success('Новость создана');
+    clearNewsForm(); forceUpdate(n2 => n2 + 1); toast.success('Новость создана — нажмите «Опубликовать» для показа в ЛК');
   }
   function addLkVendorNews() {
     if (!lkNewsTitle.trim() || !lkNewsText.trim()) { toast.error('Заполните заголовок и текст новости'); return; }
-    const item = { id: `lv-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined, fullText: lkNewsFull.trim() || undefined };
+    if (editingNews && editingNews.list === 'v') {
+      updateStore(s => ({ ...s, settings: { ...s.settings, lkVendorNews: (s.settings.lkVendorNews || []).map(x2 => x2.id === editingNews.id ? { ...x2, title: lkNewsTitle.trim(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined, text: lkNewsText.trim(), fullText: lkNewsFull.trim() || undefined } : x2) } }));
+      setEditingNews(null); clearNewsForm(); forceUpdate(n2 => n2 + 1); toast.success('Новость обновлена'); return;
+    }
+    const item = { id: `lv-${Date.now()}`, title: lkNewsTitle.trim(), date: new Date().toLocaleDateString('ru-RU'), text: lkNewsText.trim(), createdAt: new Date().toISOString(), tag: lkNewsTag.trim() || undefined, link: lkNewsLink.trim() || undefined, fullText: lkNewsFull.trim() || undefined, published: false };
     updateStore(s => ({ ...s, settings: { ...s.settings, lkVendorNews: [...(s.settings.lkVendorNews || []), item] } }));
-    setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink(''); setLkNewsFull('');
-    forceUpdate(n => n + 1); toast.success('Новость создана');
+    clearNewsForm(); forceUpdate(n2 => n2 + 1); toast.success('Новость создана — нажмите «Опубликовать» для показа в ЛК');
+  }
+  function clearNewsForm() { setLkNewsTitle(''); setLkNewsText(''); setLkNewsTag(''); setLkNewsLink(''); setLkNewsFull(''); }
+  function openNewsEdit(x2: { id: string; title: string; tag?: string; link?: string; text: string; fullText?: string }, list: 'p' | 'v') {
+    setEditingNews({ list, id: x2.id }); setLkNewsTitle(x2.title); setLkNewsTag(x2.tag || ''); setLkNewsLink(x2.link || ''); setLkNewsText(x2.text); setLkNewsFull(x2.fullText || '');
+  }
+  function toggleNewsPublished(list: 'p' | 'v', id: string) {
+    const key = list === 'p' ? 'lkNews' : 'lkVendorNews';
+    updateStore(s => ({ ...s, settings: { ...s.settings, [key]: ((s.settings as unknown as Record<string, { published?: boolean }[]>)[key] || []).map(x2 => x2.id === id ? { ...x2, published: !x2.published } : x2) } }));
+    forceUpdate(n2 => n2 + 1);
   }
   function removeLkVendorNews(id: string) {
     updateStore(s => ({ ...s, settings: { ...s.settings, lkVendorNews: (s.settings.lkVendorNews || []).filter(x => x.id !== id) } }));
@@ -505,6 +524,11 @@ const [tab, setTab] = useState('Статусы');
     if (!opName.trim()) { toast.error('Укажите ФИО оператора'); return; }
     if (!opUserId) { toast.error('Выберите пользователя (роль)'); return; }
     const op = { id: `dop-${Date.now()}`, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, avatar: opAvatar.trim() || undefined, userId: opUserId, maxLink: opMaxLink.trim() || undefined, createdAt: new Date().toISOString() };
+    if (editingOpId) {
+      updateStore(s => ({ ...s, settings: { ...s.settings, lkOperators: (s.settings.lkOperators || []).map(x2 => x2.id === editingOpId ? { ...x2, name: opName.trim(), phone: opPhone.trim(), email: opEmail.trim() || undefined, avatar: opAvatar || undefined, userId: opUserId, maxLink: opMaxLink.trim() || undefined } : x2) } }));
+      setEditingOpId(null); setOpName(''); setOpPhone(''); setOpEmail(''); setOpAvatar(''); setOpUserId(''); setOpMaxLink('');
+      forceUpdate(n2 => n2 + 1); toast.success('Оператор обновлён'); return;
+    }
     updateStore(s => ({ ...s, settings: { ...s.settings, lkOperators: [...(s.settings.lkOperators || []), op] } }));
     setOpName(''); setOpPhone(''); setOpEmail(''); setOpAvatar(''); setOpUserId(''); setOpMaxLink('');
     forceUpdate(n => n + 1); toast.success('Оператор создан');
@@ -1648,7 +1672,9 @@ const [tab, setTab] = useState('Статусы');
                       <span className="text-xs text-gray-500">{op.phone || '—'}</span>
                       {op.email && <span className="text-xs text-gray-500">{op.email}</span>}
                       <span className="text-xs text-gray-400">Роль: {linked?.name || '—'}</span>
-                      <button onClick={() => removeOperator(op.id)} className="ml-auto text-xs text-red-600 hover:underline">Удалить</button>
+                      {/* v1.30.92: редактирование и удаление с подтверждением */}
+                      <button onClick={() => { setEditingOpId(op.id); setOpName(op.name); setOpPhone(op.phone); setOpEmail(op.email || ''); setOpAvatar(op.avatar || ''); setOpUserId(op.userId); setOpMaxLink(op.maxLink || ''); }} className="text-xs text-gray-500 hover:text-gray-800">Редактировать</button>
+                      <GuardedDelete inUse={false} onClick={() => removeOperator(op.id)} />
                     </div>
                   );
                 })}
@@ -1716,15 +1742,20 @@ const [tab, setTab] = useState('Статусы');
                     <input className="form-input text-xs" placeholder="Ссылка (при клике на новость, https://...)" value={lkNewsLink} onChange={e => setLkNewsLink(e.target.value)} />
                     <textarea className="form-input text-xs min-h-[60px]" placeholder="Короткий текст" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
                       <textarea className="form-input text-xs min-h-[100px]" placeholder="Полный текст (можно HTML)" value={lkNewsFull} onChange={e => setLkNewsFull(e.target.value)} />
-                    <button onClick={addLkNews} className="btn-primary text-xs">Создать новость</button>
+                    {editingNews && editingNews.list === 'p' && <button type="button" onClick={() => { setEditingNews(null); clearNewsForm(); }} className="btn-secondary text-xs">Отмена</button>}
+                        <button onClick={addLkNews} className="btn-primary text-xs">{editingNews && editingNews.list === 'p' ? 'Сохранить изменения' : 'Создать новость'}</button>
                   </div>
                   <div className="space-y-2">
                     {(freshStore.settings.lkNews || []).map(item => (
                       <div key={item.id} className="border border-gray-200 rounded-xl px-3 py-2.5">
                         <div className="flex items-center gap-2">
+                          {/* v1.30.92: публикация/правка/удаление-модалка */}
                           <span className="text-sm font-semibold text-gray-800 flex-1">{item.title}</span>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${item.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>{item.published ? 'опубликована' : 'черновик'}</span>
                           <span className="text-[11px] text-gray-400">{item.date}</span>
-                          <button onClick={() => removeLkNews(item.id)} className="text-xs text-red-600 hover:underline">Удалить</button>
+                          <button onClick={() => toggleNewsPublished('p', item.id)} className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${item.published ? 'bg-gray-100 text-gray-500 hover:bg-gray-200' : 'bg-green-600 text-white hover:bg-green-700'}`}>{item.published ? 'Снять' : 'Опубликовать'}</button>
+                          <button onClick={() => openNewsEdit(item, 'p')} className="text-xs text-gray-500 hover:text-gray-800">Редактировать</button>
+                          <GuardedDelete inUse={false} onClick={() => removeLkNews(item.id)} />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">{item.text}</p>
                       </div>
@@ -1733,22 +1764,27 @@ const [tab, setTab] = useState('Статусы');
                   </div>
 
                   <div className="border-t border-gray-100 pt-4 space-y-2">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-1">От поставщиков к поставщикам</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-1">Новости рынка</h3>
                     <div className="space-y-2">
                       <input className="form-input text-xs" placeholder="Заголовок" value={lkNewsTitle} onChange={e => setLkNewsTitle(e.target.value)} />
                       <input className="form-input text-xs" placeholder="Тег (по умолчанию «Новая функция»)" value={lkNewsTag} onChange={e => setLkNewsTag(e.target.value)} />
                       <input className="form-input text-xs" placeholder="Ссылка (при клике, https://...)" value={lkNewsLink} onChange={e => setLkNewsLink(e.target.value)} />
                       <textarea className="form-input text-xs min-h-[60px]" placeholder="Короткий текст (3 строки в ЛК)" value={lkNewsText} onChange={e => setLkNewsText(e.target.value)} />
                       <textarea className="form-input text-xs min-h-[100px]" placeholder="Полный текст (можно HTML)" value={lkNewsFull} onChange={e => setLkNewsFull(e.target.value)} />
-                      <button onClick={addLkVendorNews} className="btn-primary text-xs">Создать (слайдер ЛК)</button>
+                      {editingNews && editingNews.list === 'v' && <button type="button" onClick={() => { setEditingNews(null); clearNewsForm(); }} className="btn-secondary text-xs">Отмена</button>}
+                        <button onClick={addLkVendorNews} className="btn-primary text-xs">{editingNews && editingNews.list === 'v' ? 'Сохранить изменения' : 'Создать новость'}</button>
                     </div>
                     <div className="space-y-2">
                       {(freshStore.settings.lkVendorNews || []).map(item => (
                         <div key={item.id} className="border border-gray-200 rounded-xl px-3 py-2.5">
                           <div className="flex items-center gap-2">
+                            {/* v1.30.92: публикация/правка/удаление-модалка */}
                             <span className="text-sm font-semibold text-gray-800 flex-1">{item.title}</span>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${item.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>{item.published ? 'опубликована' : 'черновик'}</span>
                             <span className="text-[11px] text-gray-400">{item.date}</span>
-                            <button onClick={() => removeLkVendorNews(item.id)} className="text-xs text-red-600 hover:underline">Удалить</button>
+                            <button onClick={() => toggleNewsPublished('v', item.id)} className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${item.published ? 'bg-gray-100 text-gray-500 hover:bg-gray-200' : 'bg-green-600 text-white hover:bg-green-700'}`}>{item.published ? 'Снять' : 'Опубликовать'}</button>
+                            <button onClick={() => openNewsEdit(item, 'v')} className="text-xs text-gray-500 hover:text-gray-800">Редактировать</button>
+                          <GuardedDelete inUse={false} onClick={() => removeLkVendorNews(item.id)} />
                           </div>
                           <p className="text-xs text-gray-500 mt-1">{item.text}</p>
                         </div>

@@ -772,6 +772,7 @@ export default function SupplierServicePage() {
                             <p className="flex items-center gap-1.5">
                               {promoContract ? (
                                 /* v1.30.91: договор найден — только статус-кнопка (дизайн как «Подробнее», цвет по статусу) */
+                          {/* v1.30.92: единый цвет статуса договора */}
                                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${String(promoContract.status) === 'Активный' ? 'bg-green-600 text-white' : String(promoContract.status) === 'Новый' ? 'bg-amber-500 text-white' : 'bg-gray-400 text-white'}`}>{String(promoContract.status) === 'Новый' ? 'в работе' : String(promoContract.status || '—')}</span>
                               ) : (
                                 <>
@@ -865,7 +866,7 @@ export default function SupplierServicePage() {
                     };
                     return (
                       <div className="space-y-3">
-                        <h3 className="text-sm font-medium text-gray-600">От поставщиков к поставщикам</h3>
+                        <h3 className="text-sm font-medium text-gray-600">Новости рынка</h3>
                         {vendorNews.length ? (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {vendorNews.slice(0, 3).map(n => card(n, 'line-clamp-3'))}
@@ -924,7 +925,7 @@ export default function SupplierServicePage() {
                         <p className="text-gray-600">Дата: <b className="text-gray-900">{String(promoContract.contractDate || '').split('-').reverse().join('.') || '—'}</b></p>
                         {/* v1.30.74: статус — цветной фон, без обводки */}
                         <p className="text-gray-600">Статус:{' '}
-                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${String(promoContract.status) === 'Активный' ? 'bg-green-100 text-green-700' : String(promoContract.status) === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{String(promoContract.status || '—')}</span>
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${String(promoContract.status) === 'Активный' ? 'bg-green-600 text-white' : String(promoContract.status) === 'Новый' ? 'bg-amber-500 text-white' : 'bg-gray-400 text-white'}`}>{String(promoContract.status || '—')}</span>
                         </p>
                       </div>
                     ) : (
@@ -1301,7 +1302,7 @@ export default function SupplierServicePage() {
                               <p className="text-sm font-semibold text-gray-800 w-36 shrink-0 truncate">{String(w.city || '—')}</p>
                               <p className="text-xs text-gray-500 flex-1 min-w-[140px] truncate">{String(w.address || '—')}</p>
                               <p className="text-sm text-gray-500 w-28 shrink-0 text-right">SKU: <b className="text-gray-800 tabular-nums">{Number(w.skuCount) || 0}</b></p>
-                              <span className={`text-[11px] font-semibold px-2 py-1 rounded-md w-24 shrink-0 text-center ${stCls}`}>{st}</span>
+                              <span className={`text-[11px] font-semibold px-2 py-1 rounded-md w-24 shrink-0 text-center ${stCls}`}>{st === 'Новый' ? 'в работе' : st}</span>
                               <button type="button"
                                 onClick={() => { setEditingWhId((w.id as string) || null); setWhCity(String(w.city || '')); setWhAddress(String(w.address || '')); setWhSku(String(w.skuCount || '')); setWhErr({}); setWhModal(true); }}
                                 className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors shrink-0">
