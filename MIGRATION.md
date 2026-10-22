@@ -1,3 +1,34 @@
+## v1.30.100 — Сервисы продаж: публичные названия + фикс дубля при редактировании
+
+- supplierServices: новое поле publicName — публичное название для ЛК
+  (DBS→«проценка», MARKET→«маркетплейс», MEDIA→«реклама»; системные name внутри
+  не меняются — логика, чипы, тарифы работают как раньше). Формы добавления и
+  редактирования сервиса в Настройки → Сервисы продаж получили поле публичного
+  названия; в списке показано «в ЛК: …».
+- Фикс дубля: мердж системных сервисов в store переведён с имени на ID
+  (svc-dbs/svc-market/svc-media) — переименование системного сервиса больше не
+  порождает копию дефолтного.
+- ЛК поставщика: «Активные сервисы продаж» получают список с сервера
+  (edge function → services: code/label) — новые сервисы появляются в ЛК без
+  правки кода; чипы показывают публичные названия.
+
+SQL для прода (идемпотентно; клиентская миграция store проделает то же при
+первой загрузке и запушит):
+```sql
+UPDATE app_settings
+SET settings = jsonb_set(settings, '{supplierServices}',
+  (SELECT COALESCE(jsonb_agg(
+     CASE WHEN elem->>'name' IN ('DBS','MARKET','MEDIA') AND (elem->>'publicName') IS NULL
+          THEN elem || jsonb_build_object('publicName',
+               CASE elem->>'name' WHEN 'DBS' THEN 'проценка' WHEN 'MARKET' THEN 'маркетплейс' ELSE 'реклама' END)
+          ELSE elem END), '[]'::jsonb)
+   FROM jsonb_array_elements(settings->'supplierServices') elem))
+WHERE id = 'global' AND jsonb_typeof(settings->'supplierServices') = 'array';
+```
+
+Файлы: store, types, SettingsPage, SupplierServicePage, supplier-service.
+Деплой: supplier-service → сборка фронта → жёсткая перезагрузка.
+
 ## v1.30.99 — Читаемые бизнес-ID: S000001 (поставщики), B000001 (покупатели)
 
 - Новые колонки public_id (suppliers, buyers) + уникальные индексы.
