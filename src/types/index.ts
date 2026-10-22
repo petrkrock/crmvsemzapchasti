@@ -324,6 +324,9 @@ export interface Supplier {
   companyScore: number;
   category?: 'A' | 'B' | 'C'; // этап 1.8 — категория поставщика (A/B/C, по умолчанию C)
   comment?: string;
+  /** v1.30.98: внешние ID (1С/API/прайсы) — пара источник+ID уникальна */
+  externalId?: string;
+  externalSource?: string;
   scoring?: ScoreData;
   requisites?: RequisitesData;
   serviceSearch?: ServiceSearchCondition[];
@@ -367,6 +370,9 @@ export interface Buyer {
   companyScore: number;
   category?: 'A' | 'B' | 'C'; // этап 1.8 — категория покупателя (A/B/C, по умолчанию C)
   comment?: string;
+  /** v1.30.98: внешние ID (1С/API/прайсы) — пара источник+ID уникальна */
+  externalId?: string;
+  externalSource?: string;
   scoring?: ScoreData;
   requisites?: RequisitesData;
   history: HistoryEntry[];

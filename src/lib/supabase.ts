@@ -151,7 +151,9 @@ function mapSupplier(row: Record<string, unknown>): Supplier {
     ownBrands: (row.own_brands as string[]) || [],
     services: (row.services as string[]) || [],
     companyScore: (row.company_score as number) ?? 5,
-    category: (row.category as Supplier['category']) ?? undefined, // ТЗ 1.8
+    category: (row.category as Supplier['category']) ?? undefined,
+    externalId: (row.external_id as string) ?? undefined,
+    externalSource: (row.external_source as string) ?? undefined, // ТЗ 1.8
     comment: (row.comment as string) ?? undefined,
     scoring: (row.scoring as Supplier['scoring']) ?? undefined,
     requisites: (row.requisites as Supplier['requisites']) ?? undefined,
@@ -200,6 +202,8 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.ownBrands !== undefined) db.own_brands = s.ownBrands;
   if (s.services !== undefined) db.services = s.services;
   if (s.companyScore !== undefined) db.company_score = s.companyScore;
+  if (s.externalId !== undefined) db.external_id = orNull(s.externalId);
+  if (s.externalSource !== undefined) db.external_source = orNull(s.externalSource);
   if (s.category !== undefined) db.category = s.category; // ТЗ 1.8
   if (s.comment !== undefined) db.comment = orNull(s.comment);
   if (s.scoring !== undefined) db.scoring = s.scoring;
@@ -238,7 +242,9 @@ function mapBuyer(row: Record<string, unknown>): Buyer {
     locationsCount: (row.locations_count as number) ?? undefined, // Аудит-matrix: канон locations_count
     locationCount: (row.locations_count as number) ?? undefined, // legacy-алиас для старых экранов
     companyScore: (row.company_score as number) ?? 5,
-    category: (row.category as Buyer['category']) ?? undefined, // ТЗ 1.8
+    category: (row.category as Buyer['category']) ?? undefined,
+    externalId: (row.external_id as string) ?? undefined,
+    externalSource: (row.external_source as string) ?? undefined, // ТЗ 1.8
     comment: (row.comment as string) ?? undefined,
     scoring: (row.scoring as Buyer['scoring']) ?? undefined,
     requisites: (row.requisites as Buyer['requisites']) ?? undefined,
@@ -272,6 +278,8 @@ function mapBuyerToDb(b: Partial<Buyer>): Record<string, unknown> {
   if (b.contactPref !== undefined) db.contact_pref = orNull(b.contactPref);
   if (b.contactPrefs !== undefined) db.contact_prefs = b.contactPrefs;
   if (b.companyScore !== undefined) db.company_score = b.companyScore;
+  if (b.externalId !== undefined) db.external_id = orNull(b.externalId);
+  if (b.externalSource !== undefined) db.external_source = orNull(b.externalSource);
   if (b.category !== undefined) db.category = b.category; // ТЗ 1.8
   if (b.locationsCount !== undefined) db.locations_count = b.locationsCount;
   else if (b.locationCount !== undefined) db.locations_count = b.locationCount; // legacy-алиас

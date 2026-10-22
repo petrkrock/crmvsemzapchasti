@@ -433,7 +433,8 @@ function handleMassStatus() {
               {buyers.slice(0, listShown).map(b => (
                 <tr key={b.id} className={`table-row ${b.deletedAt ? 'opacity-50' : ''}`} onClick={() => navigate(`/buyers/${b.id}`)}>
                   <td className="table-cell" onClick={e => e.stopPropagation()}><input type="checkbox" checked={selected.includes(b.id)} onChange={() => toggleSelect(b.id)} className="rounded" /></td>
-                  <td className="table-cell font-medium">{b.tradeName}{!b.responsibleId && <span className="text-brand-red ml-0.5" title="Нет ответственного — запись видна всем менеджерам">*</span>}</td>
+                  {/* v1.30.98: постоянный ID под названием */}
+                  <td className="table-cell font-medium">{b.tradeName}{!b.responsibleId && <span className="text-brand-red ml-0.5" title="Нет ответственного — запись видна всем менеджерам">*</span>}<p className="text-[10px] font-mono text-gray-400 font-normal mt-0.5">{b.id}</p></td>
                   <td className="table-cell hidden sm:table-cell text-xs text-gray-500">{b.type}</td>
                   <td className="table-cell hidden md:table-cell text-xs">{b.city}</td>
                   <td className="table-cell">
