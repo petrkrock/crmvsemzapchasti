@@ -771,8 +771,7 @@ export default function SupplierServicePage() {
                             <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Медиа сервис</span>
                             <p className="flex items-center gap-1.5">
                               {promoContract ? (
-                                /* v1.30.91: договор найден — только статус-кнопка (дизайн как «Подробнее», цвет по статусу); v1.30.92: единый цвет */
-                                {/* v1.30.96: размер и радиус как у кнопки «Подробнее» в этом блоке */}
+                                /* v1.30.91: договор найден — только статус-кнопка; v1.30.96: размер и радиус как у «Подробнее»; цвета мягкие */
                                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${String(promoContract.status) === 'Активный' ? 'bg-green-100 text-green-700' : String(promoContract.status) === 'Новый' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>{String(promoContract.status) === 'Новый' ? 'в работе' : String(promoContract.status || '—')}</span>
                               ) : (
                                 <>
