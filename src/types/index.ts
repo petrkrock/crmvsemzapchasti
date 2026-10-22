@@ -327,6 +327,8 @@ export interface Supplier {
   /** v1.30.98: внешние ID (1С/API/прайсы) — пара источник+ID уникальна */
   externalId?: string;
   externalSource?: string;
+  /** v1.30.99: читаемый бизнес-ID (S000001/B000001) */
+  publicId?: string;
   scoring?: ScoreData;
   requisites?: RequisitesData;
   serviceSearch?: ServiceSearchCondition[];
@@ -373,6 +375,8 @@ export interface Buyer {
   /** v1.30.98: внешние ID (1С/API/прайсы) — пара источник+ID уникальна */
   externalId?: string;
   externalSource?: string;
+  /** v1.30.99: читаемый бизнес-ID (S000001/B000001) */
+  publicId?: string;
   scoring?: ScoreData;
   requisites?: RequisitesData;
   history: HistoryEntry[];
