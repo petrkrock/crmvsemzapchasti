@@ -1,3 +1,26 @@
+## v1.30.102 — Дедупликация системных сервисов: строгая пара (svc-* + системное имя)
+
+1.30.101 не удалил дубли в ЛК: копия создавалась с тем же каноническим id
+(svc-dbs), а фильтр сохранял все записи с каноническими id. Теперь системной
+считается строго пара (id=svc-* и name=DBS/MARKET/MEDIA); все остальные записи
+с системными именами или каноническими id удаляются, мердж воссоздаёт
+канонические. ЛК читает сервер — применить SQL очистки на проде (ЛК станет
+чистым сразу, без редеплоя edge function):
+
+```sql
+UPDATE app_settings
+SET settings = jsonb_set(settings, '{supplierServices}',
+  (SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+   FROM jsonb_array_elements(settings->'supplierServices') elem
+   WHERE (elem->>'name' NOT IN ('DBS','MARKET','MEDIA')
+          AND elem->>'id' NOT IN ('svc-dbs','svc-market','svc-media'))
+      OR (elem->>'id', elem->>'name') IN
+         (('svc-dbs','DBS'), ('svc-market','MARKET'), ('svc-media','MEDIA'))))
+WHERE id = 'global' AND jsonb_typeof(settings->'supplierServices') = 'array';
+```
+
+Файлы: store, MIGRATION. Деплой: SQL → сборка фронта → жёсткая перезагрузка.
+
 ## v1.30.101 — Очистка случайных дублей системных сервисов продаж
 
 Миграция вне гейта (store): убирает копии системных сервисов, созданные багом
