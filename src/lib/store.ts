@@ -276,6 +276,21 @@ export function getStore(): CRMStore {
         { name: 'MEDIA', publicName: 'реклама' },
       ];
       if (!Array.isArray(settings.supplierServices)) settings.supplierServices = [];
+      // v1.30.101: удаляем случайные дубли системных сервисов (оставляем канонический ID)
+      {
+        const canonicalIds = SYS_SVC.map(x => `svc-${x.name.toLowerCase()}`);
+        const seen = new Set<string>();
+        settings.supplierServices = (settings.supplierServices || []).filter(sv => {
+          const canon = canonicalIds.includes(String(sv.id)) || SYS_SVC.some(x => x.name === sv.name && String(sv.id) === `svc-${x.name.toLowerCase()}`);
+          if (canon) return true; // канонические не трогаем
+          if (SYS_SVC.some(x => x.name === sv.name) && settings.supplierServices!.some(x => x.id === `svc-${String(sv.name).toLowerCase()}`)) {
+            return false; // лишняя копия системного имени — удаляем
+          }
+          if (seen.has(String(sv.id))) return false;
+          seen.add(String(sv.id));
+          return true;
+        });
+      }
       SYS_SVC.forEach(({ name, publicName }) => {
         const canonicalId = `svc-${name.toLowerCase()}`;
         // поиск по ID (канонический) или по имени (легаси-записи без канонического id)
