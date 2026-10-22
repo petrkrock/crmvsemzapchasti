@@ -50,7 +50,9 @@ CREATE TABLE public.suppliers (
   edo_token           TEXT,
   -- v1.30.98: внешние ID (1С/API/прайсы) — уникальность по паре источник+ID
   external_id         TEXT,
-  external_source     TEXT,,
+  external_source     TEXT,
+  -- v1.30.99: читаемый бизнес-ID (S000001/B000001) — последовательность БД, номер не переиспользуется
+  public_id           TEXT,,
   from_api            BOOLEAN NOT NULL DEFAULT FALSE,
   created_by          UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   responsible_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -87,7 +89,9 @@ CREATE TABLE public.buyers (
   additional_comment  TEXT,
   -- v1.30.98: внешние ID (1С/API/прайсы) — уникальность по паре источник+ID
   external_id         TEXT,
-  external_source     TEXT,,
+  external_source     TEXT,
+  -- v1.30.99: читаемый бизнес-ID (S000001/B000001) — последовательность БД, номер не переиспользуется
+  public_id           TEXT,,
   from_api            BOOLEAN NOT NULL DEFAULT FALSE,
   created_by          UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   responsible_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -298,6 +302,33 @@ DROP TRIGGER IF EXISTS suppliers_id_registry_bd ON suppliers;
 CREATE TRIGGER suppliers_id_registry_bd BEFORE DELETE ON suppliers FOR EACH ROW EXECUTE FUNCTION trg_suppliers_id_registry_bd();
 DROP TRIGGER IF EXISTS buyers_id_registry_bd ON buyers;
 CREATE TRIGGER buyers_id_registry_bd BEFORE DELETE ON buyers FOR EACH ROW EXECUTE FUNCTION trg_buyers_id_registry_bd();
+
+-- v1.30.99: последовательности читаемых ID (NO CYCLE — номер выдан один раз и навсегда)
+CREATE SEQUENCE IF NOT EXISTS supplier_public_seq AS INTEGER NO CYCLE CACHE 1;
+CREATE SEQUENCE IF NOT EXISTS buyer_public_seq AS INTEGER NO CYCLE CACHE 1;
+
+CREATE OR REPLACE FUNCTION trg_suppliers_public_id_bi() RETURNS trigger AS $$
+BEGIN
+  IF NEW.public_id IS NULL THEN
+    NEW.public_id := 'S' || lpad(nextval('supplier_public_seq')::text, 6, '0');
+  END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION trg_buyers_public_id_bi() RETURNS trigger AS $$
+BEGIN
+  IF NEW.public_id IS NULL THEN
+    NEW.public_id := 'B' || lpad(nextval('buyer_public_seq')::text, 6, '0');
+  END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS suppliers_public_id_bi ON suppliers;
+CREATE TRIGGER suppliers_public_id_bi BEFORE INSERT ON suppliers FOR EACH ROW EXECUTE FUNCTION trg_suppliers_public_id_bi();
+DROP TRIGGER IF EXISTS buyers_public_id_bi ON buyers;
+CREATE TRIGGER buyers_public_id_bi BEFORE INSERT ON buyers FOR EACH ROW EXECUTE FUNCTION trg_buyers_public_id_bi();
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_suppliers_public_id ON suppliers(public_id) WHERE public_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_buyers_public_id ON buyers(public_id) WHERE public_id IS NOT NULL;
 
 ALTER TABLE id_registry ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS id_registry_select_admin ON id_registry;

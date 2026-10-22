@@ -1,3 +1,51 @@
+## v1.30.99 — Читаемые бизнес-ID: S000001 (поставщики), B000001 (покупатели)
+
+- Новые колонки public_id (suppliers, buyers) + уникальные индексы.
+- Последовательности supplier_public_seq / buyer_public_seq (NO CYCLE, CACHE 1):
+  номер выдаётся один раз и никогда не переиспользуется — даже после удаления
+  записи её номер остаётся занятым. Триггеры BEFORE INSERT заполняют public_id
+  автоматически ('S'||lpad(n,6,'0') / 'B'||…).
+- UUID id остаётся внутренним PK (синхронизация, ЛК, связи) — читаемый ID —
+  для людей и документов. Требование «неповторяемости» сохранено обоими слоями.
+- Фронт: publicId в типах и мапперах обе стороны; в таблицах под названием —
+  S/B-ID (внутренний UUID — в tooltip).
+
+SQL для боевой базы (ПЕРЕД выкладкой фронта):
+```sql
+-- 1. Колонки
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS public_id TEXT;
+ALTER TABLE buyers    ADD COLUMN IF NOT EXISTS public_id TEXT;
+-- 2. Последовательности (NO CYCLE — номер навсегда занят)
+CREATE SEQUENCE IF NOT EXISTS supplier_public_seq AS INTEGER NO CYCLE CACHE 1;
+CREATE SEQUENCE IF NOT EXISTS buyer_public_seq AS INTEGER NO CYCLE CACHE 1;
+-- 3. Backfill: существующим — номера по порядку создания (идемпотентно)
+WITH numbered AS (
+  SELECT id, row_number() OVER (ORDER BY created_at, id) AS rn
+  FROM suppliers WHERE public_id IS NULL)
+UPDATE suppliers s SET public_id = 'S' || lpad(n.rn::text, 6, '0')
+FROM numbered n WHERE s.id = n.id;
+WITH numbered AS (
+  SELECT id, row_number() OVER (ORDER BY created_at, id) AS rn
+  FROM buyers WHERE public_id IS NULL)
+UPDATE buyers b SET public_id = 'B' || lpad(n.rn::text, 6, '0')
+FROM numbered n WHERE b.id = n.id;
+-- 4. Сдвиг последовательностей за backfill
+SELECT setval('supplier_public_seq', GREATEST((SELECT count(*) FROM suppliers), 1));
+SELECT setval('buyer_public_seq', GREATEST((SELECT count(*) FROM buyers), 1));
+-- 5. Триггеры (тела — в schema.sql v1.30.99)
+-- 6. Уникальные индексы
+CREATE UNIQUE INDEX IF NOT EXISTS uq_suppliers_public_id ON suppliers(public_id) WHERE public_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_buyers_public_id ON buyers(public_id) WHERE public_id IS NOT NULL;
+```
+
+Тесты приёмки: все строки имеют public_id (NOT NULL после backfill);
+INSERT без public_id → автозаполнение 'S'/'B' + 6 цифр; повторный INSERT →
+следующий номер; удалённый номер не выдаётся повторно (последовательность
+монотонна, NO CYCLE).
+
+Откат: DROP TRIGGER ×2 → DROP FUNCTION ×2 → DROP SEQUENCE ×2 → DROP INDEX ×2 →
+DROP COLUMN public_id (UUID id и реестр v1.30.98 сохраняются).
+
 ## v1.30.98 — Постоянные ID поставщиков/покупателей + id_registry
 
 Схема (supabase/schema.sql): колонки external_id/external_source (suppliers,
