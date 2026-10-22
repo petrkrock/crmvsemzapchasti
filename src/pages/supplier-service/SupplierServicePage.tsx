@@ -71,6 +71,7 @@ export default function SupplierServicePage() {
   // v1.30.68: Продвижение (ЛК) — договор поставщика, форматы, заявка
   const [lkLinksMap, setLkLinksMap] = useState<Record<string, string>>({}); // v1.30.76: ссылки офер («Подробнее про форматы»)
   const [placements, setPlacements] = useState<Array<Record<string, unknown>>>([]); // v1.30.77: рекламные размещения
+  const [adServices, setAdServices] = useState<Array<Record<string, string>>>([]); // v1.30.100: сервисы продаж (code/label)
   const [myNews, setMyNews] = useState<Array<Record<string, unknown>>>([]); // v1.30.80: мои новости
   const [showMyNews, setShowMyNews] = useState(false); // v1.30.80: тумблер «Мои»
   // v1.30.81: материал к размещению + подсказка статуса
@@ -221,6 +222,7 @@ export default function SupplierServicePage() {
       if (r.ok && d?.mediaContract !== undefined) setPromoContract(d.mediaContract);
       if (r.ok && Array.isArray(d?.adFormats)) setAdFormats(d.adFormats);
       if (r.ok && Array.isArray(d?.myNews)) setMyNews(d.myNews);
+      if (r.ok && Array.isArray(d?.services)) setAdServices(d.services);
       if (r.ok && Array.isArray(d?.placements)) setPlacements(d.placements);
       if (r.ok && d?.dashboard?.lkLinks) setLkLinksMap(d.dashboard.lkLinks as Record<string, string>);
       if (r.ok && d?.lkOperator !== undefined) setLkOp(d.lkOperator);
@@ -1323,8 +1325,9 @@ export default function SupplierServicePage() {
 
             {lkTab === 'cabinet' && (() => {
               const cb = cabinet || {};
-              const svc = ['DBS', 'MARKET', 'MEDIA']; // значение FBS хранится как есть
-              const activeServices = svc.filter(s => (cb.services as string[] || []).includes(s));
+              /* v1.30.100: сервисы из настроек (публичные названия) */
+              const svc = adServices.length ? adServices : [{ code: 'DBS', label: 'проценка' }, { code: 'MARKET', label: 'маркетплейс' }, { code: 'MEDIA', label: 'реклама' }];
+              const activeServices = svc.filter(s => (cb.services as string[] || []).includes(s.code));
               const row = (label: string, value: unknown) => (
                 <div className="flex items-baseline gap-3 text-sm py-1.5">
                   <span className="w-40 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{label}</span>
@@ -1393,7 +1396,7 @@ export default function SupplierServicePage() {
                     <h3 className="text-sm font-semibold text-gray-600">Активные сервисы продаж</h3>
                     <div className="flex flex-wrap gap-1.5">
                       {svc.map(s => (
-                        <span key={s} className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${activeServices.includes(s) ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{s}</span>
+                        <span key={s.code} className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${activeServices.some(x => x.code === s.code) ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>{s.label}</span>
                       ))}
                     </div>
                     {/* v1.30.58: ссылка на оферту — открывает модалку для чтения */}

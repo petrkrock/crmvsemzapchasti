@@ -147,6 +147,8 @@ export interface SupplierService {
   createdAt: string;
   /** Системный сервис (ТЗ v1.29.0): нельзя удалить, только переименовать. */
   system?: boolean;
+  /** v1.30.100: публичное название для ЛК поставщика (внутри — системное name) */
+  publicName?: string;
 }
 
 // ── MEDIA SERVICE ──────────────────────────────────────────

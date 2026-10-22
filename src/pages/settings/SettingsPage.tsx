@@ -181,16 +181,19 @@ const [tab, setTab] = useState('Статусы');
   const [newServiceName, setNewServiceName] = useState('');
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [editServiceName, setEditServiceName] = useState('');
+  const [newServicePublic, setNewServicePublic] = useState('');
+  const [editServicePublic, setEditServicePublic] = useState('');
   function addService() {
     const name = newServiceName.trim(); if (!name) return;
     if ((store.settings.supplierServices || []).find(s => s.name === name)) { toast.error('Сервис уже существует'); return; }
-    updateStore(s => ({ ...s, settings: { ...s.settings, supplierServices: [...(s.settings.supplierServices || []), { id: generateId(), name, createdAt: new Date().toISOString() }] } }));
-    setNewServiceName(''); forceUpdate(n => n + 1); toast.success('Сервис добавлен');
+    updateStore(s => ({ ...s, settings: { ...s.settings, supplierServices: [...(s.settings.supplierServices || []), { id: generateId(), name, publicName: newServicePublic.trim() || undefined, createdAt: new Date().toISOString() }] } }));
+    setNewServiceName(''); setNewServicePublic(''); forceUpdate(n => n + 1); toast.success('Сервис добавлен');
   }
   function saveEditService() {
     if (!editingServiceId) return; const name = editServiceName.trim(); if (!name) return;
-    updateStore(s => ({ ...s, settings: { ...s.settings, supplierServices: (s.settings.supplierServices || []).map(sv => sv.id === editingServiceId ? { ...sv, name } : sv) } }));
-    setEditingServiceId(null); forceUpdate(n => n + 1);
+    // v1.30.100: обновление того же сервиса (дубль при редактировании устранён в store — мердж по id)
+    updateStore(s => ({ ...s, settings: { ...s.settings, supplierServices: (s.settings.supplierServices || []).map(sv => sv.id === editingServiceId ? { ...sv, name, publicName: editServicePublic.trim() || undefined } : sv) } }));
+    setEditingServiceId(null); setEditServicePublic(''); forceUpdate(n => n + 1); toast.success('Сервис обновлён');
   }
   function deleteService(id: string) {
     if (!confirm('Удалить сервис?')) return;
@@ -1022,7 +1025,8 @@ const [tab, setTab] = useState('Статусы');
             <div className="space-y-4">
               <h3 className="section-title flex items-center gap-2"><Tag size={16} className="text-brand-red" /> Сервисы продаж (DBS, MARKET, MEDIA и др.)</h3>
               <div className="flex gap-2">
-                <input className="form-input flex-1" placeholder="Новый сервис..." value={newServiceName} onChange={e => setNewServiceName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addService()} />
+                <input className="form-input flex-1" placeholder="Системное название (DBS, MARKET...)" value={newServiceName} onChange={e => setNewServiceName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addService()} />
+                <input className="form-input flex-1" placeholder="Публичное название (для ЛК) — необязательно" value={newServicePublic} onChange={e => setNewServicePublic(e.target.value)} />
                 <button onClick={addService} className="btn-primary text-xs"><Plus size={14} /> Добавить</button>
               </div>
               <div className="space-y-2">
@@ -1030,11 +1034,11 @@ const [tab, setTab] = useState('Статусы');
                 {supplierServices.map((svc: SupplierService) => (
                   <div key={svc.id} className="card-base p-3">
                     {editingServiceId === svc.id ? (
-                      <div className="flex gap-2"><input className="form-input flex-1" value={editServiceName} onChange={e => setEditServiceName(e.target.value)} /><button onClick={saveEditService} className="btn-primary text-xs"><Save size={12} /></button><button onClick={() => setEditingServiceId(null)} className="btn-secondary text-xs">Отмена</button></div>
+                      <div className="flex gap-2"><input className="form-input flex-1" value={editServiceName} onChange={e => setEditServiceName(e.target.value)} placeholder="Системное название" /><input className="form-input flex-1" value={editServicePublic} onChange={e => setEditServicePublic(e.target.value)} placeholder="Публичное название (для ЛК)" /><button onClick={saveEditService} className="btn-primary text-xs"><Save size={12} /></button><button onClick={() => setEditingServiceId(null)} className="btn-secondary text-xs">Отмена</button></div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-semibold">{svc.name}</span>{svc.system && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">Системный</span>}
-                        <div className="flex gap-1"><button onClick={() => { setEditingServiceId(svc.id); setEditServiceName(svc.name); }} className="p-1.5 text-gray-400 hover:text-brand-black rounded"><Edit2 size={14} /></button>{!svc.system && <GuardedDelete inUse={itemInUse('service', svc.name)} onClick={() => deleteService(svc.id)} title={svc.name} />}</div>
+                        <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-semibold">{svc.name}</span>{svc.publicName ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-50 text-gray-500">в ЛК: {svc.publicName}</span> : null}{svc.system && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">Системный</span>}
+                        <div className="flex gap-1"><button onClick={() => { setEditingServiceId(svc.id); setEditServiceName(svc.name); setEditServicePublic(svc.publicName || ''); }} className="p-1.5 text-gray-400 hover:text-brand-black rounded"><Edit2 size={14} /></button>{!svc.system && <GuardedDelete inUse={itemInUse('service', svc.name)} onClick={() => deleteService(svc.id)} title={svc.name} />}</div>
                       </div>
                     )}
                   </div>

@@ -267,14 +267,25 @@ export function getStore(): CRMStore {
       const oldTags = ps['supplierTags'] as Array<{ id: string; name: string; createdAt: string }> | undefined;
       settings.supplierServices = (oldTags && Array.isArray(oldTags) && oldTags.length > 0) ? oldTags : DEFAULT_SUPPLIER_SERVICES;
     }
-    // Системные сервисы продаж — ВНЕ гейта.
+    // Системные сервисы продаж — ВНЕ гейта. v1.30.100: мердж по ID (переименование
+    // системного сервиса больше не порождает дубль) + публичные названия для ЛК.
     {
-      const SYS_SVC = ['DBS', 'MARKET', 'MEDIA'];
+      const SYS_SVC: Array<{ name: string; publicName: string }> = [
+        { name: 'DBS', publicName: 'проценка' },
+        { name: 'MARKET', publicName: 'маркетплейс' },
+        { name: 'MEDIA', publicName: 'реклама' },
+      ];
       if (!Array.isArray(settings.supplierServices)) settings.supplierServices = [];
-      SYS_SVC.forEach(name => {
-        const existing = settings.supplierServices.find(s => s.name === name);
-        if (existing) existing.system = true;
-        else settings.supplierServices.push({ id: `svc-${name.toLowerCase()}`, name, createdAt: new Date().toISOString(), system: true });
+      SYS_SVC.forEach(({ name, publicName }) => {
+        const canonicalId = `svc-${name.toLowerCase()}`;
+        // поиск по ID (канонический) или по имени (легаси-записи без канонического id)
+        const existing = settings.supplierServices.find(s => s.id === canonicalId) || settings.supplierServices.find(s => s.name === name);
+        if (existing) {
+          existing.system = true;
+          if (!existing.publicName) existing.publicName = publicName;
+        } else {
+          settings.supplierServices.push({ id: canonicalId, name, publicName, createdAt: new Date().toISOString(), system: true });
+        }
       });
     }
 
