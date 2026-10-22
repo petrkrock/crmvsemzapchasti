@@ -48,6 +48,9 @@ CREATE TABLE public.suppliers (
   -- v1.30.39: ЭДО — оператор и ключ (колонки)
   edo_operator        TEXT,
   edo_token           TEXT,
+  -- v1.30.98: внешние ID (1С/API/прайсы) — уникальность по паре источник+ID
+  external_id         TEXT,
+  external_source     TEXT,,
   from_api            BOOLEAN NOT NULL DEFAULT FALSE,
   created_by          UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   responsible_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -82,6 +85,9 @@ CREATE TABLE public.buyers (
   history             JSONB NOT NULL DEFAULT '[]'::jsonb,
   additional_contacts TEXT,
   additional_comment  TEXT,
+  -- v1.30.98: внешние ID (1С/API/прайсы) — уникальность по паре источник+ID
+  external_id         TEXT,
+  external_source     TEXT,,
   from_api            BOOLEAN NOT NULL DEFAULT FALSE,
   created_by          UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   responsible_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -231,6 +237,71 @@ CREATE INDEX idx_profiles_email ON public.profiles(email);
 -- ============================================================
 -- COMMON FUNCTIONS
 -- ============================================================
+
+-- v1.30.98: реестр постоянных ID (кладбище UUID — запись остаётся навсегда)
+CREATE TABLE IF NOT EXISTS id_registry (
+  id          UUID PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id   UUID NOT NULL,
+  issued_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  issued_by   TEXT,
+  metadata    JSONB DEFAULT '{}'::jsonb
+);
+CREATE INDEX IF NOT EXISTS idx_id_registry_entity ON id_registry(entity_type, entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_suppliers_external ON suppliers(external_source, external_id) WHERE external_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_buyers_external ON buyers(external_source, external_id) WHERE external_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION trg_suppliers_id_registry_bi() RETURNS trigger AS $$
+BEGIN
+  INSERT INTO id_registry (id, entity_type, entity_id, issued_by)
+  VALUES (NEW.id, 'supplier', NEW.id, COALESCE(current_setting('request.jwt.claims', true)::jsonb ->> 'sub', 'system'))
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION trg_buyers_id_registry_bi() RETURNS trigger AS $$
+BEGIN
+  INSERT INTO id_registry (id, entity_type, entity_id, issued_by)
+  VALUES (NEW.id, 'buyer', NEW.id, COALESCE(current_setting('request.jwt.claims', true)::jsonb ->> 'sub', 'system'))
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION trg_suppliers_id_immutable() RETURNS trigger AS $$
+BEGIN
+  IF NEW.id IS DISTINCT FROM OLD.id THEN RAISE EXCEPTION 'ID поставщика неизменен (id immutable)'; END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION trg_buyers_id_immutable() RETURNS trigger AS $$
+BEGIN
+  IF NEW.id IS DISTINCT FROM OLD.id THEN RAISE EXCEPTION 'ID покупателя неизменен (id immutable)'; END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION trg_suppliers_id_registry_bd() RETURNS trigger AS $$
+BEGIN
+  UPDATE id_registry SET metadata = metadata || jsonb_build_object('deleted_at', now()) WHERE id = OLD.id;
+  RETURN OLD;
+END; $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION trg_buyers_id_registry_bd() RETURNS trigger AS $$
+BEGIN
+  UPDATE id_registry SET metadata = metadata || jsonb_build_object('deleted_at', now()) WHERE id = OLD.id;
+  RETURN OLD;
+END; $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS suppliers_id_registry_bi ON suppliers;
+CREATE TRIGGER suppliers_id_registry_bi BEFORE INSERT ON suppliers FOR EACH ROW EXECUTE FUNCTION trg_suppliers_id_registry_bi();
+DROP TRIGGER IF EXISTS buyers_id_registry_bi ON buyers;
+CREATE TRIGGER buyers_id_registry_bi BEFORE INSERT ON buyers FOR EACH ROW EXECUTE FUNCTION trg_buyers_id_registry_bi();
+DROP TRIGGER IF EXISTS suppliers_id_immutable ON suppliers;
+CREATE TRIGGER suppliers_id_immutable BEFORE UPDATE ON suppliers FOR EACH ROW EXECUTE FUNCTION trg_suppliers_id_immutable();
+DROP TRIGGER IF EXISTS buyers_id_immutable ON buyers;
+CREATE TRIGGER buyers_id_immutable BEFORE UPDATE ON buyers FOR EACH ROW EXECUTE FUNCTION trg_buyers_id_immutable();
+DROP TRIGGER IF EXISTS suppliers_id_registry_bd ON suppliers;
+CREATE TRIGGER suppliers_id_registry_bd BEFORE DELETE ON suppliers FOR EACH ROW EXECUTE FUNCTION trg_suppliers_id_registry_bd();
+DROP TRIGGER IF EXISTS buyers_id_registry_bd ON buyers;
+CREATE TRIGGER buyers_id_registry_bd BEFORE DELETE ON buyers FOR EACH ROW EXECUTE FUNCTION trg_buyers_id_registry_bd();
+
+ALTER TABLE id_registry ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS id_registry_select_admin ON id_registry;
+CREATE POLICY id_registry_select_admin ON id_registry FOR SELECT TO authenticated USING (public.is_admin());
 
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER

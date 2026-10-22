@@ -1,3 +1,50 @@
+## v1.30.98 — Постоянные ID поставщиков/покупателей + id_registry
+
+Схема (supabase/schema.sql): колонки external_id/external_source (suppliers,
+buyers) + уникальные индексы по паре; таблица id_registry (вечный журнал выданных
+UUID); триггеры — реестр при INSERT, запрет изменения id, пометка deleted_at при
+DELETE (ID хранится в реестре навсегда); RLS: чтение реестра — admin.
+Фронт: типы externalId/externalSource, маппинг обе стороны (supabase.ts), в
+таблицах Поставщики/Покупатели под названием — вторая строка с ID
+(text-[10px] font-mono text-gray-400).
+
+Фактура: suppliers.id / buyers.id — уже UUID PK DEFAULT gen_random_uuid();
+генератор клиента crypto.randomUUID() — повторное использование исключено
+на уровне БД. id_registry — аудит и гарантия «на бумаге».
+
+SQL для боевой базы (ПЕРЕД выкладкой фронта, иначе upsert упадёт на колонках):
+```sql
+-- 1. Колонки
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS external_source TEXT;
+ALTER TABLE buyers    ADD COLUMN IF NOT EXISTS external_id TEXT;
+ALTER TABLE buyers    ADD COLUMN IF NOT EXISTS external_source TEXT;
+-- 2. Реестр + индексы
+CREATE TABLE IF NOT EXISTS id_registry (
+  id UUID PRIMARY KEY, entity_type TEXT NOT NULL, entity_id UUID NOT NULL,
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT now(), issued_by TEXT, metadata JSONB DEFAULT '{}'::jsonb);
+CREATE INDEX IF NOT EXISTS idx_id_registry_entity ON id_registry(entity_type, entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_suppliers_external ON suppliers(external_source, external_id) WHERE external_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_buyers_external ON buyers(external_source, external_id) WHERE external_id IS NOT NULL;
+-- 3. Backfill реестра (существующие ID фиксируем как выданные)
+INSERT INTO id_registry (id, entity_type, entity_id, issued_at, issued_by)
+  SELECT id, 'supplier', id, COALESCE(created_at, now()), 'migration' FROM suppliers ON CONFLICT (id) DO NOTHING;
+INSERT INTO id_registry (id, entity_type, entity_id, issued_at, issued_by)
+  SELECT id, 'buyer', id, COALESCE(created_at, now()), 'migration' FROM buyers ON CONFLICT (id) DO NOTHING;
+-- 4. Триггеры (тела — в schema.sql; применить оттуда или через supabase db push)
+-- 5. RLS
+ALTER TABLE id_registry ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS id_registry_select_admin ON id_registry;
+CREATE POLICY id_registry_select_admin ON id_registry FOR SELECT TO authenticated USING (public.is_admin());
+```
+
+Тесты приёмки: UPDATE suppliers SET id = gen_random_uuid() → ошибка 'id immutable';
+DELETE + проверка id_registry (ID остаётся, metadata.deleted_at проставлена);
+SELECT count(*) FROM suppliers = count(*) реестра для 'supplier'.
+
+Откат: DROP TRIGGER ×6 → DROP FUNCTION ×6 → DROP TABLE id_registry (данные
+колонок external_* можно оставить) → DROP INDEX uq_*. SQL → сборка фронта.
+
 ## v1.30.97 — Hotfix: SupplierServicePage не загружался (JSX-комментарий в тернарнике)
 
 Сборка падала (Expected '</', got 'ident', стр. 776): JSX-комментарий v1.30.96
