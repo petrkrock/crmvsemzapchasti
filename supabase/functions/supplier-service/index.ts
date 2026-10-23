@@ -406,6 +406,8 @@ async function handlePost(req: Request) {
       myNews: ((dset.marketNews as Array<Record<string, unknown>>) || []).filter(n => String(n.supplierId) === String(supplier.id)),
       // v1.30.77: рекламные размещения поставщика (ЛК)
       placements: ((await client.from('media_records').select('id, ad_type_name, duration_label, price_per_month, discount, total_price, material, status, start_date, end_date').eq('supplier_id', supplier.id).order('created_at', { ascending: false }).limit(50)).data || []),
+      // v1.30.103: титул для кабинета
+      cabinetTitle: String(dset.cabinetTitle || ''),
       // v1.30.100: сервисы продаж с публичными названиями (список для ЛК — новые сервисы без правки кода)
       services: ((dset.supplierServices as Array<Record<string, unknown>>) || []).map(x2 => ({ code: String(x2.name || ''), label: String(x2.publicName || x2.name || '') })),
       // v1.30.68: Продвижение (ЛК) — договор поставщика и форматы с тарифами
