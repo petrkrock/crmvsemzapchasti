@@ -815,7 +815,14 @@ async function syncEntityDiff<T extends { id: string }>(
   let okCount = 0;
   results.forEach((r, i) => {
     const errObj = r.status === 'fulfilled' ? (r.value as { error?: { message?: string; code?: string } | null } | null)?.error : undefined;
-    const reason = r.status === 'rejected' ? String((r as PromiseRejectedResult).reason) : undefined;
+    // v1.31.9: reason может быть объектом ошибки — извлекаем code/message, иначе '[object Object]'
+    const rawReason = r.status === 'rejected' ? (r as PromiseRejectedResult).reason : undefined;
+    const reason = rawReason
+      ? (typeof rawReason === 'object' && rawReason !== null && 'message' in rawReason
+          ? [ (rawReason as { code?: string }).code, (rawReason as { message?: string }).message,
+              (rawReason as { details?: string }).details ].filter(Boolean).join(': ')
+          : String(rawReason))
+      : undefined;
     const meta = opsMeta[i];
     if (errObj || reason) {
       // ТЗ v1.23.43: операции с ошибкой ВНУТРИ resolved-значения (PostgREST возвращает
