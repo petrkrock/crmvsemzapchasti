@@ -280,8 +280,7 @@ function commit(leads: Lead[]) {
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">База лидов</h1>
+      <div className="flex flex-wrap items-center justify-start gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setBase({ supplier: false, buyer: true })} className={`btn-secondary text-xs py-1.5 ${base.buyer ? 'bg-gray-200' : ''}`}>Покупатели</button>
           <button onClick={() => setBase({ supplier: true, buyer: false })} className={`btn-secondary text-xs py-1.5 ${base.supplier ? 'bg-gray-200' : ''}`}>Поставщики</button>

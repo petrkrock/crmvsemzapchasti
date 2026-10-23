@@ -296,8 +296,7 @@ function deleteSelected() {
         </div>
       )}
 
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="page-title">Поддержка</h1>
+      <div className="flex items-center justify-start flex-wrap gap-2">
         <button onClick={() => setShowAddForm(v => !v)} className="btn-primary"><Plus size={16} /> Новое обращение</button>
       </div>
 

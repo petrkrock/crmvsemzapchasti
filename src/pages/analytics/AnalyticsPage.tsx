@@ -323,7 +323,6 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="page-title">Аналитика</h1>
 
       <div className="card-base overflow-hidden">
         <div className="flex overflow-x-auto border-b border-brand-gray-mid">

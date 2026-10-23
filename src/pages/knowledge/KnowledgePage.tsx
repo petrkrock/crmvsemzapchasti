@@ -249,14 +249,10 @@ export default function KnowledgePage() {
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex items-center justify-start flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-brand-red/10 flex items-center justify-center">
             <BookOpen size={20} className="text-brand-red" />
-          </div>
-          <div>
-            <h1 className="page-title">База знаний</h1>
-            <p className="text-xs text-gray-400">Рабочие материалы, инструкции, шаблоны и регламенты</p>
           </div>
         </div>
         <div className="flex gap-2">

@@ -182,8 +182,7 @@ export default function DatabasePage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="page-title">База данных</h1>
+      <div className="flex items-center justify-start flex-wrap gap-2">
         <div className="flex gap-2">
           <button onClick={() => handleExport()} className="btn-primary text-xs"><Download size={14} /> Выгрузить всё</button>
           {selected.length > 0 && !isLogTab && <button onClick={() => initiateDelete(selected)} className="btn-danger text-xs"><Trash2 size={14} /> Удалить ({selected.length})</button>}

@@ -223,8 +223,7 @@ export default function PricingPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="page-title">Проценка</h1>
+      <div className="flex items-center justify-start flex-wrap gap-2">
         <div className="flex gap-2">
           <button onClick={() => setView('cond')} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'cond' ? 'bg-gray-200' : ''}`}>Условия проценки</button>
           <button onClick={() => setView('wh')} className={`btn-secondary text-xs py-1.5 px-3 ${view === 'wh' ? 'bg-gray-200' : ''}`}>Список складов</button>

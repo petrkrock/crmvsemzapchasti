@@ -324,11 +324,7 @@ const [deleteWord, setDeleteWord] = useState('');
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="page-title">Медиа сервис</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Учёт рекламных размещений поставщиков</p>
-        </div>
+      <div className="flex items-center justify-start flex-wrap gap-2">
         {/* v1.30.66: единый дизайн кнопок, порядок: Размещения / Договора / Добавить размещение / Добавить договор / Архив */}
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => { setView('placements'); setShowArchived(false); }} className={`btn-secondary text-xs ${view === 'placements' && !showArchived ? '!border-red-600 !text-red-600' : ''}`}>Размещения</button>

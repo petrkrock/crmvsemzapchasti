@@ -484,8 +484,7 @@ export default function PlanFactPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="page-title">План / Факт</h1>
+      <div className="flex items-center justify-start flex-wrap gap-2">
         {/* ТЗ: выбор базы в шапке (как в базе лидов); кнопки «Добавить запись» здесь НЕТ */}
         <div className="flex items-center gap-2">
           <button onClick={() => switchBase('buyer')} disabled={baseLocked} title={baseLocked ? 'База задана в правах менеджера' : undefined} className={`btn-secondary text-xs py-1.5 px-3 ${base === 'buyer' ? 'bg-gray-200' : ''} ${baseLocked ? 'opacity-50 cursor-not-allowed' : ''}`}>Покупатели</button>

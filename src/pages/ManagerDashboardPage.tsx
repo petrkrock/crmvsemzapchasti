@@ -102,7 +102,6 @@ export default function ManagerDashboardPage({ previewType }: { previewType?: 'm
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           {preview && <Link to="/settings" className="btn-secondary text-xs flex items-center gap-1"><ArrowLeft size={14} /> Назад</Link>}
-          <h1 className="page-title">Дашборд {isBuyers ? 'МОП' : 'МОЗ'}</h1>
           {preview && <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200">Предпросмотр</span>}
         </div>
         <span className="text-xs text-gray-400">Сегодня: {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
