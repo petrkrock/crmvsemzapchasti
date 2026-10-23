@@ -651,15 +651,15 @@ export default function SupplierServicePage() {
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* БАННЕР */}
-                    <div>
+                    {/* v1.31.6: блоки дашборда — одинаковой высоты (banner = ВЗ ЧАТ = О компании) */}
+                    <div className="h-full flex flex-col">
                       {banner.image ? (
-                        /* v1.30.103: баннер фиксированного размера — не растягивает блок; как ВЗ ЧАТ/О компании */
                         <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
-                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden w-full">
-                          <img src={banner.image} alt="Баннер" className="w-full h-40 object-cover" />
+                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden w-full flex-1 min-h-0">
+                          <img src={banner.image} alt="Баннер" className="w-full h-full object-cover" />
                         </a>
                       ) : (
-                        <div className="bg-white border border-gray-200 rounded-2xl w-full h-40 flex items-center justify-center">
+                        <div className="bg-white border border-gray-200 rounded-2xl w-full flex-1 min-h-40 flex items-center justify-center">
                           <p className="text-gray-300 font-bold text-3xl tracking-widest select-none">БАННЕР</p>
                         </div>
                       )}
@@ -980,7 +980,7 @@ export default function SupplierServicePage() {
   </div>
 
                 {/* v1.30.78: Рекламные размещения — отдельная подложка, фон как у условий DBS */}
-                <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+                <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 h-full">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Рекламные размещения</p>
                     {/* v1.30.84: справка по статусам — кнопка в шапке блока */}
@@ -1033,7 +1033,7 @@ export default function SupplierServicePage() {
 
                 {/* v1.30.80: Мои новости — дизайн как «Рекламные размещения» */}
                 {showMyNews && (
-                  <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+                  <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 h-full">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Мои новости</p>
                     {myNews.length ? (
                       <div className="space-y-2">
@@ -1461,7 +1461,7 @@ export default function SupplierServicePage() {
             {lkTab === 'pricing' && (<>
             {/* ШАГ 1: СОЗДАТЬ СКЛАД + КАРТОЧКА КОМПАНИИ */}
                         {/* МОИ СКЛАДЫ */}
-            <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+            <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 h-full">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-base font-semibold text-gray-800 mb-3">Мои склады ({(data.warehouses || []).length})</h2>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1508,7 +1508,7 @@ export default function SupplierServicePage() {
             </div>
 
             {/* ДОСТУПНЫЕ ГОРОДА — список показываем всегда; условия требуют склад */}
-            <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+            <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 h-full">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <h2 className="text-base font-semibold text-gray-800">Доступные города</h2>
                 <div className="flex items-center gap-2">
@@ -1767,7 +1767,7 @@ export default function SupplierServicePage() {
 
             {/* УСЛОВИЯ СЕРВИСА ПОИСКА (DBS) — таблица условий */}
             {(data.serviceSearch || []).length > 0 && (
-              <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6">
+              <div className="relative bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 h-full">
                 <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
                   <h2 className="text-base font-semibold text-gray-800">Условия сервиса проценки (DBS)</h2>
                   <div className="flex items-center gap-2">
