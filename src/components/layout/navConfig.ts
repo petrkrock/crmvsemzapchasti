@@ -1,4 +1,4 @@
-import { LayoutDashboard, Truck, ShoppingCart, CheckSquare, BarChart2, TrendingUp, HeadphonesIcon, Settings, Database, Video, BookOpen, Server, Percent } from 'lucide-react';
+import { LayoutDashboard, Truck, ShoppingCart, CheckSquare, BarChart2, TrendingUp, HeadphonesIcon, Settings, Database, Video, BookOpen, Server, Percent, LayoutGrid, Package, Cog } from 'lucide-react';
 import { canAccess, isAdmin } from '@/lib/auth';
 
 export interface NavItem {
@@ -20,7 +20,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { to: '/tasks', label: 'Задачи', icon: CheckSquare, visible: () => canAccess('tasks') },
   { to: '/support', label: 'Поддержка', icon: HeadphonesIcon, visible: () => canAccess('support') },
   { to: '/leads', label: 'База лидов', icon: Database, visible: () => canAccess('leads') },
-  { to: '/media', label: 'Медиа сервис', icon: Video, visible: () => canAccess('media') },
+  { to: '/media', label: 'Продвижение', icon: Video, visible: () => canAccess('media') },
   { to: '/pricing', label: 'Проценка', icon: Percent, visible: () => canAccess('pricing') },
   { to: '/planfact', label: 'План / Факт', icon: TrendingUp, visible: () => canAccess('planfact') },
   { to: '/analytics', label: 'Аналитика', icon: BarChart2, visible: () => canAccess('analytics') },
@@ -35,10 +35,11 @@ export const ALL_NAV_ITEMS: NavItem[] = [
  * uppercase headings. Items invisible to the current user (permissions)
  * are filtered out per section by Sidebar.tsx.
  */
-export const NAV_SECTIONS: Array<{ title: string; paths: string[] }> = [
-  { title: 'Работа', paths: ['/dashboard', '/planfact', '/suppliers', '/buyers', '/tasks', '/support', '/leads'] },
-  { title: 'Сервисы', paths: ['/media', '/pricing', '/analytics', '/knowledge'] }, // ТЗ v1.24.2: +Проценка
-  { title: 'Система', paths: ['/settings', '/database'] },
+// v1.31.1: группы со своими иконками; «Работа» → «CRM»; «Продвижение» (бывш. Медиа сервис) после «Проценка»
+export const NAV_SECTIONS: Array<{ title: string; icon: React.ElementType; paths: string[] }> = [
+  { title: 'CRM', icon: LayoutGrid, paths: ['/dashboard', '/planfact', '/suppliers', '/buyers', '/tasks', '/support', '/leads'] },
+  { title: 'Сервисы', icon: Package, paths: ['/pricing', '/media', '/analytics', '/knowledge'] },
+  { title: 'Система', icon: Cog, paths: ['/settings', '/database'] },
 ];
 
 /** Nav items the current user is allowed to see, in the order above. */

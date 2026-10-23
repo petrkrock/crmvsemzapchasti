@@ -23,10 +23,10 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
   const user = getCurrentUser();
   const navItems = getVisibleNavItems();
   const byPath = new Map(navItems.map(item => [item.to, item]));
-  const [closedSections, setClosedSections] = useState<Set<string>>(new Set());
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set()); // v1.31.1: группы скрыты по умолчанию
 
   function toggleSection(title: string) {
-    setClosedSections(prev => {
+    setOpenSections(prev => {
       const next = new Set(prev);
       if (next.has(title)) next.delete(title); else next.add(title);
       return next;
@@ -91,28 +91,28 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
               .filter((item): item is NonNullable<typeof item> => Boolean(item));
             if (!items.length) return null;
             const hasActive = items.some(item => location.pathname.startsWith(item.to));
-            const isOpen = collapsed ? true : (!closedSections.has(section.title) || hasActive);
+            const isOpen = collapsed ? false : (openSections.has(section.title) || hasActive);
 
             if (collapsed) {
-              // свёрнутый режим: плоская колонка иконок с tooltip
+              // v1.31.1: свёрнутый режим — иконки ГРУПП (клик — первый видимый пункт группы)
+              const first = items[0];
               return (
                 <div key={section.title} className="mb-3 space-y-0.5">
-                  {items.map(item => (
+                  {first && (
                     <NavLink
-                      key={item.to}
-                      to={item.to}
+                      to={first.to}
                       onClick={onClose}
-                      title={`${section.title} · ${item.label}`}
-                      className={({ isActive }) =>
+                      title={section.title}
+                      className={() =>
                         cn(
                           'sidebar-link justify-center px-0 gap-0',
-                          isActive ? 'sidebar-link-active' : 'sidebar-link-inactive'
+                          hasActive ? 'sidebar-link-active' : 'sidebar-link-inactive'
                         )
                       }
                     >
-                      <item.icon size={18} />
+                      <section.icon size={18} />
                     </NavLink>
-                  ))}
+                  )}
                 </div>
               );
             }
@@ -123,18 +123,19 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
                   type="button"
                   onClick={() => toggleSection(section.title)}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold transition-colors',
+                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors',
                     hasActive ? 'text-brand-black' : 'text-gray-700 hover:text-brand-black'
                   )}
                 >
-                  <span>{section.title}</span>
+                  <section.icon size={16} className={cn('flex-shrink-0', hasActive ? 'text-brand-red' : 'text-gray-400')} />
+                  <span className="flex-1 text-left">{section.title}</span>
                   <ChevronDown
                     size={15}
                     className={cn('text-gray-400 transition-transform duration-200', isOpen ? 'rotate-180' : '')}
                   />
                 </button>
                 {isOpen && (
-                  <div className="mt-0.5">
+                  <div>
                     {items.map(item => (
                       <NavLink
                         key={item.to}
@@ -143,8 +144,8 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
                         className={({ isActive }) =>
                           cn(
                             // v1.31.0: подпункты без подложки, компактные
-                            'flex items-center gap-2 pl-6 pr-3 py-1.5 rounded-lg text-[13px] transition-colors',
-                            isActive ? 'text-brand-red font-semibold' : 'text-gray-500 hover:text-gray-900'
+                            'flex items-center gap-2 pl-8 pr-3 py-1 rounded-lg text-[13px] transition-colors',
+                            isActive ? 'bg-gray-100 text-brand-red font-semibold' : 'text-gray-500 hover:text-gray-900'
                           )
                         }
                       >

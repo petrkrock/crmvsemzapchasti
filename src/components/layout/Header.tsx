@@ -31,7 +31,9 @@ export default function Header() {
     >
       <div className="h-14 flex items-center justify-between px-4 gap-4">
         {/* Логотип (перенесён из меню) */}
-        <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[150px] h-auto flex-shrink-0" />
+        <button type="button" onClick={() => navigate('/')} title="На главную" className="flex items-center min-h-[44px] rounded-md hover:bg-brand-gray px-2 -ml-2 transition-colors">
+          <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[150px] h-auto flex-shrink-0" />
+        </button>
 
         <div className="flex items-center gap-2">
           {quickLinks.mail && (
