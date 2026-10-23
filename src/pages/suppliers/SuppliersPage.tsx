@@ -484,8 +484,8 @@ function handleMassStatus() {
         <div className="card-base p-3 flex flex-wrap items-center gap-2 bg-blue-50 border-blue-200 animate-fade-in">
           <span className="text-xs font-medium text-blue-700">Выбрано: {selected.length}</span>
           <select className="form-input py-1 text-xs w-auto" value={massStatus} onChange={e => setMassStatus(e.target.value)}><option value="">Статус...</option>{supplierStatuses.map(s => <option key={s}>{s}</option>)}</select>
-          <button onClick={handleMassStatus} disabled={!massStatus} className="btn-primary text-xs py-1">Применить</button>
-          <button onClick={() => { setShowTaskForm(true); setTaskType(''); setTaskDesc(''); setTaskResp(''); }} className="btn-primary text-xs py-1">Создать задачу</button>
+          <button onClick={handleMassStatus} disabled={!massStatus} className="action-btn action-btn-md text-xs py-1">Применить</button>
+          <button onClick={() => { setShowTaskForm(true); setTaskType(''); setTaskDesc(''); setTaskResp(''); }} className="action-btn action-btn-md text-xs py-1">Создать задачу</button>
           {/* Пакетная смена ответственного — только администратор (ТЗ) */}
           {isAdmin() && (
             <>
@@ -493,13 +493,13 @@ function handleMassStatus() {
                 <option value="">Ответственный...</option>
                 {store.settings.users.filter(u => u.status === 'active').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
-              <button onClick={handleMassResponsible} disabled={!massResponsible} className="btn-secondary text-xs py-1">Сменить ответственного</button>
+              <button onClick={handleMassResponsible} disabled={!massResponsible} className="action-btn action-btn-md text-xs py-1">Сменить ответственного</button>
             </>
           )}
-          {canExport() && <button onClick={handleExport} className="btn-secondary text-xs py-1"><Download size={12} /> Экспорт</button>}
+          {canExport() && <button onClick={handleExport} className="action-btn action-btn-md text-xs py-1"><Download size={12} /> Экспорт</button>}
           {canDelete() && (!showArchived
-            ? <button onClick={() => handleDelete(selected)} className="btn-danger text-xs py-1"><Trash2 size={12} /> Перенести в архив</button>
-            : <button onClick={() => handleRestore(selected)} className="btn-secondary text-xs py-1"><RotateCcw size={12} /> Восстановить</button>
+            ? <button onClick={() => handleDelete(selected)} className="action-btn action-btn-md text-xs py-1"><Trash2 size={12} /> Перенести в архив</button>
+            : <button onClick={() => handleRestore(selected)} className="action-btn action-btn-md text-xs py-1"><RotateCcw size={12} /> Восстановить</button>
           )}
           <button onClick={() => setSelected([])} className="text-xs text-gray-400 ml-auto"><X size={14} /></button>
         </div>

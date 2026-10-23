@@ -77,6 +77,8 @@ function PeriodFilter({ period, setPeriod, customFrom, setCustomFrom, customTo, 
   ];
   return (
     <div className="actions-bar flex flex-wrap gap-2 items-center mb-4">
+      {/* v1.31.8: первая вкладка */}
+      <button type="button" className="action-btn action-btn-active">Аналитика CRM</button>
       {MEDIA_PERIODS.map(p => (
         <button key={p.key} onClick={() => setPeriod(p.key)}
           className={`action-btn ${period === p.key ? 'action-btn-active' : ''}`}>

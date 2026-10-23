@@ -279,7 +279,7 @@ function commit(leads: Lead[]) {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4">
+    <div className="space-y-4">
       {/* v1.31.5: без вложенного контейнера — padding 0, кнопки прямо в панели */}
       <div className="actions-bar flex flex-wrap items-center justify-start gap-2">
           <button onClick={() => setBase({ supplier: false, buyer: true })} className={`action-btn text-xs py-1.5 ${base.buyer ? 'action-btn-active' : ''}`}>Покупатели</button>

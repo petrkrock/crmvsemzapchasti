@@ -295,4 +295,6 @@
 }
 .action-btn:hover { background: #F5F5F5; color: #1A1A1A; }
 /* v1.31.5: активный пункт — красный текст (как в Продвижении) + серый фон */
-.action-btn-active { background: #E0E0E0; color: #DC2626; }
+.action-btn-active { background: #E0E0E0; color: #DC2626 !important; }
+/* v1.31.8: кнопки синих панелей — единый размер 33px */
+.action-btn-md { min-height: 33px; }

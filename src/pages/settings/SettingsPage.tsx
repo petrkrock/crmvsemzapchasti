@@ -867,6 +867,11 @@ const [tab, setTab] = useState('Статусы');
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* v1.31.8: меню категорий */}
+      <div className="actions-bar flex items-center justify-start flex-wrap gap-2 mb-4">
+        <button type="button" className="action-btn action-btn-active">Система</button>
+      </div>
+
       <div className="card-base overflow-hidden">
         <div className="flex overflow-x-auto border-b border-brand-gray-mid">
           {SETTINGS_TABS.map(t => <button key={t} onClick={() => setTab(t)} className={`tab-button flex-shrink-0 ${tab === t ? 'tab-active' : 'tab-inactive'}`}>{t}</button>)}
