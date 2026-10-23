@@ -653,7 +653,7 @@ export default function SupplierServicePage() {
                     {/* БАННЕР */}
                     <div>
                       {banner.image ? (
-                        {/* v1.30.103: баннер фиксированного размера — не растягивает блок; как ВЗ ЧАТ/О компании */}
+                        /* v1.30.103: баннер фиксированного размера — не растягивает блок; как ВЗ ЧАТ/О компании */
                         <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
                           className="block bg-white border border-gray-200 rounded-2xl overflow-hidden w-full">
                           <img src={banner.image} alt="Баннер" className="w-full h-40 object-cover" />
