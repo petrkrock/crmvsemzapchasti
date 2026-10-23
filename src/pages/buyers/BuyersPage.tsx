@@ -305,7 +305,7 @@ function handleMassStatus() {
       <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
         <div className="flex gap-2 flex-wrap">
           {canExport() && (<><button onClick={() => setShowImport(true)} className="action-btn text-xs"><Upload size={14} /> Импорт</button><button onClick={handleExport} className="action-btn text-xs"><Download size={14} /> Экспорт{selected.length > 0 ? ` (${selected.length})` : ''}</button></>)}
-          <button onClick={() => setShowAddForm(v => !v)} className="action-btn action-btn-primary"><Plus size={16} /> Добавить</button>
+          <button onClick={() => setShowAddForm(v => !v)} className="action-btn"><Plus size={16} /> Добавить</button>
         </div>
       </div>
 

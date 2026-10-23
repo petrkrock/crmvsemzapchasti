@@ -184,8 +184,8 @@ export default function DatabasePage() {
     <div className="space-y-4 animate-fade-in">
       <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
         <div className="flex gap-2">
-          <button onClick={() => handleExport()} className="action-btn action-btn-primary text-xs"><Download size={14} /> Выгрузить всё</button>
-          {selected.length > 0 && !isLogTab && <button onClick={() => initiateDelete(selected)} className="action-btn action-btn-danger text-xs"><Trash2 size={14} /> Удалить ({selected.length})</button>}
+          <button onClick={() => handleExport()} className="action-btn text-xs"><Download size={14} /> Выгрузить всё</button>
+          {selected.length > 0 && !isLogTab && <button onClick={() => initiateDelete(selected)} className="action-btn text-xs"><Trash2 size={14} /> Удалить ({selected.length})</button>}
         </div>
       </div>
 
@@ -204,7 +204,7 @@ export default function DatabasePage() {
                     <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${errs ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>{errs} ошибок</span>
                     <div className="ml-auto flex gap-2">
                       <button onClick={() => setShowSyncErrors(v => !v)}
-                        className={`text-xs py-1.5 px-3 rounded-lg border transition-colors ${showSyncErrors ? 'bg-red-600 border-red-600 text-white font-semibold' : 'bg-white border-gray-200 text-gray-500 hover:border-red-300'}`}>
+                        className={`text-xs py-1.5 px-3 rounded-lg border transition-colors ${showSyncErrors ? 'action-btn-active' : ''}`}>
                         Ошибки ({errs})
                       </button>
                       <button onClick={() => { const payload = showSyncErrors ? { errors: getSyncErrors() } : { log: getSyncLog(), errors: getSyncErrors() }; navigator.clipboard.writeText(JSON.stringify(payload, null, 2)).then(() => alert('Скопировано — отправьте разработчику')); }}

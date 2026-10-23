@@ -307,24 +307,24 @@ function deleteSelected() {
             <p className="text-sm text-gray-500 mb-5">{confirmAction.msg}</p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setConfirmAction(null)} className="btn-secondary text-sm">Нет</button>
-              <button onClick={() => { confirmAction.action(); setConfirmAction(null); }} className={`text-sm px-4 py-2 rounded-xl font-medium transition-colors ${confirmAction.danger ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-brand-black text-white hover:bg-gray-800'}`}>Да</button>
+              <button onClick={() => { confirmAction.action(); setConfirmAction(null); }} className={`text-sm px-4 py-2 rounded-xl font-medium transition-colors ${confirmAction.danger ? 'action-btn-active' : ''}`}>Да</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
-        <button onClick={() => setShowAddForm(v => !v)} className="action-btn action-btn-primary"><Plus size={16} /> Новая задача</button>
+        <button onClick={() => setShowAddForm(v => !v)} className="action-btn"><Plus size={16} /> Новая задача</button>
       </div>
 
       {/* ── Статусы-фильтры (системные, со счётчиками) ── */}
       <div className="flex flex-wrap gap-2 w-full">
-        <button onClick={() => { setFilterTaskStatus(''); setShowArchive(false); }} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors min-h-[36px] ${!filterTaskStatus && !showArchive ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500 hover:border-gray-400'}`}>Активные</button>
-        <button onClick={() => { setFilterTaskStatus(''); setShowArchive(true); }} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors min-h-[36px] ${showArchive && !filterTaskStatus ? 'bg-gray-700 text-white border-gray-700' : 'border-brand-gray-mid text-gray-500 hover:border-gray-400'}`}><Archive size={12} /> Архив</button>
+        <button onClick={() => { setFilterTaskStatus(''); setShowArchive(false); }} className={`action-btn ${!filterTaskStatus && !showArchive ? 'action-btn-active' : ''}`}>Активные</button>
+        <button onClick={() => { setFilterTaskStatus(''); setShowArchive(true); }} className={`action-btn ${showArchive && !filterTaskStatus ? 'bg-gray-700 text-white border-gray-700' : 'border-brand-gray-mid text-gray-500 hover:border-gray-400'}`}><Archive size={12} /> Архив</button>
         {TASK_STATUSES.map(s => {
           const c = TASK_STATUS_COLORS[s];
           return (
-            <button key={s} onClick={() => setFilterTaskStatus(filterTaskStatus === s ? '' : s)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors min-h-[36px]" style={filterTaskStatus === s ? { background: c.text, color: '#fff', borderColor: c.text } : { background: c.bg, color: c.text, borderColor: 'transparent' }}>
+            <button key={s} onClick={() => setFilterTaskStatus(filterTaskStatus === s ? '' : s)} className="action-btn" style={filterTaskStatus === s ? { background: c.text, color: '#fff', borderColor: c.text } : { background: c.bg, color: c.text, borderColor: 'transparent' }}>
               {s} <span className="font-bold">{statusCounts[s] || 0}</span>
             </button>
           );
@@ -342,7 +342,7 @@ function deleteSelected() {
           </select>
           <select className="form-input py-1.5 text-xs w-auto" value={filterResponsible} onChange={e => setFilterResponsible(e.target.value)}><option value="">Все ответственные</option>
             <option value="__none__">Без ответственного</option>{store.settings.users.filter(u => u.status === 'active').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
-          {(['all', 'today', 'overdue'] as const).map(k => <button key={k} onClick={() => setFilterTime(filterTime === k ? 'all' : k)} className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${filterTime === k ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>{k === 'all' ? 'Все' : k === 'today' ? `Сегодня (${todayCount})` : `Просрочено (${overdueCount})`}</button>)}
+          {(['all', 'today', 'overdue'] as const).map(k => <button key={k} onClick={() => setFilterTime(filterTime === k ? 'all' : k)} className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${filterTime === k ? 'action-btn-active' : ''}`}>{k === 'all' ? 'Все' : k === 'today' ? `Сегодня (${todayCount})` : `Просрочено (${overdueCount})`}</button>)}
         </div>
       </div>
 

@@ -290,24 +290,24 @@ function deleteSelected() {
             <p className="text-sm text-gray-500 mb-5">{confirmAction.msg}</p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setConfirmAction(null)} className="btn-secondary text-sm">Нет</button>
-              <button onClick={() => { confirmAction.action(); setConfirmAction(null); }} className={`text-sm px-4 py-2 rounded-xl font-medium transition-colors ${confirmAction.danger ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-brand-black text-white hover:bg-gray-800'}`}>Да</button>
+              <button onClick={() => { confirmAction.action(); setConfirmAction(null); }} className={`text-sm px-4 py-2 rounded-xl font-medium transition-colors ${confirmAction.danger ? 'action-btn-active' : ''}`}>Да</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
-        <button onClick={() => setShowAddForm(v => !v)} className="action-btn action-btn-primary"><Plus size={16} /> Новое обращение</button>
+        <button onClick={() => setShowAddForm(v => !v)} className="action-btn"><Plus size={16} /> Новое обращение</button>
       </div>
 
       <div className="flex flex-wrap gap-2 w-full">
-        <button onClick={() => { setFilterStatus(''); setFilterSent(false); setShowArchive(false); }} className={`px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px] transition-colors ${!filterStatus && !filterSent && !showArchive ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>Активные</button>
-        <button onClick={() => { setFilterStatus(''); setFilterSent(true); setShowArchive(false); }} className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px] transition-colors ${filterSent ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}><Send size={11} /> Отправлен в задачи <b>{sentCount}</b></button>
-        <button onClick={() => { setFilterStatus(''); setFilterSent(false); setShowArchive(true); }} className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px] transition-colors ${showArchive && !filterStatus ? 'bg-gray-700 text-white border-gray-700' : 'border-brand-gray-mid text-gray-500'}`}><Archive size={11} /> Архив</button>
+        <button onClick={() => { setFilterStatus(''); setFilterSent(false); setShowArchive(false); }} className={`action-btn ${!filterStatus && !filterSent && !showArchive ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>Активные</button>
+        <button onClick={() => { setFilterStatus(''); setFilterSent(true); setShowArchive(false); }} className={`flex items-center gap-1 action-btn ${filterSent ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}><Send size={11} /> Отправлен в задачи <b>{sentCount}</b></button>
+        <button onClick={() => { setFilterStatus(''); setFilterSent(false); setShowArchive(true); }} className={`flex items-center gap-1 action-btn ${showArchive && !filterStatus ? 'bg-gray-700 text-white border-gray-700' : 'border-brand-gray-mid text-gray-500'}`}><Archive size={11} /> Архив</button>
         {TICKET_STATUSES.filter(s => s !== T_SENT).map(s => {
           const c = statusColor(s);
           return (
-            <button key={s} onClick={() => setFilterStatus(filterStatus === s ? '' : s)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors min-h-[36px]" style={filterStatus === s ? { background: c.text, color: '#fff', borderColor: c.text } : { background: c.bg, color: c.text, borderColor: 'transparent' }}>
+            <button key={s} onClick={() => setFilterStatus(filterStatus === s ? '' : s)} className="action-btn" style={filterStatus === s ? { background: c.text, color: '#fff', borderColor: c.text } : { background: c.bg, color: c.text, borderColor: 'transparent' }}>
               {s} <span className="font-bold">{statusCounts[s] || 0}</span>
             </button>
           );

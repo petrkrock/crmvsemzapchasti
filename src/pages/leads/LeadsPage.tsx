@@ -288,7 +288,7 @@ function commit(leads: Lead[]) {
             <Upload size={13} /> Импорт
           </button>)}
           {canExport() && (<button onClick={exportCSV} className="action-btn text-xs py-1.5 flex items-center gap-1.5"><Download size={13} /> Экспорт</button>)}
-          <button onClick={() => openForm()} className="action-btn action-btn-primary text-xs flex items-center gap-1.5"><Plus size={13} /> Добавить</button>
+          <button onClick={() => openForm()} className="action-btn text-xs flex items-center gap-1.5"><Plus size={13} /> Добавить</button>
         </div>
       </div>
 
@@ -359,16 +359,16 @@ function commit(leads: Lead[]) {
                 <option value="">Сменить статус...</option>
                 {statuses.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
               </select>
-              <button onClick={applyMass} className="action-btn action-btn-primary text-xs">Применить</button>
+              <button onClick={applyMass} className="action-btn text-xs">Применить</button>
             </>
           )}
           {!showArchived && (
-            <button onClick={() => { setShowTaskForm(true); setTaskType(''); setTaskDesc(''); }} className="action-btn action-btn-primary text-xs flex items-center gap-1"><Plus size={12} /> Создать задачу</button>
+            <button onClick={() => { setShowTaskForm(true); setTaskType(''); setTaskDesc(''); }} className="action-btn text-xs flex items-center gap-1"><Plus size={12} /> Создать задачу</button>
           )}
           {!showArchived ? (
             <button onClick={archiveSelected} className="action-btn text-xs">Перенести в архив</button>
           ) : (
-            <button onClick={restoreSelected} className="action-btn action-btn-primary text-xs">Восстановить из архива</button>
+            <button onClick={restoreSelected} className="action-btn text-xs">Восстановить из архива</button>
           )}
           <button onClick={() => setSelected(new Set())} className="action-btn text-xs">Снять выбор</button>
         </div>
@@ -449,7 +449,7 @@ function commit(leads: Lead[]) {
             <p className="text-xs text-gray-500 mb-3">Колонки (разделитель «;»): <b>Тип;Подтип;ИНН;Торговое название;Город;ФИО;Статус;Телефон;Email;Комментарий</b>. Первая строка — заголовок. Обязательные: Торговое название, Телефон, Email.</p>
             <input type="file" accept=".csv" className="form-input text-xs" onChange={e => setImportFile(e.target.files?.[0] || null)} />
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { if (importFile) { importCSV(importFile); setShowImport(false); } else toast.error('Выберите файл'); }} className="action-btn action-btn-primary text-xs" disabled={!importFile}>Импортировать</button>
+              <button onClick={() => { if (importFile) { importCSV(importFile); setShowImport(false); } else toast.error('Выберите файл'); }} className="action-btn text-xs" disabled={!importFile}>Импортировать</button>
               <button onClick={() => setShowImport(false)} className="action-btn text-xs">Отмена</button>
             </div>
           </div>
@@ -486,7 +486,7 @@ function commit(leads: Lead[]) {
             <div className="sm:col-span-2"><label className="form-label">Комментарий</label><input className="form-input" value={form.comment} onChange={e => setForm(f => ({ ...f, comment: e.target.value }))} /></div>
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={() => saveLead(!editing)} className="action-btn action-btn-primary text-xs">Сохранить</button>
+            <button onClick={() => saveLead(!editing)} className="action-btn text-xs">Сохранить</button>
             <button onClick={() => { setShowAdd(false); setEditing(null); }} className="action-btn text-xs">Отмена</button>
           </div>
         </div>
@@ -522,7 +522,7 @@ function commit(leads: Lead[]) {
             </div>
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={createTaskFromSelection} className="action-btn action-btn-primary text-xs">Создать задачу</button>
+            <button onClick={createTaskFromSelection} className="action-btn text-xs">Создать задачу</button>
             <button onClick={() => setShowTaskForm(false)} className="action-btn text-xs">Отмена</button>
           </div>
         </div>
@@ -547,7 +547,7 @@ function commit(leads: Lead[]) {
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={applyStatusAfterTask} className="action-btn action-btn-primary text-xs">Согласен</button>
+              <button onClick={applyStatusAfterTask} className="action-btn text-xs">Согласен</button>
               <button onClick={() => setShowStatusModal(false)} className="action-btn text-xs">Отмена</button>
             </div>
           </div>
@@ -576,7 +576,7 @@ function commit(leads: Lead[]) {
                 commit(allLeads.map(x => x.id === rowStatus.id ? { ...x, status: rowStatusChoice, updatedAt: now, deletedAt: isArchiveStatus(rowStatusChoice) ? now : undefined } : x));
                 toast.success(`Статус изменён: ${rowStatusChoice}`);
                 setRowStatus(null);
-              }} className="action-btn action-btn-primary text-xs">Сохранить</button>
+              }} className="action-btn text-xs">Сохранить</button>
             </div>
           </div>
         </div>

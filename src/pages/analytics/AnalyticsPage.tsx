@@ -79,7 +79,7 @@ function PeriodFilter({ period, setPeriod, customFrom, setCustomFrom, customTo, 
     <div className="actions-bar flex flex-wrap gap-2 items-center mb-4">
       {MEDIA_PERIODS.map(p => (
         <button key={p.key} onClick={() => setPeriod(p.key)}
-          className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${period === p.key ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>
+          className={`action-btn ${period === p.key ? 'action-btn-active' : ''}`}>
           {p.label}
         </button>
       ))}

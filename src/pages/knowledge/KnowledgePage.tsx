@@ -261,7 +261,7 @@ export default function KnowledgePage() {
               <FolderOpen size={14} /> Категории
             </button>
           )}
-          <button onClick={openAdd} className="action-btn action-btn-primary"><Plus size={16} /> Добавить материал</button>
+          <button onClick={openAdd} className="action-btn"><Plus size={16} /> Добавить материал</button>
         </div>
       </div>
 

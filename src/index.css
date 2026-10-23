@@ -274,27 +274,24 @@
   flex-wrap: wrap;
 }
 
-/* Единый дизайн кнопок действий (на основе «Условия проценки» / «Список складов») */
+/* v1.31.4: единый дизайн кнопок меню доп.категорий — без обводки, 25px,
+   наводка #F5F5F5, активный фон #E0E0E0. Абсолютно одинаковые во всех разделах. */
 .action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  min-height: 36px;
-  padding: 0 0.875rem;
+  min-height: 25px;
+  padding: 0 0.75rem;
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 0.5rem;
-  border: 1px solid #E0E0E0;
-  background: #fff;
+  border: 0;
+  background: transparent;
   color: #4B5563;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
 .action-btn:hover { background: #F5F5F5; color: #1A1A1A; }
-.action-btn-active { background: #E5E7EB; border-color: #D1D5DB; color: #1A1A1A; }
-.action-btn-primary { background: #CC0000; border-color: #CC0000; color: #fff; }
-.action-btn-primary:hover { background: #AA0000; color: #fff; }
-.action-btn-danger { background: #FEE2E2; border-color: #FECACA; color: #B91C1C; }
-.action-btn-danger:hover { background: #FECACA; color: #991B1B; }
+.action-btn-active { background: #E0E0E0; color: #1A1A1A; }
