@@ -280,15 +280,15 @@ function commit(leads: Lead[]) {
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
-      <div className="flex flex-wrap items-center justify-start gap-2">
+      <div className="actions-bar flex flex-wrap items-center justify-start gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => setBase({ supplier: false, buyer: true })} className={`btn-secondary text-xs py-1.5 ${base.buyer ? 'bg-gray-200' : ''}`}>Покупатели</button>
-          <button onClick={() => setBase({ supplier: true, buyer: false })} className={`btn-secondary text-xs py-1.5 ${base.supplier ? 'bg-gray-200' : ''}`}>Поставщики</button>
-          {canExport() && (<button onClick={() => { setShowImport(true); setImportFile(null); }} className="btn-secondary text-xs py-1.5 flex items-center gap-1.5">
+          <button onClick={() => setBase({ supplier: false, buyer: true })} className={`action-btn text-xs py-1.5 ${base.buyer ? 'bg-gray-200' : ''}`}>Покупатели</button>
+          <button onClick={() => setBase({ supplier: true, buyer: false })} className={`action-btn text-xs py-1.5 ${base.supplier ? 'bg-gray-200' : ''}`}>Поставщики</button>
+          {canExport() && (<button onClick={() => { setShowImport(true); setImportFile(null); }} className="action-btn text-xs py-1.5 flex items-center gap-1.5">
             <Upload size={13} /> Импорт
           </button>)}
-          {canExport() && (<button onClick={exportCSV} className="btn-secondary text-xs py-1.5 flex items-center gap-1.5"><Download size={13} /> Экспорт</button>)}
-          <button onClick={() => openForm()} className="btn-primary text-xs flex items-center gap-1.5"><Plus size={13} /> Добавить</button>
+          {canExport() && (<button onClick={exportCSV} className="action-btn text-xs py-1.5 flex items-center gap-1.5"><Download size={13} /> Экспорт</button>)}
+          <button onClick={() => openForm()} className="action-btn action-btn-primary text-xs flex items-center gap-1.5"><Plus size={13} /> Добавить</button>
         </div>
       </div>
 
@@ -336,7 +336,7 @@ function commit(leads: Lead[]) {
             <option value="">Все города</option>
             {cities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button onClick={() => setShowArchived(v => !v)} className={`btn-secondary text-xs py-1.5 ${showArchived ? 'bg-gray-200' : ''}`}>{showArchived ? 'Архив ✓' : 'Архив'}</button>
+          <button onClick={() => setShowArchived(v => !v)} className={`action-btn text-xs py-1.5 ${showArchived ? 'bg-gray-200' : ''}`}>{showArchived ? 'Архив ✓' : 'Архив'}</button>
         </div>
         <div className="flex flex-wrap gap-1.5">
           <button onClick={() => setFilterStatus('')} className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${filterStatus === '' ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>Все</button>
@@ -359,18 +359,18 @@ function commit(leads: Lead[]) {
                 <option value="">Сменить статус...</option>
                 {statuses.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
               </select>
-              <button onClick={applyMass} className="btn-primary text-xs">Применить</button>
+              <button onClick={applyMass} className="action-btn action-btn-primary text-xs">Применить</button>
             </>
           )}
           {!showArchived && (
-            <button onClick={() => { setShowTaskForm(true); setTaskType(''); setTaskDesc(''); }} className="btn-primary text-xs flex items-center gap-1"><Plus size={12} /> Создать задачу</button>
+            <button onClick={() => { setShowTaskForm(true); setTaskType(''); setTaskDesc(''); }} className="action-btn action-btn-primary text-xs flex items-center gap-1"><Plus size={12} /> Создать задачу</button>
           )}
           {!showArchived ? (
-            <button onClick={archiveSelected} className="btn-secondary text-xs">Перенести в архив</button>
+            <button onClick={archiveSelected} className="action-btn text-xs">Перенести в архив</button>
           ) : (
-            <button onClick={restoreSelected} className="btn-primary text-xs">Восстановить из архива</button>
+            <button onClick={restoreSelected} className="action-btn action-btn-primary text-xs">Восстановить из архива</button>
           )}
-          <button onClick={() => setSelected(new Set())} className="btn-secondary text-xs">Снять выбор</button>
+          <button onClick={() => setSelected(new Set())} className="action-btn text-xs">Снять выбор</button>
         </div>
       )}
 
@@ -429,7 +429,7 @@ function commit(leads: Lead[]) {
           {/* ТЗ: подгрузка «Показать ещё» + выбор размера страницы */}
           {list.length > listShown && (
             <div className="flex items-center justify-between pt-1">
-              <button onClick={() => setListShown(v => v + listLimit)} className="btn-secondary text-xs">Показать ещё · осталось {list.length - listShown}</button>
+              <button onClick={() => setListShown(v => v + listLimit)} className="action-btn text-xs">Показать ещё · осталось {list.length - listShown}</button>
               <select className="form-input h-6 py-0 text-[11px] w-auto" value={listLimit} onChange={e => { const n = Number(e.target.value); setListLimit(n); setListShown(n); }} title="Записей на страницу">
                 {[50, 100, 300, 500, 1000].map(n => <option key={n} value={n}>{n}/стр.</option>)}
               </select>
@@ -449,8 +449,8 @@ function commit(leads: Lead[]) {
             <p className="text-xs text-gray-500 mb-3">Колонки (разделитель «;»): <b>Тип;Подтип;ИНН;Торговое название;Город;ФИО;Статус;Телефон;Email;Комментарий</b>. Первая строка — заголовок. Обязательные: Торговое название, Телефон, Email.</p>
             <input type="file" accept=".csv" className="form-input text-xs" onChange={e => setImportFile(e.target.files?.[0] || null)} />
             <div className="flex gap-2 mt-4">
-              <button onClick={() => { if (importFile) { importCSV(importFile); setShowImport(false); } else toast.error('Выберите файл'); }} className="btn-primary text-xs" disabled={!importFile}>Импортировать</button>
-              <button onClick={() => setShowImport(false)} className="btn-secondary text-xs">Отмена</button>
+              <button onClick={() => { if (importFile) { importCSV(importFile); setShowImport(false); } else toast.error('Выберите файл'); }} className="action-btn action-btn-primary text-xs" disabled={!importFile}>Импортировать</button>
+              <button onClick={() => setShowImport(false)} className="action-btn text-xs">Отмена</button>
             </div>
           </div>
         </div>
@@ -486,8 +486,8 @@ function commit(leads: Lead[]) {
             <div className="sm:col-span-2"><label className="form-label">Комментарий</label><input className="form-input" value={form.comment} onChange={e => setForm(f => ({ ...f, comment: e.target.value }))} /></div>
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={() => saveLead(!editing)} className="btn-primary text-xs">Сохранить</button>
-            <button onClick={() => { setShowAdd(false); setEditing(null); }} className="btn-secondary text-xs">Отмена</button>
+            <button onClick={() => saveLead(!editing)} className="action-btn action-btn-primary text-xs">Сохранить</button>
+            <button onClick={() => { setShowAdd(false); setEditing(null); }} className="action-btn text-xs">Отмена</button>
           </div>
         </div>
       )}
@@ -522,8 +522,8 @@ function commit(leads: Lead[]) {
             </div>
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={createTaskFromSelection} className="btn-primary text-xs">Создать задачу</button>
-            <button onClick={() => setShowTaskForm(false)} className="btn-secondary text-xs">Отмена</button>
+            <button onClick={createTaskFromSelection} className="action-btn action-btn-primary text-xs">Создать задачу</button>
+            <button onClick={() => setShowTaskForm(false)} className="action-btn text-xs">Отмена</button>
           </div>
         </div>
       )}
@@ -547,8 +547,8 @@ function commit(leads: Lead[]) {
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={applyStatusAfterTask} className="btn-primary text-xs">Согласен</button>
-              <button onClick={() => setShowStatusModal(false)} className="btn-secondary text-xs">Отмена</button>
+              <button onClick={applyStatusAfterTask} className="action-btn action-btn-primary text-xs">Согласен</button>
+              <button onClick={() => setShowStatusModal(false)} className="action-btn text-xs">Отмена</button>
             </div>
           </div>
         </div>
@@ -568,7 +568,7 @@ function commit(leads: Lead[]) {
               ))}
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setRowStatus(null)} className="btn-secondary text-xs">Отмена</button>
+              <button onClick={() => setRowStatus(null)} className="action-btn text-xs">Отмена</button>
               <button onClick={() => {
                 if (!rowStatusChoice) return;
                 const now = new Date().toISOString();
@@ -576,7 +576,7 @@ function commit(leads: Lead[]) {
                 commit(allLeads.map(x => x.id === rowStatus.id ? { ...x, status: rowStatusChoice, updatedAt: now, deletedAt: isArchiveStatus(rowStatusChoice) ? now : undefined } : x));
                 toast.success(`Статус изменён: ${rowStatusChoice}`);
                 setRowStatus(null);
-              }} className="btn-primary text-xs">Сохранить</button>
+              }} className="action-btn action-btn-primary text-xs">Сохранить</button>
             </div>
           </div>
         </div>

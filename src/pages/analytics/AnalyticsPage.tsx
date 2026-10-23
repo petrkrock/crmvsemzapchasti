@@ -76,7 +76,7 @@ function PeriodFilter({ period, setPeriod, customFrom, setCustomFrom, customTo, 
     { key: 'half', label: 'Полугодие' }, { key: 'year', label: 'Год' }, { key: 'custom', label: 'Произвольный' },
   ];
   return (
-    <div className="flex flex-wrap gap-2 items-center mb-4">
+    <div className="actions-bar flex flex-wrap gap-2 items-center mb-4">
       {MEDIA_PERIODS.map(p => (
         <button key={p.key} onClick={() => setPeriod(p.key)}
           className={`text-xs px-3 py-1.5 rounded-full border min-h-[36px] transition-colors ${period === p.key ? 'bg-brand-black text-white border-brand-black' : 'border-brand-gray-mid text-gray-500'}`}>

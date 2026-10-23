@@ -260,3 +260,41 @@
 .sync-log-mode > *:not(:first-child):not(.sync-log-panel) { display: none !important; }
 .sync-log-panel .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .sync-log-panel table { min-width: 760px; } /* боковой скролл на узких экранах */
+
+
+/* ═══ v1.31.3: панель действий раздела — парящая подложка без обводки + единые кнопки ═══ */
+.actions-bar {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 14px rgba(0, 0, 0, 0.05);
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Единый дизайн кнопок действий (на основе «Условия проценки» / «Список складов») */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 36px;
+  padding: 0 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1px solid #E0E0E0;
+  background: #fff;
+  color: #4B5563;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.action-btn:hover { background: #F5F5F5; color: #1A1A1A; }
+.action-btn-active { background: #E5E7EB; border-color: #D1D5DB; color: #1A1A1A; }
+.action-btn-primary { background: #CC0000; border-color: #CC0000; color: #fff; }
+.action-btn-primary:hover { background: #AA0000; color: #fff; }
+.action-btn-danger { background: #FEE2E2; border-color: #FECACA; color: #B91C1C; }
+.action-btn-danger:hover { background: #FECACA; color: #991B1B; }

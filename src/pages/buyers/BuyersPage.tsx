@@ -302,10 +302,10 @@ function handleMassStatus() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-start flex-wrap gap-2">
+      <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
         <div className="flex gap-2 flex-wrap">
-          {canExport() && (<><button onClick={() => setShowImport(true)} className="btn-secondary text-xs"><Upload size={14} /> Импорт</button><button onClick={handleExport} className="btn-secondary text-xs"><Download size={14} /> Экспорт{selected.length > 0 ? ` (${selected.length})` : ''}</button></>)}
-          <button onClick={() => setShowAddForm(v => !v)} className="btn-primary"><Plus size={16} /> Добавить</button>
+          {canExport() && (<><button onClick={() => setShowImport(true)} className="action-btn text-xs"><Upload size={14} /> Импорт</button><button onClick={handleExport} className="action-btn text-xs"><Download size={14} /> Экспорт{selected.length > 0 ? ` (${selected.length})` : ''}</button></>)}
+          <button onClick={() => setShowAddForm(v => !v)} className="action-btn action-btn-primary"><Plus size={16} /> Добавить</button>
         </div>
       </div>
 

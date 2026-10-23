@@ -313,8 +313,8 @@ function deleteSelected() {
         </div>
       )}
 
-      <div className="flex items-center justify-start flex-wrap gap-2">
-        <button onClick={() => setShowAddForm(v => !v)} className="btn-primary"><Plus size={16} /> Новая задача</button>
+      <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
+        <button onClick={() => setShowAddForm(v => !v)} className="action-btn action-btn-primary"><Plus size={16} /> Новая задача</button>
       </div>
 
       {/* ── Статусы-фильтры (системные, со счётчиками) ── */}

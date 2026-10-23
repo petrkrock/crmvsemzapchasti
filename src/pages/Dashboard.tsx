@@ -133,8 +133,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* v1.31.2: титл удалён — действия слева */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400">Сегодня: {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+      <div className="actions-bar flex items-center gap-2">
+        <span className="text-xs text-gray-400 self-center">Сегодня: {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
       </div>
 
       {/* Stats */}

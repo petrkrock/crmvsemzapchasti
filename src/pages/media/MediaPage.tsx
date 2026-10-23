@@ -324,16 +324,16 @@ const [deleteWord, setDeleteWord] = useState('');
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-start flex-wrap gap-2">
+      <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
         {/* v1.30.66: единый дизайн кнопок, порядок: Размещения / Договора / Добавить размещение / Добавить договор / Архив */}
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => { setView('placements'); setShowArchived(false); }} className={`btn-secondary text-xs ${view === 'placements' && !showArchived ? '!border-red-600 !text-red-600' : ''}`}>Размещения</button>
+          <button onClick={() => { setView('placements'); setShowArchived(false); }} className={`action-btn text-xs ${view === 'placements' && !showArchived ? '!border-red-600 !text-red-600' : ''}`}>Размещения</button>
           {/* v1.30.69: Новости рынка */}
-          <button onClick={() => setView('news')} className={`btn-secondary text-xs ${view === 'news' ? '!border-red-600 !text-red-600' : ''}`}>Новости</button>
-          <button onClick={() => setView('contracts')} className={`btn-secondary text-xs ${view === 'contracts' ? '!border-red-600 !text-red-600' : ''}`}>Договора</button>
-          <button onClick={openAdd} className="btn-secondary text-xs"><Plus size={14} /> Добавить размещение</button>
-          <button onClick={() => { setView('contracts'); openContractForm(); }} className="btn-secondary text-xs"><Plus size={14} /> Добавить договор</button>
-          <button onClick={() => setShowArchived(v => !v)} className={`btn-secondary text-xs ${showArchived ? '!border-red-600 !text-red-600' : ''}`}>Архив</button>
+          <button onClick={() => setView('news')} className={`action-btn text-xs ${view === 'news' ? '!border-red-600 !text-red-600' : ''}`}>Новости</button>
+          <button onClick={() => setView('contracts')} className={`action-btn text-xs ${view === 'contracts' ? '!border-red-600 !text-red-600' : ''}`}>Договора</button>
+          <button onClick={openAdd} className="action-btn text-xs"><Plus size={14} /> Добавить размещение</button>
+          <button onClick={() => { setView('contracts'); openContractForm(); }} className="action-btn text-xs"><Plus size={14} /> Добавить договор</button>
+          <button onClick={() => setShowArchived(v => !v)} className={`action-btn text-xs ${showArchived ? '!border-red-600 !text-red-600' : ''}`}>Архив</button>
         </div>
       </div>
 

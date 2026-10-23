@@ -249,7 +249,7 @@ export default function KnowledgePage() {
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-start flex-wrap gap-2">
+      <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-brand-red/10 flex items-center justify-center">
             <BookOpen size={20} className="text-brand-red" />
@@ -257,11 +257,11 @@ export default function KnowledgePage() {
         </div>
         <div className="flex gap-2">
           {isAdmin() && (
-            <button onClick={() => setShowCatManager(v => !v)} className={`btn-secondary text-xs ${showCatManager ? 'bg-gray-200' : ''}`}>
+            <button onClick={() => setShowCatManager(v => !v)} className={`action-btn text-xs ${showCatManager ? 'bg-gray-200' : ''}`}>
               <FolderOpen size={14} /> Категории
             </button>
           )}
-          <button onClick={openAdd} className="btn-primary"><Plus size={16} /> Добавить материал</button>
+          <button onClick={openAdd} className="action-btn action-btn-primary"><Plus size={16} /> Добавить материал</button>
         </div>
       </div>
 
