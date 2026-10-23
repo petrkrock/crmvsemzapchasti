@@ -1,3 +1,30 @@
+## v1.31.9 — Лог синка: читаемый текст ошибок (вместо [object Object])
+
+Синк писал '[object Object]' для thrown-ошибок операций (String(reason) по
+объекту) — причину падения create (suppliers/buyers) было не видно. Теперь
+извлекаются code/message/details. Диагностика зависших записей (1 buyer +
+2 suppliers, падают каждый синк):
+
+```sql
+-- 1. Колонки v1.30.98/99 на месте?
+SELECT table_name, column_name FROM information_schema.columns
+ WHERE table_name IN ('suppliers','buyers')
+   AND column_name IN ('external_id','external_source','public_id');
+-- 2. Последовательности и реестр существуют?
+SELECT relname FROM pg_class
+ WHERE relname IN ('id_registry','supplier_public_seq','buyer_public_seq');
+-- 3. Триггеры есть, а функции/объекты целы?
+SELECT tgname FROM pg_trigger
+ WHERE tgname LIKE '%public_id%' OR tgname LIKE '%id_registry%' OR tgname LIKE '%id_immutable%';
+```
+
+Если (1) пусто или (2)/(3) рассинхронизованы — прогнать релизные SQL
+v1.30.98/99 заново (идемпотентны). После выкладки 1.31.9 следующий синк
+покажет точный текст ошибки в «Логи синка».
+
+Файлы: store. SQL: диагностический (выше). Деплой: сборка фронта → жёсткая
+перезагрузка.
+
 ## v1.31.8 — Кнопки синих панелей 33px, Лиды padding 0, активный красный !important, вкладки Аналитики/Настроек
 
 - Синие панели массовых действий (Поставщики, Покупатели, Задачи, Поддержка):
