@@ -294,4 +294,5 @@
   white-space: nowrap;
 }
 .action-btn:hover { background: #F5F5F5; color: #1A1A1A; }
-.action-btn-active { background: #E0E0E0; color: #1A1A1A; }
+/* v1.31.5: активный пункт — красный текст (как в Продвижении) + серый фон */
+.action-btn-active { background: #E0E0E0; color: #DC2626; }

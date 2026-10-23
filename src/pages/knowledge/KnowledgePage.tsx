@@ -250,11 +250,7 @@ export default function KnowledgePage() {
     <div className="space-y-4 animate-fade-in">
       {/* Header */}
       <div className="actions-bar flex items-center justify-start flex-wrap gap-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-red/10 flex items-center justify-center">
-            <BookOpen size={20} className="text-brand-red" />
-          </div>
-        </div>
+        {/* v1.31.5: иконка-блок удалён */}
         <div className="flex gap-2">
           {isAdmin() && (
             <button onClick={() => setShowCatManager(v => !v)} className={`action-btn text-xs ${showCatManager ? 'bg-gray-200' : ''}`}>

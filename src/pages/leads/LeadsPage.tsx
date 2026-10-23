@@ -280,16 +280,15 @@ function commit(leads: Lead[]) {
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
+      {/* v1.31.5: без вложенного контейнера — padding 0, кнопки прямо в панели */}
       <div className="actions-bar flex flex-wrap items-center justify-start gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => setBase({ supplier: false, buyer: true })} className={`action-btn text-xs py-1.5 ${base.buyer ? 'bg-gray-200' : ''}`}>Покупатели</button>
-          <button onClick={() => setBase({ supplier: true, buyer: false })} className={`action-btn text-xs py-1.5 ${base.supplier ? 'bg-gray-200' : ''}`}>Поставщики</button>
+          <button onClick={() => setBase({ supplier: false, buyer: true })} className={`action-btn text-xs py-1.5 ${base.buyer ? 'action-btn-active' : ''}`}>Покупатели</button>
+          <button onClick={() => setBase({ supplier: true, buyer: false })} className={`action-btn text-xs py-1.5 ${base.supplier ? 'action-btn-active' : ''}`}>Поставщики</button>
           {canExport() && (<button onClick={() => { setShowImport(true); setImportFile(null); }} className="action-btn text-xs py-1.5 flex items-center gap-1.5">
             <Upload size={13} /> Импорт
           </button>)}
           {canExport() && (<button onClick={exportCSV} className="action-btn text-xs py-1.5 flex items-center gap-1.5"><Download size={13} /> Экспорт</button>)}
           <button onClick={() => openForm()} className="action-btn text-xs flex items-center gap-1.5"><Plus size={13} /> Добавить</button>
-        </div>
       </div>
 
       {/* Мини-аналитика по базе лидов (ТЗ) */}
