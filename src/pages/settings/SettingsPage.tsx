@@ -446,7 +446,7 @@ const [tab, setTab] = useState('Статусы');
   }
 
   // v1.30.0: подвкладки «ЛК Поставщик»
-  const [lkTab, setLkTab] = useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('dashboard');
+  const [lkTab, setLkTab] = useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links' | 'titul'>('dashboard');
   const [opName, setOpName] = useState('');
   const [opPhone, setOpPhone] = useState('');
   const [opEmail, setOpEmail] = useState('');
@@ -1641,7 +1641,7 @@ const [tab, setTab] = useState('Статусы');
 {tab === 'ЛК Поставщик' && (
             <div className="space-y-4">
               <div className="flex gap-2 flex-wrap">
-                {[['manager', 'Оператор'], ['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия'], ['links', 'Ссылки офер']].map(([k, l]) => (
+                {[['manager', 'Оператор'], ['dashboard', 'Дашборд ЛК'], ['banner', 'Банеры'], ['news', 'Новости'], ['greeting', 'Приветствия'], ['links', 'Ссылки офер'], ['titul', 'Титул']].map(([k, l]) => (
                   <button key={k} onClick={() => setLkTab(k as typeof lkTab)} className={`btn-secondary text-xs ${lkTab === k ? '!border-red-600 !text-red-600' : ''}`}>{l}</button>
                 ))}
               </div>
@@ -1878,6 +1878,15 @@ const [tab, setTab] = useState('Статусы');
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* v1.30.103: ТИТУЛ ДЛЯ КАБИНЕТА */}
+          {lkTab === 'titul' && (
+            <div className="card-base p-4 space-y-3">
+              <h3 className="section-title">Титул для кабинета</h3>
+              <p className="text-xs text-gray-400">Заголовок, который поставщик видит в верхней части своего кабинета (ЛК → Кабинет).</p>
+              <textarea className="form-input" rows={2} value={freshStore.settings.cabinetTitle || ''} onChange={e => updateStore(s => ({ ...s, settings: { ...s.settings, cabinetTitle: e.target.value } }))} placeholder="Например: Личный кабинет поставщика Автозапчасти" />
             </div>
           )}
 

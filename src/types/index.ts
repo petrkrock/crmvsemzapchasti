@@ -749,6 +749,8 @@ export interface AppSettings {
   roleTypes?: string[];
   /** Шаблоны приветствий (Настройки → Приветствия) */
   greetings?: { supplier?: string };
+  /** v1.30.103: титул для кабинета ЛК поставщика */
+  cabinetTitle?: string;
   mediaAdTypes: MediaAdType[];
   mediaTariffs?: MediaTariff[];  // legacy
   mediaStatuses: MediaStatus[];

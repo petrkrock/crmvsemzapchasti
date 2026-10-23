@@ -534,6 +534,8 @@ settings.taskTypes = Array.from(new Set([...(settings.taskTypes || []).filter((t
 
     // Приветствие поставщику: дефолтный шаблон, если пусто/отсутствует
     if (!settings.greetings) settings.greetings = {};
+    // v1.30.103: титул кабинета ЛК
+    if (typeof settings.cabinetTitle !== 'string') settings.cabinetTitle = '';
     if (typeof settings.greetings.supplier !== 'string' || !settings.greetings.supplier) settings.greetings.supplier = DEFAULT_SUPPLIER_GREETING;
 
     // Migrate planFact: год/месяц + ручной факт → период startDate/endDate.

@@ -72,6 +72,12 @@ export default function SupplierServicePage() {
   const [lkLinksMap, setLkLinksMap] = useState<Record<string, string>>({}); // v1.30.76: ссылки офер («Подробнее про форматы»)
   const [placements, setPlacements] = useState<Array<Record<string, unknown>>>([]); // v1.30.77: рекламные размещения
   const [adServices, setAdServices] = useState<Array<Record<string, string>>>([]); // v1.30.100: сервисы продаж (code/label)
+  const [cabTitle, setCabTitle] = useState(''); // v1.30.103: титул для кабинета
+
+  // v1.30.104: титул кабинета — в названии вкладки браузера
+  useEffect(() => {
+    if (cabTitle) document.title = cabTitle;
+  }, [cabTitle]);
   const [myNews, setMyNews] = useState<Array<Record<string, unknown>>>([]); // v1.30.80: мои новости
   const [showMyNews, setShowMyNews] = useState(false); // v1.30.80: тумблер «Мои»
   // v1.30.81: материал к размещению + подсказка статуса
@@ -222,6 +228,7 @@ export default function SupplierServicePage() {
       if (r.ok && d?.mediaContract !== undefined) setPromoContract(d.mediaContract);
       if (r.ok && Array.isArray(d?.adFormats)) setAdFormats(d.adFormats);
       if (r.ok && Array.isArray(d?.myNews)) setMyNews(d.myNews);
+      if (r.ok && d?.cabinetTitle !== undefined) setCabTitle(String(d.cabinetTitle));
       if (r.ok && Array.isArray(d?.services)) setAdServices(d.services);
       if (r.ok && Array.isArray(d?.placements)) setPlacements(d.placements);
       if (r.ok && d?.dashboard?.lkLinks) setLkLinksMap(d.dashboard.lkLinks as Record<string, string>);
@@ -646,13 +653,14 @@ export default function SupplierServicePage() {
                     {/* БАННЕР */}
                     <div>
                       {banner.image ? (
+                        {/* v1.30.103: баннер фиксированного размера — не растягивает блок; как ВЗ ЧАТ/О компании */}
                         <a href={banner.link || undefined} target={banner.link ? '_blank' : undefined} rel="noreferrer"
-                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden w-[375px] h-[280px] max-w-full">
-                          <img src={banner.image} alt="Баннер" className="w-full h-full object-cover" />
+                          className="block bg-white border border-gray-200 rounded-2xl overflow-hidden w-full">
+                          <img src={banner.image} alt="Баннер" className="w-full h-40 object-cover" />
                         </a>
                       ) : (
-                        <div className="bg-white border border-gray-200 rounded-2xl w-[375px] h-[280px] max-w-full flex items-center justify-center">
-                          <p className="text-gray-300 font-bold text-4xl tracking-widest select-none">БАННЕР</p>
+                        <div className="bg-white border border-gray-200 rounded-2xl w-full h-40 flex items-center justify-center">
+                          <p className="text-gray-300 font-bold text-3xl tracking-widest select-none">БАННЕР</p>
                         </div>
                       )}
                     </div>
@@ -740,7 +748,7 @@ export default function SupplierServicePage() {
                           </div>
                           {/* v1.30.46: статус активации на платформе (отдельно от статуса условий поставки) */}
                           <div className="py-2 flex gap-3">
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Статус</span>
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Поставщик</span>
                             <div className="flex-1">
                               {/* v1.30.47: «Не активирован» — кнопка с подсказкой по клику (паттерн «Совет по городам»), радиус как у «Подробнее» */}
                               {(data?.status || '') === 'Активный' ? (
@@ -770,7 +778,7 @@ export default function SupplierServicePage() {
                           </div>
                           <div className="py-2 flex gap-3">
                             {/* v1.30.90: «Продвижение» → «Медиа сервис»; + — модалка активации; при договоре — статус */}
-                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Медиа сервис</span>
+                            <span className="w-[130px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-400 pt-1">Сервис рекламы</span>
                             <p className="flex items-center gap-1.5">
                               {promoContract ? (
                                 /* v1.30.91: договор найден — только статус-кнопка; v1.30.96: размер и радиус как у «Подробнее»; цвета мягкие */
@@ -946,7 +954,7 @@ export default function SupplierServicePage() {
                 {!showMyNews && (<>
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Медиа сервисы</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Рекламные форматы</p>
                     {/* v1.30.76: ссылка «Подробнее про форматы» из Ссылки офер */}
                     {lkLinksMap.formats ? (
                       <a href={lkLinksMap.formats} target="_blank" rel="noreferrer" className="text-xs px-3 py-1.5 rounded-full border transition-colors bg-white border-gray-200 text-gray-600 hover:border-red-300 inline-flex items-center gap-1">Подробнее про форматы</a>
