@@ -2,7 +2,6 @@ import { APP_VERSION } from '@/constants';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '@/lib/auth';
-import { isSupabaseConfigured } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
@@ -12,7 +11,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const showDemoHint = !isSupabaseConfigured();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,19 +34,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-brand-gray flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
+        {/* v1.31.16: новый логотип ERP + новая подпись; подсказки и подписи полей убраны */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="ВСЕМЗАПЧАСТИ" className="w-[230px] h-auto mx-auto mb-3" />
-          <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">CRM система отдела продаж</p>
+          <img src="/logo-erp.png" alt="ВСЕМЗАПЧАСТИ ERP" className="w-[230px] h-auto mx-auto mb-3" />
+          <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">Система управления платформой</p>
             <p className="text-[10px] text-gray-300 mt-1">v{APP_VERSION}</p>
         </div>
 
         <div className="card-base p-8 shadow-md">
-          <h2 className="text-lg font-semibold text-brand-black mb-6">Вход в систему</h2>
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="form-label">Email (логин)</label>
               <div className="relative">
                 <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -56,14 +51,12 @@ export default function LoginPage() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="form-input pl-9"
-                  placeholder="admin@vz.tech"
                   autoComplete="email"
                 />
               </div>
             </div>
 
             <div>
-              <label className="form-label">Пароль</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -92,24 +85,6 @@ export default function LoginPage() {
               {loading ? 'Вход...' : 'Войти'}
             </button>
           </form>
-
-          {/* Demo credentials — only shown in local (no-Supabase) demo mode */}
-          {showDemoHint && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
-              <p className="text-xs font-semibold text-blue-700 mb-2">Тестовые данные для входа (демо-режим):</p>
-              <div className="space-y-1">
-                <p className="text-xs text-blue-600">
-                  <span className="font-medium">Email:</span> admin@vz.tech
-                </p>
-                <p className="text-xs text-blue-600">
-                  <span className="font-medium">Пароль:</span> admin123
-                </p>
-              </div>
-              <p className="text-xs text-blue-500 mt-2">
-                Роль: Администратор (полный доступ)
-              </p>
-            </div>
-          )}
         </div>
 
       </div>
