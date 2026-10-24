@@ -32,8 +32,9 @@ export default function Header() {
       <div className="h-14 flex items-center justify-between px-4 gap-4">
         {/* Логотип (перенесён из меню) */}
         <button type="button" onClick={() => navigate('/')} title="На главную" className="flex items-center min-h-[44px] rounded-md hover:bg-brand-gray px-2 -ml-2 transition-colors">
-          {/* v1.31.16: логотип ERP (ЛК поставщика логотип не меняет — там старый /logo.png) */}
-          <img src="/logo-erp.png" alt="ВСЕМЗАПЧАСТИ ERP" className="w-[150px] h-auto flex-shrink-0" />
+          {/* v1.31.16: логотип ERP (ЛК поставщика логотип не меняет — там старый /logo.png).
+              v1.31.17: ширина логотипа 245px; сама кнопка ведёт на главную (navigate '/'). */}
+          <img src="/logo-erp.png" alt="ВСЕМЗАПЧАСТИ ERP" className="w-[245px] h-auto flex-shrink-0" />
         </button>
 
         <div className="flex items-center gap-2">
