@@ -21,6 +21,7 @@
  */
 
 import { createClient, type SupabaseClient, type Session } from '@supabase/supabase-js';
+import { DEFAULT_DOMAIN_ID } from '@/constants';
 import type {
   Supplier, Buyer, Task, Ticket, MediaRecord, AppSettings,
 } from '@/types';
@@ -154,7 +155,8 @@ function mapSupplier(row: Record<string, unknown>): Supplier {
     category: (row.category as Supplier['category']) ?? undefined,
     externalId: (row.external_id as string) ?? undefined,
     externalSource: (row.external_source as string) ?? undefined,
-    publicId: (row.public_id as string) ?? undefined, // ТЗ 1.8
+    publicId: (row.public_id as string) ?? undefined,
+    domainId: (row.domain_id as string) ?? undefined, // ТЗ 1.8
     comment: (row.comment as string) ?? undefined,
     scoring: (row.scoring as Supplier['scoring']) ?? undefined,
     requisites: (row.requisites as Supplier['requisites']) ?? undefined,
@@ -206,6 +208,7 @@ function mapSupplierToDb(s: Partial<Supplier>): Record<string, unknown> {
   if (s.externalId !== undefined) db.external_id = orNull(s.externalId);
   if (s.externalSource !== undefined) db.external_source = orNull(s.externalSource);
   if (s.publicId !== undefined) db.public_id = orNull(s.publicId);
+  db.domain_id = s.domainId || DEFAULT_DOMAIN_ID;
   if (s.category !== undefined) db.category = s.category; // ТЗ 1.8
   if (s.comment !== undefined) db.comment = orNull(s.comment);
   if (s.scoring !== undefined) db.scoring = s.scoring;
@@ -247,7 +250,8 @@ function mapBuyer(row: Record<string, unknown>): Buyer {
     category: (row.category as Buyer['category']) ?? undefined,
     externalId: (row.external_id as string) ?? undefined,
     externalSource: (row.external_source as string) ?? undefined,
-    publicId: (row.public_id as string) ?? undefined, // ТЗ 1.8
+    publicId: (row.public_id as string) ?? undefined,
+    domainId: (row.domain_id as string) ?? undefined, // ТЗ 1.8
     comment: (row.comment as string) ?? undefined,
     scoring: (row.scoring as Buyer['scoring']) ?? undefined,
     requisites: (row.requisites as Buyer['requisites']) ?? undefined,
@@ -284,6 +288,7 @@ function mapBuyerToDb(b: Partial<Buyer>): Record<string, unknown> {
   if (b.externalId !== undefined) db.external_id = orNull(b.externalId);
   if (b.externalSource !== undefined) db.external_source = orNull(b.externalSource);
   if (b.publicId !== undefined) db.public_id = orNull(b.publicId);
+  db.domain_id = b.domainId || DEFAULT_DOMAIN_ID;
   if (b.category !== undefined) db.category = b.category; // ТЗ 1.8
   if (b.locationsCount !== undefined) db.locations_count = b.locationsCount;
   else if (b.locationCount !== undefined) db.locations_count = b.locationCount; // legacy-алиас

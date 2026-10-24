@@ -463,6 +463,29 @@ const [tab, setTab] = useState('Статусы');
   const [ocText, setOcText] = useState('');
   const [editingOcId, setEditingOcId] = useState<string | null>(null);
   const [editingOpId, setEditingOpId] = useState<string | null>(null); // v1.30.92: правка оператора
+  // v1.31.11: домены (commerce.domains)
+  const [domains, setDomains] = useState<Array<Record<string, unknown>>>([]);
+  const [showDomains, setShowDomains] = useState(false);
+  const [dmHost, setDmHost] = useState('');
+  const [dmName, setDmName] = useState('');
+  async function loadDomains() {
+    if (!supabase) return;
+    const { data } = await supabase.from('domains').select('*').order('host');
+    if (data) setDomains(data);
+  }
+  async function addDomain() {
+    if (!supabase) return;
+    if (!dmHost.trim()) { toast.error('Укажите домен'); return; }
+    const { error } = await supabase.from('domains').insert({ id: crypto.randomUUID(), host: dmHost.trim().toLowerCase(), name: dmName.trim() });
+    if (error) { toast.error(String(error.message || error)); return; }
+    setDmHost(''); setDmName(''); loadDomains(); toast.success('Домен добавлен');
+  }
+  async function toggleDomain(d: Record<string, unknown>) {
+    if (!supabase) return;
+    await supabase.from('domains').update({ is_active: !d.is_active }).eq('id', d.id);
+    loadDomains();
+  }
+  useEffect(() => { if (showDomains) loadDomains(); }, [showDomains]);
   // v1.30.92: новости — редактирование и удаление (модалка)
   const [editingNews, setEditingNews] = useState<{ list: 'p' | 'v'; id: string } | null>(null);
   useState<'manager' | 'dashboard' | 'banner' | 'news' | 'greeting' | 'links'>('dashboard');
@@ -870,7 +893,33 @@ const [tab, setTab] = useState('Статусы');
       {/* v1.31.8: меню категорий */}
       <div className="actions-bar flex items-center justify-start flex-wrap gap-2 mb-4">
         <button type="button" className="action-btn action-btn-active">Система</button>
+        {/* v1.31.11: вкладка доменов */}
+        <button type="button" onClick={() => setShowDomains(v => !v)} className={`action-btn ${showDomains ? 'action-btn-active' : ''}`}>Домены</button>
       </div>
+
+      {/* ═══ ДОМЕНЫ (v1.31.11) ═══ */}
+      {showDomains && (
+        <div className="card-base p-4 space-y-3 mb-4">
+          <h3 className="section-title">Домены</h3>
+          <p className="text-xs text-gray-400">Домены-арендаторы ЛК. Дефолтный домен — основной. Поставщик наследует домен при создании (фаза 1 — дефолт).</p>
+          <div className="flex flex-wrap gap-2">
+            <input className="form-input text-xs flex-1 min-w-[160px]" placeholder="Домен: lk.partner.pro" value={dmHost} onChange={e => setDmHost(e.target.value)} />
+            <input className="form-input text-xs flex-1 min-w-[160px]" placeholder="Название" value={dmName} onChange={e => setDmName(e.target.value)} />
+            <button onClick={addDomain} className="action-btn action-btn-md">Добавить</button>
+          </div>
+          <div className="space-y-1.5">
+            {domains.map(d => (
+              <div key={String(d.id)} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2 text-sm">
+                <b className="font-mono text-gray-800">{String(d.host)}</b>
+                <span className="text-gray-500">{String(d.name || '')}</span>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${d.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{d.is_active ? 'активен' : 'выключен'}</span>
+                <button onClick={() => toggleDomain(d)} className="ml-auto text-xs text-gray-500 hover:text-gray-800">{d.is_active ? 'Выключить' : 'Включить'}</button>
+              </div>
+            ))}
+            {!domains.length && <p className="text-xs text-gray-400">Домены не созданы.</p>}
+          </div>
+        </div>
+      )}
 
       <div className="card-base overflow-hidden">
         <div className="flex overflow-x-auto border-b border-brand-gray-mid">

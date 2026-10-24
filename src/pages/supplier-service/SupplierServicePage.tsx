@@ -228,7 +228,9 @@ export default function SupplierServicePage() {
       if (r.ok && d?.mediaContract !== undefined) setPromoContract(d.mediaContract);
       if (r.ok && Array.isArray(d?.adFormats)) setAdFormats(d.adFormats);
       if (r.ok && Array.isArray(d?.myNews)) setMyNews(d.myNews);
-      if (r.ok && d?.cabinetTitle !== undefined) setCabTitle(String(d.cabinetTitle));
+      // v1.31.11: титул домена в приоритете, иначе общий cabinetTitle
+      if (r.ok && d?.lkDomain?.title) setCabTitle(String(d.lkDomain.title));
+      else if (r.ok && d?.cabinetTitle !== undefined) setCabTitle(String(d.cabinetTitle));
       if (r.ok && Array.isArray(d?.services)) setAdServices(d.services);
       if (r.ok && Array.isArray(d?.placements)) setPlacements(d.placements);
       if (r.ok && d?.dashboard?.lkLinks) setLkLinksMap(d.dashboard.lkLinks as Record<string, string>);

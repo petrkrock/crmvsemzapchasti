@@ -331,6 +331,8 @@ export interface Supplier {
   externalSource?: string;
   /** v1.30.99: читаемый бизнес-ID (S000001/B000001) */
   publicId?: string;
+  /** v1.31.11: домен-арендатор (изоляция данных) */
+  domainId?: string;
   scoring?: ScoreData;
   requisites?: RequisitesData;
   serviceSearch?: ServiceSearchCondition[];
@@ -379,6 +381,8 @@ export interface Buyer {
   externalSource?: string;
   /** v1.30.99: читаемый бизнес-ID (S000001/B000001) */
   publicId?: string;
+  /** v1.31.11: домен-арендатор (изоляция данных) */
+  domainId?: string;
   scoring?: ScoreData;
   requisites?: RequisitesData;
   history: HistoryEntry[];
