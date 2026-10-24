@@ -65,17 +65,10 @@ async function edoFields(client: ReturnType<typeof createClient>, id: string): P
 }
 
 async function findSupplierByToken(client: ReturnType<typeof createClient>, token: string): Promise<SupplierRow | null> {
-  const { data, error } = await client
-    .from('suppliers')
-    .select('id, trade_name, status, service_access, warehouse_locations, service_search, history, phone, responsible_id, city, inn, website, type, contact_name, contact_role, phone, email, services, product_groups, own_brands, price_email')
-    .is('deleted_at', null)
-    .eq('service_access->>enabled', 'true')
-    .eq('service_access->>token', token)
-    .limit(1);
-  if (error || !data?.length) return null;
-  const extra = await extraFields(client, (data[0] as SupplierRow).id);
-  const edo = await edoFields(client, (data[0] as SupplierRow).id);
-  return { ...(data[0] as SupplierRow), ...(extra as object), ...edo } as SupplierRow;
+  // v1.31.11: RPC get_supplier_with_domain — поставщик + домен одной транзакцией (вместо N+1 SELECT)
+  const { data, error } = await client.rpc('get_supplier_with_domain', { p_token: token });
+  if (error || !data || !Array.isArray(data) || !data.length) return null;
+  return data[0].payload as SupplierRow;
 }
 
 function pinOk(expected: string | undefined, provided: unknown): boolean {
@@ -406,6 +399,11 @@ async function handlePost(req: Request) {
       myNews: ((dset.marketNews as Array<Record<string, unknown>>) || []).filter(n => String(n.supplierId) === String(supplier.id)),
       // v1.30.77: рекламные размещения поставщика (ЛК)
       placements: ((await client.from('media_records').select('id, ad_type_name, duration_label, price_per_month, discount, total_price, material, status, start_date, end_date').eq('supplier_id', supplier.id).order('created_at', { ascending: false }).limit(50)).data || []),
+      // v1.31.11: брендинг домена поставщика (из RPC get_supplier_with_domain)
+      lkDomain: (() => {
+        const dom = (supplier as { domain?: Record<string, unknown> }).domain as Record<string, unknown> | undefined;
+        return dom ? { host: String(dom.host || ''), title: String(dom.title || ''), greeting: String(dom.greeting || '') } : null;
+      })(),
       // v1.30.103: титул для кабинета
       cabinetTitle: String(dset.cabinetTitle || ''),
       // v1.30.100: сервисы продаж с публичными названиями (список для ЛК — новые сервисы без правки кода)

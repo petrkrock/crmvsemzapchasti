@@ -242,6 +242,76 @@ CREATE INDEX idx_profiles_email ON public.profiles(email);
 -- COMMON FUNCTIONS
 -- ============================================================
 
+-- ═══ v1.31.11: Домены — изоляция (мультитенантность) ═══
+-- Домены — ТАБЛИЦА (не настройка): контракт app_settings не растёт.
+CREATE TABLE IF NOT EXISTS commerce.domains (
+  id           UUID PRIMARY KEY,
+  host         TEXT NOT NULL UNIQUE,        -- lk.pro
+  name         TEXT NOT NULL DEFAULT '',
+  title        TEXT DEFAULT '',             -- титул ЛК (вкладка браузера)
+  greeting     TEXT DEFAULT '',             -- приветствие ЛК
+  banner_image TEXT DEFAULT '',
+  banner_link  TEXT DEFAULT '',
+  is_active    BOOLEAN NOT NULL DEFAULT true,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+COMMENT ON TABLE commerce.domains IS 'Домены-арендаторы. Дефолт: 00000000-0000-4000-8000-000000000001 (host=default).';
+
+-- Только domains открыта из commerce (временно, до появления торгового домена)
+GRANT SELECT ON commerce.domains TO authenticated;
+
+-- Тенант-столбцы. БЕЗ DEFAULT: INSERT без domain_id падает — непропатченный код виден сразу.
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS domain_id UUID REFERENCES commerce.domains(id);
+ALTER TABLE buyers    ADD COLUMN IF NOT EXISTS domain_id UUID REFERENCES commerce.domains(id);
+CREATE INDEX IF NOT EXISTS idx_suppliers_domain ON suppliers(domain_id);
+CREATE INDEX IF NOT EXISTS idx_buyers_domain ON buyers(domain_id);
+-- Backfill существующих в дефолт-домен (явный UPDATE)
+UPDATE suppliers SET domain_id = '00000000-0000-4000-8000-000000000001' WHERE domain_id IS NULL;
+UPDATE buyers    SET domain_id = '00000000-0000-4000-8000-000000000001' WHERE domain_id IS NULL;
+ALTER TABLE suppliers ALTER COLUMN domain_id SET NOT NULL;
+ALTER TABLE buyers    ALTER COLUMN domain_id SET NOT NULL;
+
+-- v1.31.11 (правка 1): БЕЗ молчаливого фолбэка. authenticated без клейма → NULL → RLS не пропускает.
+-- Фолбэк на default — только для admin (временная привилегия фазы 1).
+CREATE OR REPLACE FUNCTION public.current_domain_id() RETURNS uuid AS $$
+DECLARE
+  v_claim uuid;
+BEGIN
+  v_claim := nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'domain_id';
+  IF v_claim IS NOT NULL THEN RETURN v_claim; END IF;
+  IF public.is_admin() THEN RETURN '00000000-0000-4000-8000-000000000001'; END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- RPC для ЛК: поставщик + домен одной транзакцией (заменяет N+1 SELECT'ов)
+CREATE OR REPLACE FUNCTION public.get_supplier_with_domain(p_token TEXT)
+RETURNS TABLE (payload JSONB) AS $$
+  SELECT to_jsonb(s) || jsonb_build_object('domain', to_jsonb(d))
+  FROM public.suppliers s
+  JOIN commerce.domains d ON d.id = s.domain_id
+  WHERE s.service_access ->> 'token' = p_token
+    AND (s.service_access ->> 'enabled')::boolean = true
+  LIMIT 1;
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+-- ═══ v1.31.10: ERP-фундамент ═══
+-- Схема торгового домена: parts, offers, orders, shipments — ТОЛЬКО сюда.
+-- CRM (suppliers, buyers, tasks) остаётся в public.* до отдельной миграции.
+CREATE SCHEMA IF NOT EXISTS commerce;
+COMMENT ON SCHEMA commerce IS 'Торговый домен (parts, offers, orders, shipments) — только сюда. CRM — в public.*';
+GRANT USAGE ON SCHEMA commerce TO authenticated, anon;
+
+-- ВАЖНО: app_settings — только UI-настройки и users.
+-- Новые торговые сущности — ТОЛЬКО в commerce.*.
+-- Не добавлять в settings новые массивы/объекты, кроме users/forms/dbLogs.
+
+-- Дыра уникальности внешних ID: external_id без external_source обходил uq_*_external
+ALTER TABLE suppliers DROP CONSTRAINT IF EXISTS chk_suppliers_external;
+ALTER TABLE suppliers ADD CONSTRAINT chk_suppliers_external CHECK (external_id IS NULL OR external_source IS NOT NULL);
+ALTER TABLE buyers DROP CONSTRAINT IF EXISTS chk_buyers_external;
+ALTER TABLE buyers ADD CONSTRAINT chk_buyers_external CHECK (external_id IS NULL OR external_source IS NOT NULL);
+
 -- v1.30.98: реестр постоянных ID (кладбище UUID — запись остаётся навсегда)
 CREATE TABLE IF NOT EXISTS id_registry (
   id          UUID PRIMARY KEY,
@@ -332,7 +402,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_buyers_public_id ON buyers(public_id) WHERE
 
 ALTER TABLE id_registry ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS id_registry_select_admin ON id_registry;
-CREATE POLICY id_registry_select_admin ON id_registry FOR SELECT TO authenticated USING (public.is_admin());
+CREATE POLICY id_registry_select_admin ON id_registry FOR SELECT TO authenticated USING ((SELECT public.is_admin()));
 
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER
@@ -379,7 +449,7 @@ AS $$
           AND u->>'email' = (SELECT email FROM public.profiles WHERE id = auth.uid())
         )
       )
-  ), is_admin());
+  ), (SELECT is_admin()));
 $$;
 
 CREATE OR REPLACE FUNCTION public.has_section_permission(p_section TEXT)
@@ -459,7 +529,7 @@ BEGIN
     NEW.settings := '{}'::jsonb;
   END IF;
 
-  IF NOT is_admin() THEN
+  IF NOT (SELECT is_admin()) THEN
     NEW.settings := jsonb_set(
       NEW.settings,
       '{users}',
@@ -599,145 +669,151 @@ ALTER TABLE public.app_logs ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users read own profile" ON public.profiles
 FOR SELECT TO authenticated
-USING (id = auth.uid() OR is_admin());
+USING (id = auth.uid() OR (SELECT is_admin()));
 
 CREATE POLICY "Users read own access" ON public.user_access
 FOR SELECT TO authenticated
-USING (is_admin() OR user_id = auth.uid()::text);
+USING ((SELECT is_admin()) OR user_id = auth.uid()::text);
 
 CREATE POLICY "Read suppliers by access" ON public.suppliers
 FOR SELECT TO authenticated
 USING (
   deleted_at IS NULL
-  AND is_active_employee()
+  AND (SELECT is_active_employee())
   AND (
-    is_admin()
+    (SELECT is_admin())
     OR (
-      has_section_permission('suppliers')
-      AND (cardinality(access_supplier_types()) = 0 OR type = ANY(access_supplier_types()))
-      AND (cardinality(access_supplier_cities()) = 0 OR city = ANY(access_supplier_cities()))
+      (SELECT has_section_permission('suppliers'))
+      AND (cardinality((SELECT access_supplier_types())) = 0 OR type = ANY((SELECT access_supplier_types())))
+      AND (cardinality((SELECT access_supplier_cities())) = 0 OR city = ANY((SELECT access_supplier_cities())))
     )
   )
-);
+
+  AND (domain_id = (SELECT current_domain_id()) OR (SELECT is_admin())) );
 
 CREATE POLICY "Read buyers by access" ON public.buyers
 FOR SELECT TO authenticated
 USING (
   deleted_at IS NULL
-  AND is_active_employee()
+  AND (SELECT is_active_employee())
   AND (
-    is_admin()
+    (SELECT is_admin())
     OR (
-      has_section_permission('buyers')
-      AND (cardinality(access_buyer_types()) = 0 OR type = ANY(access_buyer_types()))
-      AND (cardinality(access_buyer_cities()) = 0 OR city = ANY(access_buyer_cities()))
+      (SELECT has_section_permission('buyers'))
+      AND (cardinality((SELECT access_buyer_types())) = 0 OR type = ANY((SELECT access_buyer_types())))
+      AND (cardinality((SELECT access_buyer_cities())) = 0 OR city = ANY((SELECT access_buyer_cities())))
     )
   )
-);
+
+  AND (domain_id = (SELECT current_domain_id()) OR (SELECT is_admin())) );
 
 CREATE POLICY "Read tasks by access" ON public.tasks
 FOR SELECT TO authenticated
-USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR has_section_permission('tasks')));
+USING (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR (SELECT has_section_permission('tasks'))));
 
 CREATE POLICY "Read tickets by access" ON public.tickets
 FOR SELECT TO authenticated
 USING (
   deleted_at IS NULL
-  AND is_active_employee()
+  AND (SELECT is_active_employee())
   AND (
-    is_admin()
+    (SELECT is_admin())
     OR (
-      has_section_permission('support')
-      AND (cardinality(access_ticket_types()) = 0 OR type = ANY(access_ticket_types()))
+      (SELECT has_section_permission('support'))
+      AND (cardinality((SELECT access_ticket_types())) = 0 OR type = ANY((SELECT access_ticket_types())))
     )
   )
 );
 
 CREATE POLICY "Read media by access" ON public.media_records
 FOR SELECT TO authenticated
-USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR has_section_permission('media')));
+USING (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR (SELECT has_section_permission('media'))));
 
 CREATE POLICY "Active employees read settings" ON public.app_settings
 FOR SELECT TO authenticated
-USING (is_active_employee());
+USING ((SELECT is_active_employee()));
 
 CREATE POLICY "Authenticated insert suppliers" ON public.suppliers
 FOR INSERT TO authenticated
 WITH CHECK (
-  is_active_employee()
-  AND (is_admin() OR has_section_permission('suppliers'))
+  (SELECT is_active_employee())
+  AND ((SELECT is_admin()) OR (SELECT has_section_permission('suppliers')))
   AND created_by = auth.uid()
-);
+
+  AND domain_id = (SELECT current_domain_id()) );
 
 CREATE POLICY "Authenticated insert buyers" ON public.buyers
 FOR INSERT TO authenticated
 WITH CHECK (
-  is_active_employee()
-  AND (is_admin() OR has_section_permission('buyers'))
+  (SELECT is_active_employee())
+  AND ((SELECT is_admin()) OR (SELECT has_section_permission('buyers')))
   AND created_by = auth.uid()
-);
+
+  AND domain_id = (SELECT current_domain_id()) );
 
 CREATE POLICY "Authenticated insert tasks" ON public.tasks
 FOR INSERT TO authenticated
-WITH CHECK (is_active_employee() AND (is_admin() OR has_section_permission('tasks')));
+WITH CHECK ((SELECT is_active_employee()) AND ((SELECT is_admin()) OR (SELECT has_section_permission('tasks'))));
 
 CREATE POLICY "Authenticated insert tickets" ON public.tickets
 FOR INSERT TO authenticated
-WITH CHECK (is_active_employee() AND (is_admin() OR has_section_permission('support')));
+WITH CHECK ((SELECT is_active_employee()) AND ((SELECT is_admin()) OR (SELECT has_section_permission('support'))));
 
 CREATE POLICY "Authenticated insert media" ON public.media_records
 FOR INSERT TO authenticated
-WITH CHECK (is_active_employee() AND (is_admin() OR has_section_permission('media')));
+WITH CHECK ((SELECT is_active_employee()) AND ((SELECT is_admin()) OR (SELECT has_section_permission('media'))));
 
 CREATE POLICY "Authorized update suppliers" ON public.suppliers
 FOR UPDATE TO authenticated
-USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('suppliers') AND (cardinality(access_supplier_types()) = 0 OR type = ANY(access_supplier_types())) AND (cardinality(access_supplier_cities()) = 0 OR city = ANY(access_supplier_cities())))))
-WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('suppliers') AND (cardinality(access_supplier_types()) = 0 OR type = ANY(access_supplier_types())) AND (cardinality(access_supplier_cities()) = 0 OR city = ANY(access_supplier_cities())))));
+USING (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('suppliers')) AND (cardinality((SELECT access_supplier_types())) = 0 OR type = ANY((SELECT access_supplier_types()))) AND (cardinality((SELECT access_supplier_cities())) = 0 OR city = ANY((SELECT access_supplier_cities()))))))
+WITH CHECK (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('suppliers')) AND (cardinality((SELECT access_supplier_types())) = 0 OR type = ANY((SELECT access_supplier_types()))) AND (cardinality((SELECT access_supplier_cities())) = 0 OR city = ANY((SELECT access_supplier_cities())))))
+  AND (domain_id = (SELECT current_domain_id()) OR (SELECT is_admin())) );
 
 CREATE POLICY "Authorized update buyers" ON public.buyers
 FOR UPDATE TO authenticated
-USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('buyers') AND (cardinality(access_buyer_types()) = 0 OR type = ANY(access_buyer_types())) AND (cardinality(access_buyer_cities()) = 0 OR city = ANY(access_buyer_cities())))))
-WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('buyers') AND (cardinality(access_buyer_types()) = 0 OR type = ANY(access_buyer_types())) AND (cardinality(access_buyer_cities()) = 0 OR city = ANY(access_buyer_cities())))));
+USING (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('buyers')) AND (cardinality((SELECT access_buyer_types())) = 0 OR type = ANY((SELECT access_buyer_types()))) AND (cardinality((SELECT access_buyer_cities())) = 0 OR city = ANY((SELECT access_buyer_cities()))))))
+WITH CHECK (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('buyers')) AND (cardinality((SELECT access_buyer_types())) = 0 OR type = ANY((SELECT access_buyer_types()))) AND (cardinality((SELECT access_buyer_cities())) = 0 OR city = ANY((SELECT access_buyer_cities())))))
+  AND (domain_id = (SELECT current_domain_id()) OR (SELECT is_admin())) );
 
 CREATE POLICY "Authorized update tasks" ON public.tasks
 FOR UPDATE TO authenticated
-USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('tasks'))))
-WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('tasks'))));
+USING (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('tasks')))))
+WITH CHECK (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('tasks')))));
 
 CREATE POLICY "Authorized update tickets" ON public.tickets
 FOR UPDATE TO authenticated
-USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('support') AND (cardinality(access_ticket_types()) = 0 OR type = ANY(access_ticket_types())))))
-WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('support') AND (cardinality(access_ticket_types()) = 0 OR type = ANY(access_ticket_types())))));
+USING (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('support')) AND (cardinality((SELECT access_ticket_types())) = 0 OR type = ANY((SELECT access_ticket_types()))))))
+WITH CHECK (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('support')) AND (cardinality((SELECT access_ticket_types())) = 0 OR type = ANY((SELECT access_ticket_types()))))));
 
 CREATE POLICY "Authorized update media_records" ON public.media_records
 FOR UPDATE TO authenticated
-USING (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('media'))))
-WITH CHECK (deleted_at IS NULL AND is_active_employee() AND (is_admin() OR (has_section_permission('media'))));
+USING (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('media')))))
+WITH CHECK (deleted_at IS NULL AND (SELECT is_active_employee()) AND ((SELECT is_admin()) OR ((SELECT has_section_permission('media')))));
 
 CREATE POLICY "Admin update settings" ON public.app_settings
 FOR UPDATE TO authenticated
-USING (is_active_employee() AND is_admin() AND id = 'global')
-WITH CHECK (is_active_employee() AND is_admin() AND id = 'global');
+USING ((SELECT is_active_employee()) AND (SELECT is_admin()) AND id = 'global')
+WITH CHECK ((SELECT is_active_employee()) AND (SELECT is_admin()) AND id = 'global');
 
 CREATE POLICY "Admin insert settings" ON public.app_settings
 FOR INSERT TO authenticated
-WITH CHECK (is_active_employee() AND is_admin() AND id = 'global');
+WITH CHECK ((SELECT is_active_employee()) AND (SELECT is_admin()) AND id = 'global');
 
 CREATE POLICY "Admin delete suppliers" ON public.suppliers
 FOR DELETE TO authenticated
-USING (is_active_employee() AND is_admin());
+USING ((SELECT is_active_employee()) AND (SELECT is_admin()));
 CREATE POLICY "Admin delete buyers" ON public.buyers
 FOR DELETE TO authenticated
-USING (is_active_employee() AND is_admin());
+USING ((SELECT is_active_employee()) AND (SELECT is_admin()));
 CREATE POLICY "Admin delete tasks" ON public.tasks
 FOR DELETE TO authenticated
-USING (is_active_employee() AND is_admin());
+USING ((SELECT is_active_employee()) AND (SELECT is_admin()));
 CREATE POLICY "Admin delete tickets" ON public.tickets
 FOR DELETE TO authenticated
-USING (is_active_employee() AND is_admin());
+USING ((SELECT is_active_employee()) AND (SELECT is_admin()));
 CREATE POLICY "Admin delete media" ON public.media_records
 FOR DELETE TO authenticated
-USING (is_active_employee() AND is_admin());
+USING ((SELECT is_active_employee()) AND (SELECT is_admin()));
 
 CREATE POLICY "Authenticated insert app_logs" ON public.app_logs
 FOR INSERT TO authenticated
@@ -745,7 +821,7 @@ WITH CHECK (auth.role() = 'authenticated');
 
 CREATE POLICY "Admin read app_logs" ON public.app_logs
 FOR SELECT TO authenticated
-USING (is_admin());
+USING ((SELECT is_admin()));
 
 -- ============================================================
 -- STORAGE: KNOWLEDGE BASE
@@ -778,19 +854,19 @@ CREATE POLICY "Auth delete lk-assets" ON storage.objects
 FOR DELETE TO authenticated
 USING (bucket_id = 'lk-assets');
 
-CREATE POLICY "Active employees read knowledge files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'knowledge' AND is_active_employee());
+CREATE POLICY "Active employees read knowledge files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'knowledge' AND (SELECT is_active_employee()));
 CREATE POLICY "Authenticated upload to knowledge" ON storage.objects
 FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'knowledge' AND is_active_employee());
+WITH CHECK (bucket_id = 'knowledge' AND (SELECT is_active_employee()));
 
 CREATE POLICY "Active employees update knowledge files" ON storage.objects
 FOR UPDATE TO authenticated
-USING (bucket_id = 'knowledge' AND is_active_employee())
-WITH CHECK (bucket_id = 'knowledge' AND is_active_employee());
+USING (bucket_id = 'knowledge' AND (SELECT is_active_employee()))
+WITH CHECK (bucket_id = 'knowledge' AND (SELECT is_active_employee()));
 
 CREATE POLICY "Admin delete knowledge files" ON storage.objects
 FOR DELETE TO authenticated
-USING (bucket_id = 'knowledge' AND is_active_employee() AND is_admin());
+USING (bucket_id = 'knowledge' AND (SELECT is_active_employee()) AND (SELECT is_admin()));
 
 -- ============================================================
 -- REALTIME

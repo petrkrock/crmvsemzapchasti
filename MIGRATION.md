@@ -1,3 +1,52 @@
+## v1.31.11 — Домены: изоляция (мультитенантность)
+
+- commerce.domains — таблица доменов-арендаторов (host UNIQUE, title/greeting/
+  banner, is_active); дефолт-домен с фиксированным UUID. Точечный GRANT SELECT.
+- suppliers.domain_id / buyers.domain_id: tenant-столбец, backfill в default,
+  NOT NULL БЕЗ DEFAULT (непропатченный INSERT падает — правка «явная ошибка»).
+- current_domain_id(): клейм JWT → NULL без молчаливого фолбэка (RLS не
+  пропускает); фолбэк на default — только admin (фаза 1).
+- RLS: 6 политик suppliers/buyers с условием домена (чужой домен невидим).
+- RPC get_supplier_with_domain(token) — поставщик + домен одной транзакцией;
+  edge function findSupplierByToken переключён на RPC; ответ содержит
+  lkDomain { host, title, greeting }; титул вкладки ЛК из домена.
+- Фронт: mappers domain_id обе стороны (fallback DEFAULT_DOMAIN_ID), типы,
+  константа; Настройки → меню категорий → вкладка «Домены» (CRUD).
+- pgTAP: supabase/tests/database/domains_test.sql (4 теста, ключевой —
+  «без клейма → 0 строк»).
+- Зафиксировано решение: денормализация domain_id в будущих offers/orders/
+  shipments (RLS без JOIN'ов).
+- Документация: docs/DOMAINS.md — полное описание механизма.
+
+Релизный SQL: docs/release_1.31.11.sql (⚠️ NOT NULL требует одновременную
+сборку фронта). Порядок: SQL → supplier-service → сборка → жёсткая перезагрузка.
+
+## v1.31.10 — ERP-фундамент: RLS (SELECT-обёртки), commerce-схема, CHECK внешних ID, pgTAP
+
+- Все 36 RLS-политик: вызовы is_admin()/is_active_employee()/has_section_permission()/
+  access_*() обёрнуты в (SELECT …) — вычисление один раз на запрос, а не на строку
+  (Supabase-рекомендация; критично для таблиц под миллион записей).
+- CREATE SCHEMA commerce + GRANT + комментарий-договор: parts/offers/orders/
+  shipments — только туда; CRM остаётся в public.*.
+- CHECK-констрейнты chk_suppliers_external / chk_buyers_external: external_id
+  без external_source запрещён (закрыта дыра уникальности uq_*_external).
+- Комментарий-контракт: app_settings не растёт (кроме users/forms/dbLogs).
+- pgTAP: supabase/tests/database/rls_test.sql (4 теста: неизменяемость id,
+  автогенерация public_id, запись в id_registry, CHECK external_source).
+  Запуск: supabase test db.
+
+Релизный SQL для прода: docs/release_1.31.10.sql (порядок: схема commerce →
+CHECK → DROP/CREATE 36 политик). Идемпотентен.
+
+UUIDv7: НЕ вводим — Supabase на PostgreSQL 15, uuidv7() появится только в PG 18.
+План: при апгрейде платформы заменить gen_random_uuid() → uuidv7() в default
+id и в клиентском generateId() (единая правка двух мест).
+
+Мёртвого кода в зоне правок не обнаружено (все функции schema.sql используются).
+
+Файлы: schema.sql, supabase/tests/database/rls_test.sql, docs/release_1.31.10.sql.
+Фронт не тронут. Деплой: release_1.31.10.sql на прод → (опционально) сборка.
+
 ## v1.31.9 — Лог синка: читаемый текст ошибок (вместо [object Object])
 
 Синк писал '[object Object]' для thrown-ошибок операций (String(reason) по
