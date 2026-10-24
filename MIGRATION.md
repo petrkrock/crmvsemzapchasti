@@ -1,3 +1,22 @@
+## v1.31.13 — Hotfix: восстановлены импорты (спред-использование) + typecheck
+
+**Причина:** в v1.31.12 сканер мёртвых импортов не видел использования через спред
+(`...NAME` — точка перед именем блокировала совпадение) и зря удалил 6 импортов.
+Симптом в браузере: `ReferenceError: EMPTY_ACCESS is not defined` — приложение не стартует.
+
+**Фронт:**
+1. `src/lib/store.ts` — восстановлены `EMPTY_ACCESS` (из '@/types'), `DEFAULT_TASK_TYPES`,
+   `DEFAULT_FORM_CONSENT` (из '@/constants'). Все используются спредом в `defaultAdmin`/миграциях.
+2. `src/pages/support/SupportPage.tsx`, `TicketCardPage.tsx` — восстановлен `TICKET_TYPES`
+   (используется как `[...TICKET_TYPES]`).
+3. Остальная чистка v1.31.12 перепроверена корректным методом — мёртвый код подтверждён, не тронут.
+4. `tsconfig.json`, `tsconfig.app.json` — `ignoreDeprecations: "6.0"` → `"5.0"`
+   (значение "6.0" валидно только для TS 6.x; проект на TS 5.5 — typecheck падал с TS5103).
+
+**Проверка:** `npm run typecheck` чисто → `npm run dev` → вход, создание поставщика/покупателя,
+Поддержка (список тикетов), Настройки → Домены.
+
+---
 ## v1.31.12 — Фиксы RLS (id_registry, public.domains) + чистка мёртвого кода
 
 **БД (`docs/release_1.31.12.sql` — выполнить ДО выкладки фронта):**
