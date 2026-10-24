@@ -1,3 +1,33 @@
+## v1.31.16 — Предразработка ERP: публичный ребрендинг CRM → ERP
+
+**index.html:** title, description, keywords, og:*, twitter:*, apple-mobile-web-app-title —
+все публичные названия переведены на ERP по постановке. **vite.config.ts:** PWA manifest
+(name/short_name/description) → «ВсемЗапчасти ERP» / «ВЗ ERP».
+
+**Страница входа (`LoginPage.tsx`):**
+- Логотип → новый `/public/logo-erp.png`; подпись «CRM система отдела продаж» → «Система управления платформой».
+- Удалены: заголовок «Вход в систему», подписи «Email (логин)»/«Пароль», плейсхолдер и
+  демо-блок с admin@vz.tech (вместе с ними мёртвые `showDemoHint` и импорт `isSupabaseConfigured`).
+
+**Шапка (`Header.tsx`):** логотип → `/logo-erp.png`.
+**ЛК поставщика (`SupplierServicePage.tsx`):** старый логотип `/logo.png` НЕ меняется — как заявлено.
+**Прочее:** комментарий в `public/embed.js`, `APP_VERSION` → 1.31.16.
+
+**Проверка:** сборка → вкладка/заголовок «ВсемЗапчасти ERP» → вход без подписей и подсказок,
+новый логотип на входе и в шапке → ЛК поставщика со старым логотипом.
+
+---
+
+## v1.31.15 — Гейт аудита: только production-зависимости
+
+**Изменение:** `.github/workflows/verify.yml` — `npm audit --audit-level=high` →
+`npm audit --audit-level=high --omit=dev`.
+
+**Почему:** все оставшиеся уязвимости — dev-тулчейн (esbuild dev-server, postcss-selector-parser,
+vite) — в продакшн-бандл не попадают, но блокировали релиз-гейт. high в production-зависимостях
+по-прежнему блокирует. Мажорные апгрейды (vite 8, react-router 7) — по-прежнему задача v1.32.x.
+
+---
 ## v1.31.14 — Закрытие уязвимостей high без мажорных апгрейдов
 
 **Причина:** CI-гейт `npm audit --audit-level=high` блокировал релиз; typecheck не запускался.

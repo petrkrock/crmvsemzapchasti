@@ -28,9 +28,10 @@ export default defineConfig({
       devOptions: { enabled: false },
       includeAssets: ["favicon.ico", "icons/apple-touch-icon.png"],
       manifest: {
-        name: "ВсемЗапчасти CRM",
-        short_name: "ВЗ CRM",
-        description: "CRM для управления поставщиками, покупателями, задачами, обращениями и медиаразмещениями",
+        // v1.31.16: публичные названия CRM → ERP
+        name: "ВсемЗапчасти ERP",
+        short_name: "ВЗ ERP",
+        description: "ERP-система управления платформой: поставщики, покупатели, задачи, обращения и медиаразмещения",
         id: "/",
         start_url: "/dashboard",
         scope: "/",
