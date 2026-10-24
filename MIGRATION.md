@@ -1,3 +1,21 @@
+## v1.31.14 — Закрытие уязвимостей high без мажорных апгрейдов
+
+**Причина:** CI-гейт `npm audit --audit-level=high` блокировал релиз; typecheck не запускался.
+Мажорные апгрейды (vite 8 / react-router 7 / tailwind) — отдельная задача (v1.32.x), тут только
+безопасные патчи через `overrides` в package.json (принудительная версия ВЛОЖЕННЫХ зависимостей,
+API-совместимые):
+
+- `source-map-js` → `^1.2.2` — high: event-loop DoS через source-map offsets (GHSA-68fv-2mgg-jv7q).
+- `serialize-javascript` → `^7.1.3` — XSS через `</script>` в сериализованных телах функций.
+- `fast-uri` → `^3.1.9` — спуфинг схемы/normalization URI.
+
+**Осталось (moderate, требуют мажорных апгрейдов — v1.32.x):** esbuild/vite (dev-server),
+postcss-selector-parser (CPU exhaustion), react-router (open redirect через backslash).
+
+**Проверка:** `rm -rf node_modules package-lock.json && npm install && npm audit` —
+high 0, gate зелёный. Затем `npm run typecheck` и `npm run build`.
+
+---
 ## v1.31.13 — Hotfix: восстановлены импорты (спред-использование) + typecheck
 
 **Причина:** в v1.31.12 сканер мёртвых импортов не видел использования через спред
