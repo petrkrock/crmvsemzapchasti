@@ -1,3 +1,28 @@
+## v1.31.12 — Фиксы RLS (id_registry, public.domains) + чистка мёртвого кода
+
+**БД (`docs/release_1.31.12.sql` — выполнить ДО выкладки фронта):**
+1. `id_registry`: 4 триггер-функции реестра (`trg_suppliers/buyers_id_registry_bi/bd`) → `SECURITY DEFINER`.
+   Симптом: «new row violates row-level security policy for table id_registry» (42501) —
+   менеджер не мог создать/удалить поставщика/покупателя: RLS реестра SELECT-only для admin,
+   а триггер писал с правами вызывающего. Логика триггеров не изменена.
+2. Домены: прокси-вью `public.domains` (security_invoker) поверх `commerce.domains` + grants.
+   Симптом: «Не удалось найти таблицу 'public.domains' в кэше схем» — фронт шлёт FROM 'domains'
+   без схемы, PostgREST ищет в public. Плюс RLS `domains_admin_all` на commerce.domains
+   (CRUD доменов только для admin; политика после определения is_admin()).
+3. `supabase/schema.sql` синхронизирован (всё то же для новых установок).
+
+**Код (фронт):**
+4. Удалены мёртвые экспорты: `DEFAULT_SUPPLIER_TYPES`, `DEFAULT_BUYER_TYPES` (constants),
+   `useSyncLog()`, `recentSyncErrorCount()` (store), `SupplierScoring` (types).
+5. Удалены 41 мёртвый импорт в 12 файлах (recharts из AnalyticsPage, иконки lucide, константы).
+   Алиасы `supabaseSignIn/supabaseSignOut` (auth.ts) и `LinkIcon` (KnowledgePage) — НЕ тронуты
+   (используются).
+
+**Проверка после выкладки:** менеджер создаёт поставщика и покупателя (без 42501) → удаляет →
+Настройки → Домены открываются/добавляются → ЛК поставщика `/s/<token>` работает.
+
+---
+
 ## v1.31.11 — Домены: изоляция (мультитенантность)
 
 - commerce.domains — таблица доменов-арендаторов (host UNIQUE, title/greeting/

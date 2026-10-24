@@ -260,6 +260,17 @@ COMMENT ON TABLE commerce.domains IS 'Домены-арендаторы. Деф�
 -- Только domains открыта из commerce (временно, до появления торгового домена)
 GRANT SELECT ON commerce.domains TO authenticated;
 
+-- v1.31.12: прокси-вью для PostgREST — фронт шлёт FROM 'domains' без схемы, а схема commerce
+-- в exposed-список не входит («таблица public.domains не найдена в кэше схем»).
+-- security_invoker = права вызывающего на базовой таблице (RLS domains_admin_all ниже).
+CREATE OR REPLACE VIEW public.domains WITH (security_invoker = on) AS
+  SELECT * FROM commerce.domains;
+GRANT SELECT, INSERT, UPDATE ON public.domains TO authenticated;
+
+-- CRUD доменов — только admin. Политика ниже, после определения is_admin().
+ALTER TABLE commerce.domains ENABLE ROW LEVEL SECURITY;
+GRANT INSERT, UPDATE ON commerce.domains TO authenticated;
+
 -- Тенант-столбцы. БЕЗ DEFAULT: INSERT без domain_id падает — непропатченный код виден сразу.
 ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS domain_id UUID REFERENCES commerce.domains(id);
 ALTER TABLE buyers    ADD COLUMN IF NOT EXISTS domain_id UUID REFERENCES commerce.domains(id);
@@ -325,20 +336,22 @@ CREATE INDEX IF NOT EXISTS idx_id_registry_entity ON id_registry(entity_type, en
 CREATE UNIQUE INDEX IF NOT EXISTS uq_suppliers_external ON suppliers(external_source, external_id) WHERE external_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_buyers_external ON buyers(external_source, external_id) WHERE external_id IS NOT NULL;
 
+-- v1.31.12: SECURITY DEFINER — запись в реестр с правами владельца, иначе RLS id_registry
+-- (SELECT-only для admin) блокирует INSERT/UPDATE от имени менеджера (42501).
 CREATE OR REPLACE FUNCTION trg_suppliers_id_registry_bi() RETURNS trigger AS $$
 BEGIN
   INSERT INTO id_registry (id, entity_type, entity_id, issued_by)
   VALUES (NEW.id, 'supplier', NEW.id, COALESCE(current_setting('request.jwt.claims', true)::jsonb ->> 'sub', 'system'))
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION trg_buyers_id_registry_bi() RETURNS trigger AS $$
 BEGIN
   INSERT INTO id_registry (id, entity_type, entity_id, issued_by)
   VALUES (NEW.id, 'buyer', NEW.id, COALESCE(current_setting('request.jwt.claims', true)::jsonb ->> 'sub', 'system'))
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION trg_suppliers_id_immutable() RETURNS trigger AS $$
 BEGIN
   IF NEW.id IS DISTINCT FROM OLD.id THEN RAISE EXCEPTION 'ID поставщика неизменен (id immutable)'; END IF;
@@ -349,16 +362,17 @@ BEGIN
   IF NEW.id IS DISTINCT FROM OLD.id THEN RAISE EXCEPTION 'ID покупателя неизменен (id immutable)'; END IF;
   RETURN NEW;
 END; $$ LANGUAGE plpgsql;
+-- v1.31.12: SECURITY DEFINER — см. комментарий к trg_*_id_registry_bi.
 CREATE OR REPLACE FUNCTION trg_suppliers_id_registry_bd() RETURNS trigger AS $$
 BEGIN
   UPDATE id_registry SET metadata = metadata || jsonb_build_object('deleted_at', now()) WHERE id = OLD.id;
   RETURN OLD;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION trg_buyers_id_registry_bd() RETURNS trigger AS $$
 BEGIN
   UPDATE id_registry SET metadata = metadata || jsonb_build_object('deleted_at', now()) WHERE id = OLD.id;
   RETURN OLD;
-END; $$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS suppliers_id_registry_bi ON suppliers;
 CREATE TRIGGER suppliers_id_registry_bi BEFORE INSERT ON suppliers FOR EACH ROW EXECUTE FUNCTION trg_suppliers_id_registry_bi();
@@ -426,6 +440,11 @@ AS $$
     WHERE id = auth.uid() AND role = 'admin'
   );
 $$;
+
+-- v1.31.12: CRUD доменов — только admin (см. прокси-вью public.domains выше).
+DROP POLICY IF EXISTS domains_admin_all ON commerce.domains;
+CREATE POLICY domains_admin_all ON commerce.domains FOR ALL TO authenticated
+  USING ((SELECT public.is_admin())) WITH CHECK ((SELECT public.is_admin()));
 
 CREATE OR REPLACE FUNCTION public.is_active_employee()
 RETURNS BOOLEAN
