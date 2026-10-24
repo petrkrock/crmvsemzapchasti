@@ -5,7 +5,7 @@ import { generateId, formatDate } from '@/lib/utils';
 import { getCurrentUser, canDelete, canSeeTicket } from '@/lib/auth';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import type { DbLog, HistoryEntry, Task, Ticket } from '@/types';
-import {TICKET_STATUSES, TICKET_STATUS_COLORS} from '@/constants';
+import {TICKET_STATUSES, TICKET_STATUS_COLORS, TICKET_TYPES} from '@/constants';
 import { FileDown, Plus, Trash2, Search, X, Calendar, History, CheckCircle2, CircleSlash, User, Send, Archive, Edit2, Store, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import ContactPrefIcon from '@/components/features/ContactPrefIcons';

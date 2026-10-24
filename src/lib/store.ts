@@ -20,7 +20,9 @@ import type {Supplier,
   KnowledgeCategory,
   KnowledgeItem} from '@/types';
 import { useEffect, useState } from 'react';
-import {DEFAULT_STATUSES, DEFAULT_LEAD_STATUSES, DEFAULT_TASK_ENTITY_TYPES, SYSTEM_TASK_TYPE, CONTACT_PREFS, DEFAULT_SUPPLIER_GREETING, DEFAULT_FORM_CONFIGS} from '@/constants';
+import {DEFAULT_STATUSES, DEFAULT_LEAD_STATUSES, DEFAULT_TASK_ENTITY_TYPES, SYSTEM_TASK_TYPE, CONTACT_PREFS, DEFAULT_SUPPLIER_GREETING, DEFAULT_FORM_CONFIGS, DEFAULT_TASK_TYPES, DEFAULT_FORM_CONSENT} from '@/constants';
+// v1.31.13: EMPTY_ACCESS восстановлен — используется спредом (...EMPTY_ACCESS), сканер v1.31.12 его не видел.
+import { EMPTY_ACCESS } from '@/types';
 import { generateId } from './utils';
 import {isSupabaseConfigured,
   pullRemoteSnapshot,

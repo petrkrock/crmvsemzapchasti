@@ -6,7 +6,7 @@ import { getCurrentUser } from '@/lib/auth';
 import HistoryTab from '@/components/features/HistoryTab';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import type { HistoryEntry, Task, Ticket } from '@/types';
-import {TICKET_STATUSES, TICKET_STATUS_COLORS} from '@/constants';
+import {TICKET_STATUSES, TICKET_STATUS_COLORS, TICKET_TYPES} from '@/constants';
 import { ArrowLeft, CheckCircle2, CircleSlash, Send, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ContactPrefIcon from '@/components/features/ContactPrefIcons';
