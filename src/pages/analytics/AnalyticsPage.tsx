@@ -6,8 +6,7 @@ import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/utils';
 import MarketVolumeTab from './MarketVolumeTab';
 import { canExport } from '@/lib/auth';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { X, Calendar, Download, Building, Users, Package, Hash, Star, Video, BarChart2 } from 'lucide-react';
+import {X, Download, Building, Users, Package, Hash, Video, BarChart2} from 'lucide-react';
 import { COMPANY_SCORE_COLORS } from '@/constants';
 
 // Склады/SKU считаются из warehouseLocations (полей warehouseCount/skuCount у поставщика нет)

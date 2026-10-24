@@ -16,7 +16,7 @@ import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import StatusBadge from '@/components/features/StatusBadge';
 import ImportModal from '@/components/features/ImportModal';
 import type { Buyer, Task } from '@/types';
-import { ROLE_TYPES, CONTACT_PREFS, SYSTEM_TASK_TYPE, COMPANY_SCORE_COLORS } from '@/constants';
+import {ROLE_TYPES, SYSTEM_TASK_TYPE, COMPANY_SCORE_COLORS} from '@/constants';
 import { Play, Plus, Download, Upload, Trash2, RotateCcw, Search, X, Edit2, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import ContactPrefIcon from '@/components/features/ContactPrefIcons';

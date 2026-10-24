@@ -9,7 +9,7 @@ import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import StatusBadge from '@/components/features/StatusBadge';
 import ImportModal from '@/components/features/ImportModal';
 import type { Supplier, Task } from '@/types';
-import { ROLE_TYPES, CONTACT_PREFS, COMPANY_SCORE_COLORS, SYSTEM_TASK_TYPE } from '@/constants';
+import {ROLE_TYPES, COMPANY_SCORE_COLORS, SYSTEM_TASK_TYPE} from '@/constants';
 import { Play, Plus, Download, Upload, Trash2, RotateCcw, Search, X, Edit2, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import TagInput from '@/components/features/TagInput';

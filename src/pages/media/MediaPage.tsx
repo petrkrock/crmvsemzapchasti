@@ -6,7 +6,7 @@ import { isAdmin, canSeeMedia, getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import type { MediaRecord, MediaDurationOption, MarketNewsItem } from '@/types';
-import { Plus, Search, X, Edit2, Trash2, AlertTriangle, Clock, ChevronDown, ChevronUp, FileText, Save, History } from 'lucide-react';
+import {Plus, Search, X, Edit2, Trash2, AlertTriangle, Clock, ChevronDown, ChevronUp, Save, History} from 'lucide-react';
 import { toast } from 'sonner';
 
 function isEndingSoon(endDate: string): boolean {

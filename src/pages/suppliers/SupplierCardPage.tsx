@@ -18,7 +18,7 @@ import RequisitesTab from '@/components/features/RequisitesTab';
 import TagInput from '@/components/features/TagInput';
 import CitySelect from '@/components/features/CitySelect';
 import type { Supplier, ServiceSearchCondition, ScoreData, RequisitesData, Task, WarehouseLocation, WarehouseStatus, HistoryEntry } from '@/types';
-import { ROLE_TYPES, CONTACT_PREFS, SYSTEM_TASK_TYPE, DEFAULT_SUPPLIER_GREETING, DEFAULT_TASK_TYPES, DEFAULT_DELIVERY_GREETING } from '@/constants';
+import {ROLE_TYPES, SYSTEM_TASK_TYPE, DEFAULT_SUPPLIER_GREETING, DEFAULT_TASK_TYPES} from '@/constants';
 import { ArrowLeft, Save, Edit2, X, Plus, Trash2, Calendar, CheckCircle, Link2, Copy, RotateCcw, Pencil, ChevronDown } from 'lucide-react';
 import ResponsibleSelect from '@/components/features/ResponsibleSelect';
 import { toast } from 'sonner';

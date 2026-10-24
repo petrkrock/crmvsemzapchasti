@@ -1,22 +1,45 @@
-import type {
-  Supplier, Buyer, Task, Ticket, AppSettings, AppUser, HistoryEntry, FormConfig, FormConsentConfig, SyncLogEntry,
-  ProductGroup, Source, PlanCity, PlanFactEntry, SupplierService, UserAccess,
+import type {Supplier,
+  Buyer,
+  Task,
+  Ticket,
+  AppSettings,
+  AppUser,
+  HistoryEntry,
+  FormConfig,
+  FormConsentConfig,
+  SyncLogEntry,
+  ProductGroup,
+  Source,
+  PlanCity,
+  PlanFactEntry,
+  SupplierService,
   DEFAULT_LEAD_STATUSES,
-  MediaAdType, MediaStatus, MediaRecord, KnowledgeCategory, KnowledgeItem,
-} from '@/types';
-import { EMPTY_ACCESS } from '@/types';
+  MediaAdType,
+  MediaStatus,
+  MediaRecord,
+  KnowledgeCategory,
+  KnowledgeItem} from '@/types';
 import { useEffect, useState } from 'react';
-import { DEFAULT_STATUSES, DEFAULT_LEAD_STATUSES, DEFAULT_TASK_ENTITY_TYPES, DEFAULT_TASK_TYPES, SYSTEM_TASK_TYPE, CONTACT_PREFS, DEFAULT_SUPPLIER_GREETING, DEFAULT_FORM_CONFIGS, DEFAULT_FORM_CONSENT } from '@/constants';
+import {DEFAULT_STATUSES, DEFAULT_LEAD_STATUSES, DEFAULT_TASK_ENTITY_TYPES, SYSTEM_TASK_TYPE, CONTACT_PREFS, DEFAULT_SUPPLIER_GREETING, DEFAULT_FORM_CONFIGS} from '@/constants';
 import { generateId } from './utils';
-import {
-  isSupabaseConfigured, pullRemoteSnapshot, saveSettings,
-  createSupplier, updateSupplier, deleteSupplier,
-  createBuyer, updateBuyer, deleteBuyer,
-  createTask, updateTask, deleteTask,
-  createTicket, updateTicket, deleteTicket,
-  createMediaRecord, updateMediaRecord, deleteMediaRecord,
-  type RemoteSnapshot,
-} from './supabase';
+import {isSupabaseConfigured,
+  pullRemoteSnapshot,
+  saveSettings,
+  createSupplier,
+  updateSupplier,
+  deleteSupplier,
+  createBuyer,
+  updateBuyer,
+  deleteBuyer,
+  createTask,
+  updateTask,
+  deleteTask,
+  createTicket,
+  updateTicket,
+  deleteTicket,
+  createMediaRecord,
+  updateMediaRecord,
+  deleteMediaRecord} from './supabase';
 
 const STORE_KEY = 'vz_crm_data';
 
@@ -39,20 +62,7 @@ export function clearSyncLog(): void {
   try { localStorage.setItem(SYNC_LOG_KEY, '[]'); localStorage.setItem(SYNC_ERRORS_KEY, '[]'); } catch { /* noop */ }
   syncLogListeners.forEach(f => f());
 }
-export function useSyncLog(): SyncLogEntry[] {
-  const [v, setV] = useState<SyncLogEntry[]>(syncLogEntries);
-  useEffect(() => {
-    const f = () => setV([...syncLogEntries]);
-    syncLogListeners.add(f);
-    return () => { syncLogListeners.delete(f); };
-  }, []);
-  return v;
-}
-/** Кол-во ошибок синка за последние N минут (для индикатора). */
-export function recentSyncErrorCount(minutes = 15): number {
-  const cutoff = Date.now() - minutes * 60 * 1000;
-  return syncLogEntries.filter(e => e.status === 'error' && new Date(e.ts).getTime() >= cutoff).length;
-}
+// v1.31.12: убраны useSyncLog() и recentSyncErrorCount() — нигде не использовались.
 function logSync(e: Omit<SyncLogEntry, 'id' | 'ts'>): void {
   const entry: SyncLogEntry = { ...e, id: generateId(), ts: new Date().toISOString() };
   syncLogEntries.push(entry);

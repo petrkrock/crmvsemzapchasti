@@ -292,9 +292,7 @@ export interface TaskEntityType {
   label: string;
 }
 
-/** Этап 1.8 — данные скоринга (алиас ScoreData) */
-export type SupplierScoring = ScoreData;
-
+// v1.31.12: убран алиас SupplierScoring — использовался ScoreData напрямую.
 export interface Supplier {
   id: string;
   type: SupplierType;

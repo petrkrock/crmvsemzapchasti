@@ -4,13 +4,13 @@ import { generateId } from '@/lib/utils';
 import { isAdmin, getCurrentUser } from '@/lib/auth';
 import { createManagerAccount, updateManagerAccount, isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
-import type { AppUser, UserAccess, UserStatus, ProductGroup, Source, PlanCity, TaskEntityType, StatusConfig, SupplierService, MediaAdType, MediaDurationOption, MediaStatus, PublicFormEntityType, FormFieldConfig, FormConfig } from '@/types';
+import type {AppUser, UserAccess, UserStatus, ProductGroup, Source, TaskEntityType, StatusConfig, SupplierService, MediaAdType, MediaDurationOption, MediaStatus, PublicFormEntityType, FormFieldConfig, FormConfig} from '@/types';
 import { EMPTY_ACCESS } from '@/types';
-import { MEDIA_SYSTEM_STATUSES, DEFAULT_STATUSES, FORM_FIELD_DEFINITIONS, DEFAULT_FORM_CONSENT, SYSTEM_TASK_TYPE, SYSTEM_SUPPLIER_STATUSES, SYSTEM_TASK_STATUSES, SYSTEM_TASK_TYPES, SYSTEM_TICKET_TYPES, SYSTEM_LEAD_STATUSES, TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_SUPPLIER_GREETING, DEFAULT_DELIVERY_GREETING, TICKET_STATUSES, TICKET_STATUS_COLORS } from '@/constants';
+import {MEDIA_SYSTEM_STATUSES, DEFAULT_STATUSES, FORM_FIELD_DEFINITIONS, DEFAULT_FORM_CONSENT, SYSTEM_SUPPLIER_STATUSES, SYSTEM_TASK_STATUSES, SYSTEM_TASK_TYPES, SYSTEM_TICKET_TYPES, SYSTEM_LEAD_STATUSES, TASK_STATUSES, TASK_STATUS_COLORS, DEFAULT_SUPPLIER_GREETING, TICKET_STATUSES, TICKET_STATUS_COLORS} from '@/constants';
 
 // ТЗ 1.8: полный список системных статусов (редактирование/удаление запрещены)
 const ALL_SYSTEM_STATUSES = ['Активный', 'Новый с сайта', 'Лид CRM', 'Переговоры', 'Приветствие', 'Проблемный', 'Настройка прайса', 'Архив дублей', 'АРХИВ', 'Лид'];
-import { Plus, Save, Trash2, X, Edit2,  Users, CheckCircle2, XCircle, Settings2, Package, Megaphone, MapPin, List, Tag, Video, FileEdit, Copy, ExternalLink , Pencil, Check, Ban, UserX } from 'lucide-react';
+import {Plus, Save, Trash2, X, Edit2, Users, CheckCircle2, XCircle, Settings2, Package, Megaphone, MapPin, List, Tag, Video, FileEdit, Copy, ExternalLink, Ban, UserX} from 'lucide-react';
 import { toast } from 'sonner';
 
 const SETTINGS_TABS = ['Статусы', 'Сервисы', 'Пользователи', 'Уведомления', 'Типы и города', 'Кнопки', 'Товары', 'Источники', 'Задачи', 'Медиа', 'Формы', 'ЛК Поставщик', 'Договора и оферты', 'API']; // v1.29.0: переименование вкладок

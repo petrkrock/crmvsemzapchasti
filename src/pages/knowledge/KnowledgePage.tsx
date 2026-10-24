@@ -3,12 +3,26 @@ import { getStore, updateStore, useStoreVersion } from '@/lib/store';
 import { generateId, formatDate } from '@/lib/utils';
 import { getCurrentUser, isAdmin, canSeeKnowledge } from '@/lib/auth';
 import { isSupabaseConfigured, uploadKnowledgeFile } from '@/lib/supabase';
-import type { KnowledgeItem, KnowledgeCategory, KnowledgeItemType, KnowledgeComment } from '@/types';
-import {
-  Plus, Search, X, Edit2, Trash2, FileText, Link as LinkIcon,
-  StickyNote, Download, MessageSquare, Send, ChevronDown, ChevronUp,
-  BookOpen, FolderOpen, Tag, Save, Upload, Loader2,
-} from 'lucide-react';
+import type {KnowledgeItem, KnowledgeItemType, KnowledgeComment} from '@/types';
+import {Plus,
+  Search,
+  X,
+  Edit2,
+  Trash2,
+  FileText,
+  Link as LinkIcon,
+  StickyNote,
+  Download,
+  MessageSquare,
+  Send,
+  ChevronDown,
+  ChevronUp,
+  BookOpen,
+  FolderOpen,
+  Tag,
+  Save,
+  Upload,
+  Loader2} from 'lucide-react';
 import { toast } from 'sonner';
 
 const TYPE_ICONS: Record<KnowledgeItemType, React.ElementType> = {

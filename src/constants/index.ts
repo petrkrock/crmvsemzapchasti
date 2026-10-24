@@ -1,4 +1,4 @@
-import type { StatusConfig, FormConfig, FormConsentConfig } from '@/types';
+import type {FormConfig, FormConsentConfig} from '@/types';
 
 /** Системные статусы базы лидов — нельзя переименовать/удалить в Настройках */
 export const SYSTEM_LEAD_STATUSES = ['ЛИД', 'Рассылка', 'Обзвон', 'Отписался', 'Архив дублей', 'АРХИВ'];
@@ -28,8 +28,7 @@ export const DEFAULT_STATUSES: StatusColor[] = [
   { id: 'archive',     name: 'АРХИВ',               color: '#374151', order: 7, entityTypes: ['supplier', 'buyer'] },
 ];
 
-export const DEFAULT_SUPPLIER_TYPES = ['Поставщик/склад', 'Производитель/бренд'] as const;
-export const DEFAULT_BUYER_TYPES = ['магазин', 'СТО', 'организация'] as const;
+// v1.31.12: убраны DEFAULT_SUPPLIER_TYPES / DEFAULT_BUYER_TYPES — нигде не использовались.
 export const ROLE_TYPES = ['директор', 'менеджер', 'собственник', 'РОП', 'ТП'] as const;
 export const CONTACT_PREFS = ['почта', 'телефон', 'MAX'] as const;
 /** Типы обращений (Поддержка). Системные защищены от удаления в Настройках. */
